@@ -36,6 +36,11 @@ type OAuthHandler struct {
 	oauthService *service.OAuthService
 }
 
+type accountTester interface {
+	TestAccountConnection(c *gin.Context, accountID int64, modelID string, prompt string) error
+	RunTestBackground(ctx context.Context, accountID int64, modelID string) (*service.ScheduledTestResult, error)
+}
+
 // NewOAuthHandler creates a new OAuth handler
 func NewOAuthHandler(oauthService *service.OAuthService) *OAuthHandler {
 	return &OAuthHandler{
@@ -52,7 +57,7 @@ type AccountHandler struct {
 	antigravityOAuthService *service.AntigravityOAuthService
 	rateLimitService        *service.RateLimitService
 	accountUsageService     *service.AccountUsageService
-	accountTestService      *service.AccountTestService
+	accountTestService      accountTester
 	concurrencyService      *service.ConcurrencyService
 	crsSyncService          *service.CRSSyncService
 	sessionLimitCache       service.SessionLimitCache
@@ -654,6 +659,32 @@ type TestAccountRequest struct {
 	Prompt  string `json:"prompt"`
 }
 
+type BatchHealthCheckRequest struct {
+	AccountIDs []int64 `json:"account_ids" binding:"required,min=1"`
+	ModelID    string  `json:"model_id"`
+}
+
+type BatchHealthCheckItem struct {
+	AccountID    int64  `json:"account_id"`
+	Name         string `json:"name"`
+	Platform     string `json:"platform"`
+	Type         string `json:"type"`
+	Success      bool   `json:"success"`
+	Status       string `json:"status"`
+	ModelID      string `json:"model_id,omitempty"`
+	LatencyMs    int64  `json:"latency_ms,omitempty"`
+	ResponseText string `json:"response_text,omitempty"`
+	ErrorMessage string `json:"error_message,omitempty"`
+	Recovered    bool   `json:"recovered,omitempty"`
+}
+
+type BatchHealthCheckResponse struct {
+	Items        []BatchHealthCheckItem `json:"items"`
+	Total        int                    `json:"total"`
+	SuccessCount int                    `json:"success_count"`
+	FailedCount  int                    `json:"failed_count"`
+}
+
 type SyncFromCRSRequest struct {
 	BaseURL            string   `json:"base_url" binding:"required"`
 	Username           string   `json:"username" binding:"required"`
@@ -692,6 +723,117 @@ func (h *AccountHandler) Test(c *gin.Context) {
 			_ = c.Error(err)
 		}
 	}
+}
+
+// BatchHealthCheck handles running a structured background health check for
+// multiple accounts in one request.
+// POST /api/v1/admin/accounts/batch-health-check
+func (h *AccountHandler) BatchHealthCheck(c *gin.Context) {
+	if h.accountTestService == nil {
+		response.Error(c, http.StatusServiceUnavailable, "Account test service unavailable")
+		return
+	}
+
+	var req BatchHealthCheckRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+
+	accountIDs := normalizeInt64IDList(req.AccountIDs)
+	if len(accountIDs) == 0 {
+		response.BadRequest(c, "At least one valid account ID is required")
+		return
+	}
+
+	accounts, err := h.adminService.GetAccountsByIDs(c.Request.Context(), accountIDs)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	if len(accounts) == 0 {
+		response.BadRequest(c, "No accounts matched the request")
+		return
+	}
+
+	items := make([]BatchHealthCheckItem, len(accounts))
+	modelID := strings.TrimSpace(req.ModelID)
+	group, ctx := errgroup.WithContext(c.Request.Context())
+	group.SetLimit(4)
+
+	for idx, account := range accounts {
+		idx := idx
+		account := account
+		group.Go(func() error {
+			if account == nil {
+				items[idx] = BatchHealthCheckItem{
+					Status:       "failed",
+					Success:      false,
+					ErrorMessage: "account not found",
+				}
+				return nil
+			}
+
+			item := BatchHealthCheckItem{
+				AccountID: account.ID,
+				Name:      account.Name,
+				Platform:  account.Platform,
+				Type:      account.Type,
+				Status:    "failed",
+				ModelID:   modelID,
+			}
+
+			testResult, testErr := h.accountTestService.RunTestBackground(ctx, account.ID, modelID)
+			if testResult != nil {
+				item.LatencyMs = testResult.LatencyMs
+				item.ResponseText = strings.TrimSpace(testResult.ResponseText)
+				if item.ModelID == "" {
+					item.ModelID = modelID
+				}
+				if testResult.Status == "success" && strings.TrimSpace(testResult.ErrorMessage) == "" {
+					item.Success = true
+					item.Status = "success"
+				}
+				if strings.TrimSpace(testResult.ErrorMessage) != "" {
+					item.ErrorMessage = strings.TrimSpace(testResult.ErrorMessage)
+				}
+			}
+
+			if testErr != nil && item.ErrorMessage == "" {
+				item.ErrorMessage = strings.TrimSpace(testErr.Error())
+			}
+			if item.Success && h.rateLimitService != nil {
+				if recovery, err := h.rateLimitService.RecoverAccountAfterSuccessfulTest(ctx, account.ID); err == nil && recovery != nil {
+					item.Recovered = recovery.ClearedError || recovery.ClearedRateLimit
+				}
+			}
+			if !item.Success && item.ErrorMessage == "" {
+				item.ErrorMessage = "test failed"
+			}
+
+			items[idx] = item
+			return nil
+		})
+	}
+
+	if err := group.Wait(); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	resp := BatchHealthCheckResponse{
+		Items: items,
+		Total: len(items),
+	}
+	for _, item := range items {
+		if item.Success {
+			resp.SuccessCount++
+		} else {
+			resp.FailedCount++
+		}
+	}
+
+	response.Success(c, resp)
 }
 
 // RecoverState handles unified recovery of recoverable account runtime state.

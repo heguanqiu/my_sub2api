@@ -192,6 +192,41 @@ export async function testAccount(id: number): Promise<{
   return data
 }
 
+export interface BatchHealthCheckItem {
+  account_id: number
+  name: string
+  platform: string
+  type: string
+  success: boolean
+  status: 'success' | 'failed'
+  model_id?: string
+  latency_ms?: number
+  response_text?: string
+  error_message?: string
+  recovered?: boolean
+}
+
+export interface BatchHealthCheckResponse {
+  items: BatchHealthCheckItem[]
+  total: number
+  success_count: number
+  failed_count: number
+}
+
+export async function batchHealthCheck(payload: {
+  account_ids: number[]
+  model_id?: string
+}): Promise<BatchHealthCheckResponse> {
+  const { data } = await apiClient.post<BatchHealthCheckResponse>(
+    '/admin/accounts/batch-health-check',
+    payload,
+    {
+      timeout: 300000
+    }
+  )
+  return data
+}
+
 /**
  * Refresh account credentials
  * @param id - Account ID
@@ -637,6 +672,7 @@ export const accountsAPI = {
   delete: deleteAccount,
   toggleStatus,
   testAccount,
+  batchHealthCheck,
   refreshCredentials,
   getStats,
   clearError,
