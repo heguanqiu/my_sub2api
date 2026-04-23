@@ -29,6 +29,7 @@
                 :options="[
                   { value: '', label: t('admin.users.allRoles') },
                   { value: 'admin', label: t('admin.users.admin') },
+                  { value: 'sales', label: t('admin.users.sales') },
                   { value: 'user', label: t('admin.users.user') }
                 ]"
                 @change="applyFilter"
@@ -293,7 +294,7 @@
           </template>
 
           <template #cell-role="{ value }">
-            <span :class="['badge', value === 'admin' ? 'badge-purple' : 'badge-gray']">
+            <span :class="['badge', value === 'admin' ? 'badge-purple' : value === 'sales' ? 'badge-warning' : 'badge-gray']">
               {{ t('admin.users.roles.' + value) }}
             </span>
           </template>
@@ -589,6 +590,24 @@
                 {{ t('admin.users.balanceHistory') }}
               </button>
 
+              <button
+                v-if="user.role !== 'admin'"
+                @click="openChangeInviterDialog(user); closeActionMenu()"
+                class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+              >
+                <Icon name="users" size="sm" class="text-gray-400" :stroke-width="2" />
+                邀请归属迁移
+              </button>
+
+              <button
+                v-if="user.role !== 'admin'"
+                @click="openSalesMigrationDialog(user); closeActionMenu()"
+                class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+              >
+                <Icon name="refresh" size="sm" class="text-gray-400" :stroke-width="2" />
+                销售归属迁移
+              </button>
+
               <div class="my-1 border-t border-gray-100 dark:border-dark-700"></div>
 
               <!-- Delete (not for admin) -->
@@ -615,6 +634,34 @@
     <UserBalanceHistoryModal :show="showBalanceHistoryModal" :user="balanceHistoryUser" @close="closeBalanceHistoryModal" @deposit="handleDepositFromHistory" @withdraw="handleWithdrawFromHistory" />
     <GroupReplaceModal :show="showGroupReplaceModal" :user="groupReplaceUser" :old-group="groupReplaceOldGroup" :all-groups="allGroups" @close="closeGroupReplaceModal" @success="loadUsers" />
     <UserAttributesConfigModal :show="showAttributesModal" @close="handleAttributesModalClose" />
+    <BaseDialog :show="showChangeInviterDialog" title="邀请归属迁移" width="narrow" @close="closeChangeInviterDialog">
+      <div class="space-y-4">
+        <p class="text-sm text-gray-500">输入新的直属邀请人用户 ID，留空表示清空直属邀请人。</p>
+        <input v-model="newInviterUserIdInput" class="input" type="number" min="1" placeholder="新邀请人用户 ID" />
+      </div>
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <button class="btn btn-secondary" @click="closeChangeInviterDialog">{{ t('common.cancel') }}</button>
+          <button class="btn btn-primary" @click="submitChangeInviter">提交</button>
+        </div>
+      </template>
+    </BaseDialog>
+    <BaseDialog :show="showSalesMigrationDialog" title="销售归属迁移" width="narrow" @close="closeSalesMigrationDialog">
+      <div class="space-y-4">
+        <p class="text-sm text-gray-500">输入目标销售用户 ID，可先预览受影响人数，再执行迁移。</p>
+        <input v-model="targetSalesUserIdInput" class="input" type="number" min="1" placeholder="目标销售用户 ID" />
+        <div v-if="salesMigrationPreviewCount !== null" class="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-600 dark:bg-dark-800 dark:text-gray-300">
+          预计影响 {{ salesMigrationPreviewCount }} 个用户
+        </div>
+      </div>
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <button class="btn btn-secondary" @click="closeSalesMigrationDialog">{{ t('common.cancel') }}</button>
+          <button class="btn btn-secondary" @click="previewSalesMigration">预览</button>
+          <button class="btn btn-primary" @click="submitSalesMigration">执行迁移</button>
+        </div>
+      </template>
+    </BaseDialog>
   </AppLayout>
 </template>
 
@@ -636,6 +683,7 @@ import TablePageLayout from '@/components/layout/TablePageLayout.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+import BaseDialog from '@/components/common/BaseDialog.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import GroupBadge from '@/components/common/GroupBadge.vue'
 import Select from '@/components/common/Select.vue'
@@ -1124,6 +1172,13 @@ const balanceOperation = ref<'add' | 'subtract'>('add')
 // Balance History modal state
 const showBalanceHistoryModal = ref(false)
 const balanceHistoryUser = ref<AdminUser | null>(null)
+const showChangeInviterDialog = ref(false)
+const changeInviterUser = ref<AdminUser | null>(null)
+const newInviterUserIdInput = ref('')
+const showSalesMigrationDialog = ref(false)
+const salesMigrationUser = ref<AdminUser | null>(null)
+const targetSalesUserIdInput = ref('')
+const salesMigrationPreviewCount = ref<number | null>(null)
 
 // 计算剩余天数
 const getDaysRemaining = (expiresAt: string): number => {
@@ -1388,6 +1443,67 @@ const handleBalanceHistory = (user: AdminUser) => {
 const closeBalanceHistoryModal = () => {
   showBalanceHistoryModal.value = false
   balanceHistoryUser.value = null
+}
+
+const openChangeInviterDialog = (user: AdminUser) => {
+  changeInviterUser.value = user
+  newInviterUserIdInput.value = user.invited_by_user_id ? String(user.invited_by_user_id) : ''
+  showChangeInviterDialog.value = true
+}
+
+const closeChangeInviterDialog = () => {
+  showChangeInviterDialog.value = false
+  changeInviterUser.value = null
+  newInviterUserIdInput.value = ''
+}
+
+const submitChangeInviter = async () => {
+  if (!changeInviterUser.value) return
+  try {
+    const nextInviter = newInviterUserIdInput.value.trim() ? Number(newInviterUserIdInput.value) : null
+    await adminAPI.users.changeInviter(changeInviterUser.value.id, nextInviter)
+    appStore.showSuccess('邀请归属迁移成功')
+    closeChangeInviterDialog()
+    loadUsers()
+  } catch (error: any) {
+    appStore.showError(error.response?.data?.detail || '邀请归属迁移失败')
+  }
+}
+
+const openSalesMigrationDialog = (user: AdminUser) => {
+  salesMigrationUser.value = user
+  targetSalesUserIdInput.value = user.owner_sales_id ? String(user.owner_sales_id) : ''
+  salesMigrationPreviewCount.value = null
+  showSalesMigrationDialog.value = true
+}
+
+const closeSalesMigrationDialog = () => {
+  showSalesMigrationDialog.value = false
+  salesMigrationUser.value = null
+  targetSalesUserIdInput.value = ''
+  salesMigrationPreviewCount.value = null
+}
+
+const previewSalesMigration = async () => {
+  if (!salesMigrationUser.value || !targetSalesUserIdInput.value.trim()) return
+  try {
+    const result = await adminAPI.users.previewSalesOwnerMigration(salesMigrationUser.value.id, Number(targetSalesUserIdInput.value))
+    salesMigrationPreviewCount.value = result.affected_user_count
+  } catch (error: any) {
+    appStore.showError(error.response?.data?.detail || '销售归属预览失败')
+  }
+}
+
+const submitSalesMigration = async () => {
+  if (!salesMigrationUser.value || !targetSalesUserIdInput.value.trim()) return
+  try {
+    await adminAPI.users.migrateSalesOwner(salesMigrationUser.value.id, Number(targetSalesUserIdInput.value))
+    appStore.showSuccess('销售归属迁移成功')
+    closeSalesMigrationDialog()
+    loadUsers()
+  } catch (error: any) {
+    appStore.showError(error.response?.data?.detail || '销售归属迁移失败')
+  }
 }
 
 // Handle deposit from balance history modal

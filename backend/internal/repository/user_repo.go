@@ -76,6 +76,10 @@ func (r *userRepository) Create(ctx context.Context, userIn *service.User) error
 		SetSignupSource(userSignupSourceOrDefault(userIn.SignupSource)).
 		SetNillableLastLoginAt(userIn.LastLoginAt).
 		SetNillableLastActiveAt(userIn.LastActiveAt).
+		SetNillableInvitedByUserID(userIn.InvitedByUserID).
+		SetNillableOwnerSalesID(userIn.OwnerSalesID).
+		SetNillableFirstPaidOrderID(userIn.FirstPaidOrderID).
+		SetNillableFirstPaidAt(userIn.FirstPaidAt).
 		Save(ctx)
 	if err != nil {
 		return translatePersistenceError(err, nil, service.ErrEmailExists)
@@ -180,6 +184,10 @@ func (r *userRepository) Update(ctx context.Context, userIn *service.User) error
 		SetBalance(userIn.Balance).
 		SetConcurrency(userIn.Concurrency).
 		SetStatus(userIn.Status).
+		SetNillableInvitedByUserID(userIn.InvitedByUserID).
+		SetNillableOwnerSalesID(userIn.OwnerSalesID).
+		SetNillableFirstPaidOrderID(userIn.FirstPaidOrderID).
+		SetNillableFirstPaidAt(userIn.FirstPaidAt).
 		SetBalanceNotifyEnabled(userIn.BalanceNotifyEnabled).
 		SetBalanceNotifyThresholdType(userIn.BalanceNotifyThresholdType).
 		SetNillableBalanceNotifyThreshold(userIn.BalanceNotifyThreshold).
@@ -848,6 +856,10 @@ func applyUserEntityToService(dst *service.User, src *dbent.User) {
 	dst.SignupSource = src.SignupSource
 	dst.LastLoginAt = src.LastLoginAt
 	dst.LastActiveAt = src.LastActiveAt
+	dst.InvitedByUserID = src.InvitedByUserID
+	dst.OwnerSalesID = src.OwnerSalesID
+	dst.FirstPaidOrderID = src.FirstPaidOrderID
+	dst.FirstPaidAt = src.FirstPaidAt
 	dst.CreatedAt = src.CreatedAt
 	dst.UpdatedAt = src.UpdatedAt
 }

@@ -19,6 +19,11 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/idempotencyrecord"
 	"github.com/Wei-Shaw/sub2api/ent/identityadoptiondecision"
+	"github.com/Wei-Shaw/sub2api/ent/invitelink"
+	"github.com/Wei-Shaw/sub2api/ent/inviterewardledger"
+	"github.com/Wei-Shaw/sub2api/ent/invoicedocument"
+	"github.com/Wei-Shaw/sub2api/ent/invoiceprofile"
+	"github.com/Wei-Shaw/sub2api/ent/invoicerequest"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/paymentproviderinstance"
@@ -392,6 +397,141 @@ func (f TraverseIdentityAdoptionDecision) Traverse(ctx context.Context, q ent.Qu
 		return f(ctx, q)
 	}
 	return fmt.Errorf("unexpected query type %T. expect *ent.IdentityAdoptionDecisionQuery", q)
+}
+
+// The InviteLinkFunc type is an adapter to allow the use of ordinary function as a Querier.
+type InviteLinkFunc func(context.Context, *ent.InviteLinkQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f InviteLinkFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.InviteLinkQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.InviteLinkQuery", q)
+}
+
+// The TraverseInviteLink type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseInviteLink func(context.Context, *ent.InviteLinkQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseInviteLink) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseInviteLink) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.InviteLinkQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.InviteLinkQuery", q)
+}
+
+// The InviteRewardLedgerFunc type is an adapter to allow the use of ordinary function as a Querier.
+type InviteRewardLedgerFunc func(context.Context, *ent.InviteRewardLedgerQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f InviteRewardLedgerFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.InviteRewardLedgerQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.InviteRewardLedgerQuery", q)
+}
+
+// The TraverseInviteRewardLedger type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseInviteRewardLedger func(context.Context, *ent.InviteRewardLedgerQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseInviteRewardLedger) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseInviteRewardLedger) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.InviteRewardLedgerQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.InviteRewardLedgerQuery", q)
+}
+
+// The InvoiceDocumentFunc type is an adapter to allow the use of ordinary function as a Querier.
+type InvoiceDocumentFunc func(context.Context, *ent.InvoiceDocumentQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f InvoiceDocumentFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.InvoiceDocumentQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.InvoiceDocumentQuery", q)
+}
+
+// The TraverseInvoiceDocument type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseInvoiceDocument func(context.Context, *ent.InvoiceDocumentQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseInvoiceDocument) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseInvoiceDocument) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.InvoiceDocumentQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.InvoiceDocumentQuery", q)
+}
+
+// The InvoiceProfileFunc type is an adapter to allow the use of ordinary function as a Querier.
+type InvoiceProfileFunc func(context.Context, *ent.InvoiceProfileQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f InvoiceProfileFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.InvoiceProfileQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.InvoiceProfileQuery", q)
+}
+
+// The TraverseInvoiceProfile type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseInvoiceProfile func(context.Context, *ent.InvoiceProfileQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseInvoiceProfile) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseInvoiceProfile) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.InvoiceProfileQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.InvoiceProfileQuery", q)
+}
+
+// The InvoiceRequestFunc type is an adapter to allow the use of ordinary function as a Querier.
+type InvoiceRequestFunc func(context.Context, *ent.InvoiceRequestQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f InvoiceRequestFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.InvoiceRequestQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.InvoiceRequestQuery", q)
+}
+
+// The TraverseInvoiceRequest type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseInvoiceRequest func(context.Context, *ent.InvoiceRequestQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseInvoiceRequest) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseInvoiceRequest) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.InvoiceRequestQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.InvoiceRequestQuery", q)
 }
 
 // The PaymentAuditLogFunc type is an adapter to allow the use of ordinary function as a Querier.
@@ -932,6 +1072,16 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.IdempotencyRecordQuery, predicate.IdempotencyRecord, idempotencyrecord.OrderOption]{typ: ent.TypeIdempotencyRecord, tq: q}, nil
 	case *ent.IdentityAdoptionDecisionQuery:
 		return &query[*ent.IdentityAdoptionDecisionQuery, predicate.IdentityAdoptionDecision, identityadoptiondecision.OrderOption]{typ: ent.TypeIdentityAdoptionDecision, tq: q}, nil
+	case *ent.InviteLinkQuery:
+		return &query[*ent.InviteLinkQuery, predicate.InviteLink, invitelink.OrderOption]{typ: ent.TypeInviteLink, tq: q}, nil
+	case *ent.InviteRewardLedgerQuery:
+		return &query[*ent.InviteRewardLedgerQuery, predicate.InviteRewardLedger, inviterewardledger.OrderOption]{typ: ent.TypeInviteRewardLedger, tq: q}, nil
+	case *ent.InvoiceDocumentQuery:
+		return &query[*ent.InvoiceDocumentQuery, predicate.InvoiceDocument, invoicedocument.OrderOption]{typ: ent.TypeInvoiceDocument, tq: q}, nil
+	case *ent.InvoiceProfileQuery:
+		return &query[*ent.InvoiceProfileQuery, predicate.InvoiceProfile, invoiceprofile.OrderOption]{typ: ent.TypeInvoiceProfile, tq: q}, nil
+	case *ent.InvoiceRequestQuery:
+		return &query[*ent.InvoiceRequestQuery, predicate.InvoiceRequest, invoicerequest.OrderOption]{typ: ent.TypeInvoiceRequest, tq: q}, nil
 	case *ent.PaymentAuditLogQuery:
 		return &query[*ent.PaymentAuditLogQuery, predicate.PaymentAuditLog, paymentauditlog.OrderOption]{typ: ent.TypePaymentAuditLog, tq: q}, nil
 	case *ent.PaymentOrderQuery:

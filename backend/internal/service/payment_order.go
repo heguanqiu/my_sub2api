@@ -160,6 +160,10 @@ func (s *PaymentService) createOrderInTx(ctx context.Context, req CreateOrderReq
 		SetPaymentTradeNo("").
 		SetOrderType(req.OrderType).
 		SetStatus(OrderStatusPending).
+		SetNillableOwnerSalesIDSnapshot(deriveOwnerSalesIDForReferral(user)).
+		SetNillableInvitedByUserIDSnapshot(user.InvitedByUserID).
+		SetInviteRewardStatus(orderInviteRewardStatusForUser(user, req.OrderType)).
+		SetInvoiceStatus(OrderInvoiceStatusNotRequested).
 		SetExpiresAt(exp).
 		SetClientIP(req.ClientIP).
 		SetSrcHost(req.SrcHost)

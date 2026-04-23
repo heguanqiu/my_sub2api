@@ -570,5 +570,31 @@ func (s *stubAdminService) ReplaceUserGroup(ctx context.Context, userID, oldGrou
 	return &service.ReplaceUserGroupResult{MigratedKeys: 0}, nil
 }
 
+func (s *stubAdminService) GetReferralTree(ctx context.Context, userID int64) (*service.ReferralTreeNode, error) {
+	user, err := s.GetUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return &service.ReferralTreeNode{User: user, Children: []*service.ReferralTreeNode{}}, nil
+}
+
+func (s *stubAdminService) ChangeInviter(ctx context.Context, userID int64, newInvitedByUserID *int64) (*service.ReferralMutationResult, error) {
+	return &service.ReferralMutationResult{RootUserID: userID, NewInvitedByUserID: newInvitedByUserID, AffectedUserCount: 1, AffectedUserIDs: []int64{userID}}, nil
+}
+
+func (s *stubAdminService) RecomputeSalesOwner(ctx context.Context, userID int64) (*service.ReferralMutationResult, error) {
+	return &service.ReferralMutationResult{RootUserID: userID, AffectedUserCount: 1, AffectedUserIDs: []int64{userID}}, nil
+}
+
+func (s *stubAdminService) PreviewSalesOwnerMigration(ctx context.Context, userID, targetSalesUserID int64) (*service.ReferralMutationResult, error) {
+	target := targetSalesUserID
+	return &service.ReferralMutationResult{RootUserID: userID, TargetSalesUserID: &target, AffectedUserCount: 1, AffectedUserIDs: []int64{userID}}, nil
+}
+
+func (s *stubAdminService) MigrateSalesOwner(ctx context.Context, userID, targetSalesUserID int64) (*service.ReferralMutationResult, error) {
+	target := targetSalesUserID
+	return &service.ReferralMutationResult{RootUserID: userID, TargetSalesUserID: &target, AffectedUserCount: 1, AffectedUserIDs: []int64{userID}}, nil
+}
+
 // Ensure stub implements interface.
 var _ service.AdminService = (*stubAdminService)(nil)

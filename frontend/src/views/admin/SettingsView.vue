@@ -2134,7 +2134,7 @@
               </p>
             </div>
             <div class="space-y-6 p-6">
-              <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
                 <div>
                   <label
                     class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
@@ -2168,6 +2168,21 @@
                   />
                   <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                     {{ t("admin.settings.defaults.defaultConcurrencyHint") }}
+                  </p>
+                </div>
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    默认销售用户 ID
+                  </label>
+                  <input
+                    v-model.number="form.default_sales_user_id"
+                    type="number"
+                    min="0"
+                    class="input"
+                    placeholder="0"
+                  />
+                  <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    0 表示不指定；新用户注册且未走邀请链时，会自动归属到该销售。
                   </p>
                 </div>
               </div>
@@ -4214,6 +4229,72 @@
             @toggle-type="handleToggleType"
             @reorder="handleReorderProviders"
           />
+
+          <div class="card">
+            <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('admin.settings.invoice.sectionTitle') }}</h2>
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ t('admin.settings.invoice.sectionDescription') }}</p>
+            </div>
+            <div class="space-y-4 p-6">
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="font-medium text-gray-900 dark:text-white">{{ t('admin.settings.invoice.invoiceEnabled') }}</label>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('admin.settings.invoice.invoiceEnabledHint') }}</p>
+                </div>
+                <Toggle v-model="form.invoice_enabled" />
+              </div>
+              <template v-if="form.invoice_enabled">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <label class="font-medium text-gray-900 dark:text-white">{{ t('admin.settings.invoice.baiwangEnabled') }}</label>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('admin.settings.invoice.baiwangEnabledHint') }}</p>
+                  </div>
+                  <Toggle v-model="form.invoice_baiwang_enabled" />
+                </div>
+                <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <div>
+                    <label class="input-label">{{ t('admin.settings.invoice.provider') }}</label>
+                    <input v-model="form.invoice_provider" class="input" />
+                  </div>
+                  <div>
+                    <label class="input-label">{{ t('admin.settings.invoice.baiwangBaseURL') }}</label>
+                    <input v-model="form.invoice_baiwang_base_url" class="input" placeholder="mock" />
+                  </div>
+                  <div>
+                    <label class="input-label">{{ t('admin.settings.invoice.appKey') }}</label>
+                    <input v-model="form.invoice_baiwang_app_key" class="input" />
+                  </div>
+                  <div>
+                    <label class="input-label">{{ t('admin.settings.invoice.appSecret') }}</label>
+                    <input v-model="form.invoice_baiwang_app_secret" class="input" :placeholder="t('admin.settings.invoice.appSecretPlaceholder')" />
+                  </div>
+                  <div>
+                    <label class="input-label">{{ t('admin.settings.invoice.taxpayerID') }}</label>
+                    <input v-model="form.invoice_baiwang_taxpayer_id" class="input" />
+                  </div>
+                  <div>
+                    <label class="input-label">{{ t('admin.settings.invoice.sellerName') }}</label>
+                    <input v-model="form.invoice_baiwang_seller_name" class="input" />
+                  </div>
+                  <div>
+                    <label class="input-label">{{ t('admin.settings.invoice.defaultGoodsName') }}</label>
+                    <input v-model="form.invoice_baiwang_default_goods_name" class="input" />
+                  </div>
+                  <div>
+                    <label class="input-label">{{ t('admin.settings.invoice.retryLimit') }}</label>
+                    <input v-model.number="form.invoice_retry_limit" type="number" min="1" class="input" />
+                  </div>
+                </div>
+                <div class="flex items-center justify-between">
+                  <div>
+                    <label class="font-medium text-gray-900 dark:text-white">{{ t('admin.settings.invoice.autoRetry') }}</label>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('admin.settings.invoice.autoRetryHint') }}</p>
+                  </div>
+                  <Toggle v-model="form.invoice_auto_retry_enabled" />
+                </div>
+              </template>
+            </div>
+          </div>
         </div>
 
         <div v-show="activeTab === 'email'" class="space-y-6">
@@ -4844,6 +4925,7 @@ type SettingsForm = Omit<
   wechat_connect_mp_enabled: boolean;
   wechat_connect_mobile_enabled: boolean;
   oidc_connect_client_secret: string;
+  invoice_baiwang_app_secret: string;
   force_email_on_third_party_signup: boolean;
   openai_advanced_scheduler_enabled: boolean;
 };
@@ -4860,6 +4942,7 @@ const form = reactive<SettingsForm>({
   default_balance: 0,
   default_concurrency: 1,
   default_subscriptions: [],
+  default_sales_user_id: 0,
   force_email_on_third_party_signup: false,
   site_name: "Sub2API",
   site_logo: "",
@@ -4999,6 +5082,18 @@ const form = reactive<SettingsForm>({
   balance_low_notify_recharge_url: "",
   account_quota_notify_enabled: false,
   account_quota_notify_emails: [] as NotifyEmailEntry[],
+  invoice_enabled: false,
+  invoice_provider: "baiwang",
+  invoice_baiwang_enabled: false,
+  invoice_baiwang_base_url: "",
+  invoice_baiwang_app_key: "",
+  invoice_baiwang_app_secret: "",
+  invoice_baiwang_app_secret_configured: false,
+  invoice_baiwang_taxpayer_id: "",
+  invoice_baiwang_seller_name: "",
+  invoice_baiwang_default_goods_name: "",
+  invoice_auto_retry_enabled: false,
+  invoice_retry_limit: 3,
 });
 
 const authSourceDefaults = reactive<AuthSourceDefaultsState>(
@@ -5776,6 +5871,7 @@ async function saveSettings() {
       default_balance: form.default_balance,
       default_concurrency: form.default_concurrency,
       default_subscriptions: normalizedDefaultSubscriptions,
+      default_sales_user_id: Number(form.default_sales_user_id) || 0,
       force_email_on_third_party_signup: form.force_email_on_third_party_signup,
       site_name: form.site_name,
       site_logo: form.site_logo,
@@ -5906,6 +6002,17 @@ async function saveSettings() {
       account_quota_notify_emails: (
         form.account_quota_notify_emails || []
       ).filter((e) => e.email.trim() !== ""),
+      invoice_enabled: form.invoice_enabled,
+      invoice_provider: form.invoice_provider,
+      invoice_baiwang_enabled: form.invoice_baiwang_enabled,
+      invoice_baiwang_base_url: form.invoice_baiwang_base_url,
+      invoice_baiwang_app_key: form.invoice_baiwang_app_key,
+      invoice_baiwang_app_secret: form.invoice_baiwang_app_secret || undefined,
+      invoice_baiwang_taxpayer_id: form.invoice_baiwang_taxpayer_id,
+      invoice_baiwang_seller_name: form.invoice_baiwang_seller_name,
+      invoice_baiwang_default_goods_name: form.invoice_baiwang_default_goods_name,
+      invoice_auto_retry_enabled: form.invoice_auto_retry_enabled,
+      invoice_retry_limit: Number(form.invoice_retry_limit) || 3,
     };
 
     appendAuthSourceDefaultsToUpdateRequest(payload, authSourceDefaults);

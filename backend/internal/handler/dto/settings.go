@@ -109,6 +109,7 @@ type SystemSettings struct {
 	DefaultConcurrency   int                          `json:"default_concurrency"`
 	DefaultBalance       float64                      `json:"default_balance"`
 	DefaultSubscriptions []DefaultSubscriptionSetting `json:"default_subscriptions"`
+	DefaultSalesUserID   int64                        `json:"default_sales_user_id"`
 
 	// Model fallback configuration
 	EnableModelFallback      bool   `json:"enable_model_fallback"`
@@ -183,6 +184,18 @@ type SystemSettings struct {
 	BalanceLowNotifyRechargeURL string             `json:"balance_low_notify_recharge_url"`
 	AccountQuotaNotifyEnabled   bool               `json:"account_quota_notify_enabled"`
 	AccountQuotaNotifyEmails    []NotifyEmailEntry `json:"account_quota_notify_emails"`
+
+	InvoiceEnabled                    bool   `json:"invoice_enabled"`
+	InvoiceProvider                   string `json:"invoice_provider"`
+	InvoiceBaiwangEnabled             bool   `json:"invoice_baiwang_enabled"`
+	InvoiceBaiwangBaseURL             string `json:"invoice_baiwang_base_url"`
+	InvoiceBaiwangAppKey              string `json:"invoice_baiwang_app_key"`
+	InvoiceBaiwangAppSecretConfigured bool   `json:"invoice_baiwang_app_secret_configured"`
+	InvoiceBaiwangTaxpayerID          string `json:"invoice_baiwang_taxpayer_id"`
+	InvoiceBaiwangSellerName          string `json:"invoice_baiwang_seller_name"`
+	InvoiceBaiwangDefaultGoodsName    string `json:"invoice_baiwang_default_goods_name"`
+	InvoiceAutoRetryEnabled           bool   `json:"invoice_auto_retry_enabled"`
+	InvoiceRetryLimit                 int    `json:"invoice_retry_limit"`
 }
 
 type DefaultSubscriptionSetting struct {

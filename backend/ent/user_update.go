@@ -299,6 +299,107 @@ func (_u *UserUpdate) ClearLastActiveAt() *UserUpdate {
 	return _u
 }
 
+// SetInvitedByUserID sets the "invited_by_user_id" field.
+func (_u *UserUpdate) SetInvitedByUserID(v int64) *UserUpdate {
+	_u.mutation.ResetInvitedByUserID()
+	_u.mutation.SetInvitedByUserID(v)
+	return _u
+}
+
+// SetNillableInvitedByUserID sets the "invited_by_user_id" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableInvitedByUserID(v *int64) *UserUpdate {
+	if v != nil {
+		_u.SetInvitedByUserID(*v)
+	}
+	return _u
+}
+
+// AddInvitedByUserID adds value to the "invited_by_user_id" field.
+func (_u *UserUpdate) AddInvitedByUserID(v int64) *UserUpdate {
+	_u.mutation.AddInvitedByUserID(v)
+	return _u
+}
+
+// ClearInvitedByUserID clears the value of the "invited_by_user_id" field.
+func (_u *UserUpdate) ClearInvitedByUserID() *UserUpdate {
+	_u.mutation.ClearInvitedByUserID()
+	return _u
+}
+
+// SetOwnerSalesID sets the "owner_sales_id" field.
+func (_u *UserUpdate) SetOwnerSalesID(v int64) *UserUpdate {
+	_u.mutation.ResetOwnerSalesID()
+	_u.mutation.SetOwnerSalesID(v)
+	return _u
+}
+
+// SetNillableOwnerSalesID sets the "owner_sales_id" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableOwnerSalesID(v *int64) *UserUpdate {
+	if v != nil {
+		_u.SetOwnerSalesID(*v)
+	}
+	return _u
+}
+
+// AddOwnerSalesID adds value to the "owner_sales_id" field.
+func (_u *UserUpdate) AddOwnerSalesID(v int64) *UserUpdate {
+	_u.mutation.AddOwnerSalesID(v)
+	return _u
+}
+
+// ClearOwnerSalesID clears the value of the "owner_sales_id" field.
+func (_u *UserUpdate) ClearOwnerSalesID() *UserUpdate {
+	_u.mutation.ClearOwnerSalesID()
+	return _u
+}
+
+// SetFirstPaidOrderID sets the "first_paid_order_id" field.
+func (_u *UserUpdate) SetFirstPaidOrderID(v int64) *UserUpdate {
+	_u.mutation.ResetFirstPaidOrderID()
+	_u.mutation.SetFirstPaidOrderID(v)
+	return _u
+}
+
+// SetNillableFirstPaidOrderID sets the "first_paid_order_id" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableFirstPaidOrderID(v *int64) *UserUpdate {
+	if v != nil {
+		_u.SetFirstPaidOrderID(*v)
+	}
+	return _u
+}
+
+// AddFirstPaidOrderID adds value to the "first_paid_order_id" field.
+func (_u *UserUpdate) AddFirstPaidOrderID(v int64) *UserUpdate {
+	_u.mutation.AddFirstPaidOrderID(v)
+	return _u
+}
+
+// ClearFirstPaidOrderID clears the value of the "first_paid_order_id" field.
+func (_u *UserUpdate) ClearFirstPaidOrderID() *UserUpdate {
+	_u.mutation.ClearFirstPaidOrderID()
+	return _u
+}
+
+// SetFirstPaidAt sets the "first_paid_at" field.
+func (_u *UserUpdate) SetFirstPaidAt(v time.Time) *UserUpdate {
+	_u.mutation.SetFirstPaidAt(v)
+	return _u
+}
+
+// SetNillableFirstPaidAt sets the "first_paid_at" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableFirstPaidAt(v *time.Time) *UserUpdate {
+	if v != nil {
+		_u.SetFirstPaidAt(*v)
+	}
+	return _u
+}
+
+// ClearFirstPaidAt clears the value of the "first_paid_at" field.
+func (_u *UserUpdate) ClearFirstPaidAt() *UserUpdate {
+	_u.mutation.ClearFirstPaidAt()
+	return _u
+}
+
 // SetBalanceNotifyEnabled sets the "balance_notify_enabled" field.
 func (_u *UserUpdate) SetBalanceNotifyEnabled(v bool) *UserUpdate {
 	_u.mutation.SetBalanceNotifyEnabled(v)
@@ -983,6 +1084,39 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.LastActiveAtCleared() {
 		_spec.ClearField(user.FieldLastActiveAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.InvitedByUserID(); ok {
+		_spec.SetField(user.FieldInvitedByUserID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedInvitedByUserID(); ok {
+		_spec.AddField(user.FieldInvitedByUserID, field.TypeInt64, value)
+	}
+	if _u.mutation.InvitedByUserIDCleared() {
+		_spec.ClearField(user.FieldInvitedByUserID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.OwnerSalesID(); ok {
+		_spec.SetField(user.FieldOwnerSalesID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedOwnerSalesID(); ok {
+		_spec.AddField(user.FieldOwnerSalesID, field.TypeInt64, value)
+	}
+	if _u.mutation.OwnerSalesIDCleared() {
+		_spec.ClearField(user.FieldOwnerSalesID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.FirstPaidOrderID(); ok {
+		_spec.SetField(user.FieldFirstPaidOrderID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedFirstPaidOrderID(); ok {
+		_spec.AddField(user.FieldFirstPaidOrderID, field.TypeInt64, value)
+	}
+	if _u.mutation.FirstPaidOrderIDCleared() {
+		_spec.ClearField(user.FieldFirstPaidOrderID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.FirstPaidAt(); ok {
+		_spec.SetField(user.FieldFirstPaidAt, field.TypeTime, value)
+	}
+	if _u.mutation.FirstPaidAtCleared() {
+		_spec.ClearField(user.FieldFirstPaidAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.BalanceNotifyEnabled(); ok {
 		_spec.SetField(user.FieldBalanceNotifyEnabled, field.TypeBool, value)
@@ -1840,6 +1974,107 @@ func (_u *UserUpdateOne) ClearLastActiveAt() *UserUpdateOne {
 	return _u
 }
 
+// SetInvitedByUserID sets the "invited_by_user_id" field.
+func (_u *UserUpdateOne) SetInvitedByUserID(v int64) *UserUpdateOne {
+	_u.mutation.ResetInvitedByUserID()
+	_u.mutation.SetInvitedByUserID(v)
+	return _u
+}
+
+// SetNillableInvitedByUserID sets the "invited_by_user_id" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableInvitedByUserID(v *int64) *UserUpdateOne {
+	if v != nil {
+		_u.SetInvitedByUserID(*v)
+	}
+	return _u
+}
+
+// AddInvitedByUserID adds value to the "invited_by_user_id" field.
+func (_u *UserUpdateOne) AddInvitedByUserID(v int64) *UserUpdateOne {
+	_u.mutation.AddInvitedByUserID(v)
+	return _u
+}
+
+// ClearInvitedByUserID clears the value of the "invited_by_user_id" field.
+func (_u *UserUpdateOne) ClearInvitedByUserID() *UserUpdateOne {
+	_u.mutation.ClearInvitedByUserID()
+	return _u
+}
+
+// SetOwnerSalesID sets the "owner_sales_id" field.
+func (_u *UserUpdateOne) SetOwnerSalesID(v int64) *UserUpdateOne {
+	_u.mutation.ResetOwnerSalesID()
+	_u.mutation.SetOwnerSalesID(v)
+	return _u
+}
+
+// SetNillableOwnerSalesID sets the "owner_sales_id" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableOwnerSalesID(v *int64) *UserUpdateOne {
+	if v != nil {
+		_u.SetOwnerSalesID(*v)
+	}
+	return _u
+}
+
+// AddOwnerSalesID adds value to the "owner_sales_id" field.
+func (_u *UserUpdateOne) AddOwnerSalesID(v int64) *UserUpdateOne {
+	_u.mutation.AddOwnerSalesID(v)
+	return _u
+}
+
+// ClearOwnerSalesID clears the value of the "owner_sales_id" field.
+func (_u *UserUpdateOne) ClearOwnerSalesID() *UserUpdateOne {
+	_u.mutation.ClearOwnerSalesID()
+	return _u
+}
+
+// SetFirstPaidOrderID sets the "first_paid_order_id" field.
+func (_u *UserUpdateOne) SetFirstPaidOrderID(v int64) *UserUpdateOne {
+	_u.mutation.ResetFirstPaidOrderID()
+	_u.mutation.SetFirstPaidOrderID(v)
+	return _u
+}
+
+// SetNillableFirstPaidOrderID sets the "first_paid_order_id" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableFirstPaidOrderID(v *int64) *UserUpdateOne {
+	if v != nil {
+		_u.SetFirstPaidOrderID(*v)
+	}
+	return _u
+}
+
+// AddFirstPaidOrderID adds value to the "first_paid_order_id" field.
+func (_u *UserUpdateOne) AddFirstPaidOrderID(v int64) *UserUpdateOne {
+	_u.mutation.AddFirstPaidOrderID(v)
+	return _u
+}
+
+// ClearFirstPaidOrderID clears the value of the "first_paid_order_id" field.
+func (_u *UserUpdateOne) ClearFirstPaidOrderID() *UserUpdateOne {
+	_u.mutation.ClearFirstPaidOrderID()
+	return _u
+}
+
+// SetFirstPaidAt sets the "first_paid_at" field.
+func (_u *UserUpdateOne) SetFirstPaidAt(v time.Time) *UserUpdateOne {
+	_u.mutation.SetFirstPaidAt(v)
+	return _u
+}
+
+// SetNillableFirstPaidAt sets the "first_paid_at" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableFirstPaidAt(v *time.Time) *UserUpdateOne {
+	if v != nil {
+		_u.SetFirstPaidAt(*v)
+	}
+	return _u
+}
+
+// ClearFirstPaidAt clears the value of the "first_paid_at" field.
+func (_u *UserUpdateOne) ClearFirstPaidAt() *UserUpdateOne {
+	_u.mutation.ClearFirstPaidAt()
+	return _u
+}
+
 // SetBalanceNotifyEnabled sets the "balance_notify_enabled" field.
 func (_u *UserUpdateOne) SetBalanceNotifyEnabled(v bool) *UserUpdateOne {
 	_u.mutation.SetBalanceNotifyEnabled(v)
@@ -2554,6 +2789,39 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	}
 	if _u.mutation.LastActiveAtCleared() {
 		_spec.ClearField(user.FieldLastActiveAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.InvitedByUserID(); ok {
+		_spec.SetField(user.FieldInvitedByUserID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedInvitedByUserID(); ok {
+		_spec.AddField(user.FieldInvitedByUserID, field.TypeInt64, value)
+	}
+	if _u.mutation.InvitedByUserIDCleared() {
+		_spec.ClearField(user.FieldInvitedByUserID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.OwnerSalesID(); ok {
+		_spec.SetField(user.FieldOwnerSalesID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedOwnerSalesID(); ok {
+		_spec.AddField(user.FieldOwnerSalesID, field.TypeInt64, value)
+	}
+	if _u.mutation.OwnerSalesIDCleared() {
+		_spec.ClearField(user.FieldOwnerSalesID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.FirstPaidOrderID(); ok {
+		_spec.SetField(user.FieldFirstPaidOrderID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedFirstPaidOrderID(); ok {
+		_spec.AddField(user.FieldFirstPaidOrderID, field.TypeInt64, value)
+	}
+	if _u.mutation.FirstPaidOrderIDCleared() {
+		_spec.ClearField(user.FieldFirstPaidOrderID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.FirstPaidAt(); ok {
+		_spec.SetField(user.FieldFirstPaidAt, field.TypeTime, value)
+	}
+	if _u.mutation.FirstPaidAtCleared() {
+		_spec.ClearField(user.FieldFirstPaidAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.BalanceNotifyEnabled(); ok {
 		_spec.SetField(user.FieldBalanceNotifyEnabled, field.TypeBool, value)

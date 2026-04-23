@@ -7,28 +7,32 @@ import (
 )
 
 type User struct {
-	ID             int64
-	Email          string
-	Username       string
-	Notes          string
-	AvatarURL      string
-	AvatarSource   string
-	AvatarMIME     string
-	AvatarByteSize int
-	AvatarSHA256   string
-	PasswordHash   string
-	Role           string
-	Balance        float64
-	Concurrency    int
-	Status         string
-	AllowedGroups  []int64
-	TokenVersion   int64 // Incremented on password change to invalidate existing tokens
-	SignupSource   string
-	LastLoginAt    *time.Time
-	LastActiveAt   *time.Time
-	LastUsedAt     *time.Time
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	ID               int64
+	Email            string
+	Username         string
+	Notes            string
+	AvatarURL        string
+	AvatarSource     string
+	AvatarMIME       string
+	AvatarByteSize   int
+	AvatarSHA256     string
+	PasswordHash     string
+	Role             string
+	Balance          float64
+	Concurrency      int
+	Status           string
+	AllowedGroups    []int64
+	TokenVersion     int64 // Incremented on password change to invalidate existing tokens
+	SignupSource     string
+	LastLoginAt      *time.Time
+	LastActiveAt     *time.Time
+	LastUsedAt       *time.Time
+	InvitedByUserID  *int64
+	OwnerSalesID     *int64
+	FirstPaidOrderID *int64
+	FirstPaidAt      *time.Time
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 
 	// GroupRates 用户专属分组倍率配置
 	// map[groupID]rateMultiplier
@@ -52,6 +56,10 @@ type User struct {
 
 func (u *User) IsAdmin() bool {
 	return u.Role == RoleAdmin
+}
+
+func (u *User) IsSales() bool {
+	return u.Role == RoleSales
 }
 
 func (u *User) IsActive() bool {

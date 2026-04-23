@@ -37,6 +37,11 @@ type AdminService interface {
 	// Also returns totalRecharged (sum of all positive balance top-ups).
 	GetUserBalanceHistory(ctx context.Context, userID int64, page, pageSize int, codeType string) ([]RedeemCode, int64, float64, error)
 	BindUserAuthIdentity(ctx context.Context, userID int64, input AdminBindAuthIdentityInput) (*AdminBoundAuthIdentity, error)
+	GetReferralTree(ctx context.Context, userID int64) (*ReferralTreeNode, error)
+	ChangeInviter(ctx context.Context, userID int64, newInvitedByUserID *int64) (*ReferralMutationResult, error)
+	RecomputeSalesOwner(ctx context.Context, userID int64) (*ReferralMutationResult, error)
+	PreviewSalesOwnerMigration(ctx context.Context, userID, targetSalesUserID int64) (*ReferralMutationResult, error)
+	MigrateSalesOwner(ctx context.Context, userID, targetSalesUserID int64) (*ReferralMutationResult, error)
 
 	// Group management
 	ListGroups(ctx context.Context, page, pageSize int, platform, status, search string, isExclusive *bool, sortBy, sortOrder string) ([]Group, int64, error)
@@ -112,6 +117,7 @@ type CreateUserInput struct {
 	Password      string
 	Username      string
 	Notes         string
+	Role          string
 	Balance       float64
 	Concurrency   int
 	AllowedGroups []int64
@@ -122,6 +128,7 @@ type UpdateUserInput struct {
 	Password      string
 	Username      *string
 	Notes         *string
+	Role          *string
 	Balance       *float64 // 使用指针区分"未提供"和"设置为0"
 	Concurrency   *int     // 使用指针区分"未提供"和"设置为0"
 	Status        string
@@ -614,7 +621,7 @@ func (s *adminServiceImpl) CreateUser(ctx context.Context, input *CreateUserInpu
 		Email:         input.Email,
 		Username:      input.Username,
 		Notes:         input.Notes,
-		Role:          RoleUser, // Always create as regular user, never admin
+		Role:          firstNonEmpty(input.Role, RoleUser),
 		Balance:       input.Balance,
 		Concurrency:   input.Concurrency,
 		Status:        StatusActive,
@@ -685,6 +692,9 @@ func (s *adminServiceImpl) UpdateUser(ctx context.Context, id int64, input *Upda
 	}
 	if input.Notes != nil {
 		user.Notes = *input.Notes
+	}
+	if input.Role != nil && *input.Role != "" {
+		user.Role = *input.Role
 	}
 
 	if input.Status != "" {

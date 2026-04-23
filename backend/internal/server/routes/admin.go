@@ -53,6 +53,19 @@ func RegisterAdminRoutes(
 		// 系统设置
 		registerSettingsRoutes(admin, h)
 
+		invoices := admin.Group("/invoices")
+		{
+			invoices.GET("", h.Admin.Payment.ListInvoices)
+			invoices.GET("/:id", h.Admin.Payment.GetInvoiceDetail)
+			invoices.POST("/:id/retry", h.Admin.Payment.RetryInvoice)
+		}
+
+		inviteRewards := admin.Group("/invite-rewards")
+		{
+			inviteRewards.GET("", h.Admin.Payment.ListInviteRewards)
+			inviteRewards.GET("/:id", h.Admin.Payment.GetInviteReward)
+		}
+
 		// 数据管理
 		registerDataManagementRoutes(admin, h)
 
@@ -221,10 +234,19 @@ func registerUserManagementRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		users.GET("/:id/usage", h.Admin.User.GetUserUsage)
 		users.GET("/:id/balance-history", h.Admin.User.GetBalanceHistory)
 		users.POST("/:id/replace-group", h.Admin.User.ReplaceGroup)
+		users.POST("/:id/change-inviter", h.Admin.User.ChangeInviter)
+		users.POST("/:id/recompute-sales-owner", h.Admin.User.RecomputeSalesOwner)
+		users.POST("/:id/migrate-sales-owner/preview", h.Admin.User.PreviewSalesOwnerMigration)
+		users.POST("/:id/migrate-sales-owner", h.Admin.User.MigrateSalesOwner)
 
 		// User attribute values
 		users.GET("/:id/attributes", h.Admin.UserAttribute.GetUserAttributes)
 		users.PUT("/:id/attributes", h.Admin.UserAttribute.UpdateUserAttributes)
+	}
+
+	referrals := admin.Group("/referrals")
+	{
+		referrals.GET("/tree/:user_id", h.Admin.User.GetReferralTree)
 	}
 }
 
@@ -260,6 +282,7 @@ func registerAccountRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		accounts.PUT("/:id", h.Admin.Account.Update)
 		accounts.DELETE("/:id", h.Admin.Account.Delete)
 		accounts.POST("/:id/test", h.Admin.Account.Test)
+		accounts.POST("/batch-health-check", h.Admin.Account.BatchHealthCheck)
 		accounts.POST("/:id/recover-state", h.Admin.Account.RecoverState)
 		accounts.POST("/:id/refresh", h.Admin.Account.Refresh)
 		accounts.POST("/:id/set-privacy", h.Admin.Account.SetPrivacy)

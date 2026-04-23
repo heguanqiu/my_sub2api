@@ -24,8 +24,8 @@
                 <h2 class="truncate text-2xl font-semibold text-gray-900 dark:text-white">
                   {{ displayName }}
                 </h2>
-                <span :class="['badge', user?.role === 'admin' ? 'badge-primary' : 'badge-gray']">
-                  {{ user?.role === 'admin' ? t('profile.administrator') : t('profile.user') }}
+                <span :class="roleBadgeClass">
+                  {{ roleLabel }}
                 </span>
                 <span
                   :class="['badge', user?.status === 'active' ? 'badge-success' : 'badge-danger']"
@@ -209,6 +209,24 @@ const { t } = useI18n()
 const avatarUrl = computed(() => props.user?.avatar_url?.trim() || '')
 const displayName = computed(() => props.user?.username?.trim() || props.user?.email?.trim() || t('profile.user'))
 const avatarInitial = computed(() => displayName.value.charAt(0).toUpperCase() || 'U')
+const roleLabel = computed(() => {
+  switch (props.user?.role) {
+    case 'admin':
+      return t('profile.administrator')
+    case 'sales':
+      return t('profile.sales')
+    default:
+      return t('profile.user')
+  }
+})
+const roleBadgeClass = computed(() => [
+  'badge',
+  props.user?.role === 'admin'
+    ? 'badge-primary'
+    : props.user?.role === 'sales'
+      ? 'badge-warning'
+      : 'badge-gray'
+])
 const memberSinceLabel = computed(() => {
   const raw = props.user?.created_at?.trim()
   if (!raw) {

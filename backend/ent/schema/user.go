@@ -83,6 +83,19 @@ func (User) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			SchemaType(map[string]string{dialect.Postgres: "timestamptz"}),
+		field.Int64("invited_by_user_id").
+			Optional().
+			Nillable(),
+		field.Int64("owner_sales_id").
+			Optional().
+			Nillable(),
+		field.Int64("first_paid_order_id").
+			Optional().
+			Nillable(),
+		field.Time("first_paid_at").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{dialect.Postgres: "timestamptz"}),
 
 		// 余额不足通知
 		field.Bool("balance_notify_enabled").
@@ -125,5 +138,8 @@ func (User) Indexes() []ent.Index {
 		// email 字段已在 Fields() 中声明 Unique()，无需重复索引
 		index.Fields("status"),
 		index.Fields("deleted_at"),
+		index.Fields("invited_by_user_id"),
+		index.Fields("owner_sales_id"),
+		index.Fields("role", "owner_sales_id"),
 	}
 }

@@ -103,5 +103,15 @@ func RegisterUserRoutes(
 			subscriptions.GET("/progress", h.Subscription.GetProgress)
 			subscriptions.GET("/summary", h.Subscription.GetSummary)
 		}
+
+		referral := authenticated.Group("/referral")
+		{
+			referral.GET("/my-link", h.User.GetMyInviteLink)
+			referral.POST("/my-link/regenerate", h.User.RegenerateMyInviteLink)
+			referral.POST("/my-link/disable", h.User.DisableMyInviteLink)
+			referral.POST("/my-link/revoke", h.User.RevokeMyInviteLink)
+			referral.GET("/my-invitees", h.User.GetMyInvitees)
+			referral.GET("/my-rewards", h.User.GetMyRewards)
+		}
 	}
 }

@@ -51,6 +51,14 @@ type User struct {
 	LastLoginAt *time.Time `json:"last_login_at,omitempty"`
 	// LastActiveAt holds the value of the "last_active_at" field.
 	LastActiveAt *time.Time `json:"last_active_at,omitempty"`
+	// InvitedByUserID holds the value of the "invited_by_user_id" field.
+	InvitedByUserID *int64 `json:"invited_by_user_id,omitempty"`
+	// OwnerSalesID holds the value of the "owner_sales_id" field.
+	OwnerSalesID *int64 `json:"owner_sales_id,omitempty"`
+	// FirstPaidOrderID holds the value of the "first_paid_order_id" field.
+	FirstPaidOrderID *int64 `json:"first_paid_order_id,omitempty"`
+	// FirstPaidAt holds the value of the "first_paid_at" field.
+	FirstPaidAt *time.Time `json:"first_paid_at,omitempty"`
 	// BalanceNotifyEnabled holds the value of the "balance_notify_enabled" field.
 	BalanceNotifyEnabled bool `json:"balance_notify_enabled,omitempty"`
 	// BalanceNotifyThresholdType holds the value of the "balance_notify_threshold_type" field.
@@ -226,11 +234,11 @@ func (*User) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case user.FieldBalance, user.FieldBalanceNotifyThreshold, user.FieldTotalRecharged:
 			values[i] = new(sql.NullFloat64)
-		case user.FieldID, user.FieldConcurrency:
+		case user.FieldID, user.FieldConcurrency, user.FieldInvitedByUserID, user.FieldOwnerSalesID, user.FieldFirstPaidOrderID:
 			values[i] = new(sql.NullInt64)
 		case user.FieldEmail, user.FieldPasswordHash, user.FieldRole, user.FieldStatus, user.FieldUsername, user.FieldNotes, user.FieldTotpSecretEncrypted, user.FieldSignupSource, user.FieldBalanceNotifyThresholdType, user.FieldBalanceNotifyExtraEmails:
 			values[i] = new(sql.NullString)
-		case user.FieldCreatedAt, user.FieldUpdatedAt, user.FieldDeletedAt, user.FieldTotpEnabledAt, user.FieldLastLoginAt, user.FieldLastActiveAt:
+		case user.FieldCreatedAt, user.FieldUpdatedAt, user.FieldDeletedAt, user.FieldTotpEnabledAt, user.FieldLastLoginAt, user.FieldLastActiveAt, user.FieldFirstPaidAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -359,6 +367,34 @@ func (_m *User) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.LastActiveAt = new(time.Time)
 				*_m.LastActiveAt = value.Time
+			}
+		case user.FieldInvitedByUserID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field invited_by_user_id", values[i])
+			} else if value.Valid {
+				_m.InvitedByUserID = new(int64)
+				*_m.InvitedByUserID = value.Int64
+			}
+		case user.FieldOwnerSalesID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field owner_sales_id", values[i])
+			} else if value.Valid {
+				_m.OwnerSalesID = new(int64)
+				*_m.OwnerSalesID = value.Int64
+			}
+		case user.FieldFirstPaidOrderID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field first_paid_order_id", values[i])
+			} else if value.Valid {
+				_m.FirstPaidOrderID = new(int64)
+				*_m.FirstPaidOrderID = value.Int64
+			}
+		case user.FieldFirstPaidAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field first_paid_at", values[i])
+			} else if value.Valid {
+				_m.FirstPaidAt = new(time.Time)
+				*_m.FirstPaidAt = value.Time
 			}
 		case user.FieldBalanceNotifyEnabled:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -550,6 +586,26 @@ func (_m *User) String() string {
 	builder.WriteString(", ")
 	if v := _m.LastActiveAt; v != nil {
 		builder.WriteString("last_active_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.InvitedByUserID; v != nil {
+		builder.WriteString("invited_by_user_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.OwnerSalesID; v != nil {
+		builder.WriteString("owner_sales_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.FirstPaidOrderID; v != nil {
+		builder.WriteString("first_paid_order_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.FirstPaidAt; v != nil {
+		builder.WriteString("first_paid_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")

@@ -186,6 +186,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		DefaultConcurrency:                     settings.DefaultConcurrency,
 		DefaultBalance:                         settings.DefaultBalance,
 		DefaultSubscriptions:                   defaultSubscriptions,
+		DefaultSalesUserID:                     settings.DefaultSalesUserID,
 		EnableModelFallback:                    settings.EnableModelFallback,
 		FallbackModelAnthropic:                 settings.FallbackModelAnthropic,
 		FallbackModelOpenAI:                    settings.FallbackModelOpenAI,
@@ -215,6 +216,17 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		BalanceLowNotifyRechargeURL:            settings.BalanceLowNotifyRechargeURL,
 		AccountQuotaNotifyEnabled:              settings.AccountQuotaNotifyEnabled,
 		AccountQuotaNotifyEmails:               dto.NotifyEmailEntriesFromService(settings.AccountQuotaNotifyEmails),
+		InvoiceEnabled:                         settings.InvoiceEnabled,
+		InvoiceProvider:                        settings.InvoiceProvider,
+		InvoiceBaiwangEnabled:                  settings.InvoiceBaiwangEnabled,
+		InvoiceBaiwangBaseURL:                  settings.InvoiceBaiwangBaseURL,
+		InvoiceBaiwangAppKey:                   settings.InvoiceBaiwangAppKey,
+		InvoiceBaiwangAppSecretConfigured:      settings.InvoiceBaiwangAppSecretConfigured,
+		InvoiceBaiwangTaxpayerID:               settings.InvoiceBaiwangTaxpayerID,
+		InvoiceBaiwangSellerName:               settings.InvoiceBaiwangSellerName,
+		InvoiceBaiwangDefaultGoodsName:         settings.InvoiceBaiwangDefaultGoodsName,
+		InvoiceAutoRetryEnabled:                settings.InvoiceAutoRetryEnabled,
+		InvoiceRetryLimit:                      settings.InvoiceRetryLimit,
 		PaymentEnabled:                         paymentCfg.Enabled,
 		PaymentMinAmount:                       paymentCfg.MinAmount,
 		PaymentMaxAmount:                       paymentCfg.MaxAmount,
@@ -333,6 +345,7 @@ type UpdateSettingsRequest struct {
 	DefaultConcurrency                       int                               `json:"default_concurrency"`
 	DefaultBalance                           float64                           `json:"default_balance"`
 	DefaultSubscriptions                     []dto.DefaultSubscriptionSetting  `json:"default_subscriptions"`
+	DefaultSalesUserID                       int64                             `json:"default_sales_user_id"`
 	AuthSourceDefaultEmailBalance            *float64                          `json:"auth_source_default_email_balance"`
 	AuthSourceDefaultEmailConcurrency        *int                              `json:"auth_source_default_email_concurrency"`
 	AuthSourceDefaultEmailSubscriptions      *[]dto.DefaultSubscriptionSetting `json:"auth_source_default_email_subscriptions"`
@@ -396,11 +409,22 @@ type UpdateSettingsRequest struct {
 	OpenAIAdvancedSchedulerEnabled *bool `json:"openai_advanced_scheduler_enabled"`
 
 	// Balance low notification
-	BalanceLowNotifyEnabled     *bool                   `json:"balance_low_notify_enabled"`
-	BalanceLowNotifyThreshold   *float64                `json:"balance_low_notify_threshold"`
-	BalanceLowNotifyRechargeURL *string                 `json:"balance_low_notify_recharge_url"`
-	AccountQuotaNotifyEnabled   *bool                   `json:"account_quota_notify_enabled"`
-	AccountQuotaNotifyEmails    *[]dto.NotifyEmailEntry `json:"account_quota_notify_emails"`
+	BalanceLowNotifyEnabled        *bool                   `json:"balance_low_notify_enabled"`
+	BalanceLowNotifyThreshold      *float64                `json:"balance_low_notify_threshold"`
+	BalanceLowNotifyRechargeURL    *string                 `json:"balance_low_notify_recharge_url"`
+	AccountQuotaNotifyEnabled      *bool                   `json:"account_quota_notify_enabled"`
+	AccountQuotaNotifyEmails       *[]dto.NotifyEmailEntry `json:"account_quota_notify_emails"`
+	InvoiceEnabled                 *bool                   `json:"invoice_enabled"`
+	InvoiceProvider                *string                 `json:"invoice_provider"`
+	InvoiceBaiwangEnabled          *bool                   `json:"invoice_baiwang_enabled"`
+	InvoiceBaiwangBaseURL          *string                 `json:"invoice_baiwang_base_url"`
+	InvoiceBaiwangAppKey           *string                 `json:"invoice_baiwang_app_key"`
+	InvoiceBaiwangAppSecret        string                  `json:"invoice_baiwang_app_secret"`
+	InvoiceBaiwangTaxpayerID       *string                 `json:"invoice_baiwang_taxpayer_id"`
+	InvoiceBaiwangSellerName       *string                 `json:"invoice_baiwang_seller_name"`
+	InvoiceBaiwangDefaultGoodsName *string                 `json:"invoice_baiwang_default_goods_name"`
+	InvoiceAutoRetryEnabled        *bool                   `json:"invoice_auto_retry_enabled"`
+	InvoiceRetryLimit              *int                    `json:"invoice_retry_limit"`
 
 	// Payment configuration (integrated into settings, full replace)
 	PaymentEnabled                   *bool    `json:"payment_enabled"`
@@ -1073,6 +1097,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		DefaultConcurrency:               req.DefaultConcurrency,
 		DefaultBalance:                   req.DefaultBalance,
 		DefaultSubscriptions:             defaultSubscriptions,
+		DefaultSalesUserID:               req.DefaultSalesUserID,
 		EnableModelFallback:              req.EnableModelFallback,
 		FallbackModelAnthropic:           req.FallbackModelAnthropic,
 		FallbackModelOpenAI:              req.FallbackModelOpenAI,
@@ -1185,6 +1210,72 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 				return dto.NotifyEmailEntriesToService(*req.AccountQuotaNotifyEmails)
 			}
 			return previousSettings.AccountQuotaNotifyEmails
+		}(),
+		InvoiceEnabled: func() bool {
+			if req.InvoiceEnabled != nil {
+				return *req.InvoiceEnabled
+			}
+			return previousSettings.InvoiceEnabled
+		}(),
+		InvoiceProvider: func() string {
+			if req.InvoiceProvider != nil {
+				return *req.InvoiceProvider
+			}
+			return previousSettings.InvoiceProvider
+		}(),
+		InvoiceBaiwangEnabled: func() bool {
+			if req.InvoiceBaiwangEnabled != nil {
+				return *req.InvoiceBaiwangEnabled
+			}
+			return previousSettings.InvoiceBaiwangEnabled
+		}(),
+		InvoiceBaiwangBaseURL: func() string {
+			if req.InvoiceBaiwangBaseURL != nil {
+				return *req.InvoiceBaiwangBaseURL
+			}
+			return previousSettings.InvoiceBaiwangBaseURL
+		}(),
+		InvoiceBaiwangAppKey: func() string {
+			if req.InvoiceBaiwangAppKey != nil {
+				return *req.InvoiceBaiwangAppKey
+			}
+			return previousSettings.InvoiceBaiwangAppKey
+		}(),
+		InvoiceBaiwangAppSecret: func() string {
+			if req.InvoiceBaiwangAppSecret != "" {
+				return req.InvoiceBaiwangAppSecret
+			}
+			return previousSettings.InvoiceBaiwangAppSecret
+		}(),
+		InvoiceBaiwangTaxpayerID: func() string {
+			if req.InvoiceBaiwangTaxpayerID != nil {
+				return *req.InvoiceBaiwangTaxpayerID
+			}
+			return previousSettings.InvoiceBaiwangTaxpayerID
+		}(),
+		InvoiceBaiwangSellerName: func() string {
+			if req.InvoiceBaiwangSellerName != nil {
+				return *req.InvoiceBaiwangSellerName
+			}
+			return previousSettings.InvoiceBaiwangSellerName
+		}(),
+		InvoiceBaiwangDefaultGoodsName: func() string {
+			if req.InvoiceBaiwangDefaultGoodsName != nil {
+				return *req.InvoiceBaiwangDefaultGoodsName
+			}
+			return previousSettings.InvoiceBaiwangDefaultGoodsName
+		}(),
+		InvoiceAutoRetryEnabled: func() bool {
+			if req.InvoiceAutoRetryEnabled != nil {
+				return *req.InvoiceAutoRetryEnabled
+			}
+			return previousSettings.InvoiceAutoRetryEnabled
+		}(),
+		InvoiceRetryLimit: func() int {
+			if req.InvoiceRetryLimit != nil {
+				return *req.InvoiceRetryLimit
+			}
+			return previousSettings.InvoiceRetryLimit
 		}(),
 	}
 
@@ -1368,6 +1459,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		DefaultConcurrency:                     updatedSettings.DefaultConcurrency,
 		DefaultBalance:                         updatedSettings.DefaultBalance,
 		DefaultSubscriptions:                   updatedDefaultSubscriptions,
+		DefaultSalesUserID:                     updatedSettings.DefaultSalesUserID,
 		EnableModelFallback:                    updatedSettings.EnableModelFallback,
 		FallbackModelAnthropic:                 updatedSettings.FallbackModelAnthropic,
 		FallbackModelOpenAI:                    updatedSettings.FallbackModelOpenAI,
@@ -1396,6 +1488,17 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		BalanceLowNotifyRechargeURL:            updatedSettings.BalanceLowNotifyRechargeURL,
 		AccountQuotaNotifyEnabled:              updatedSettings.AccountQuotaNotifyEnabled,
 		AccountQuotaNotifyEmails:               dto.NotifyEmailEntriesFromService(updatedSettings.AccountQuotaNotifyEmails),
+		InvoiceEnabled:                         updatedSettings.InvoiceEnabled,
+		InvoiceProvider:                        updatedSettings.InvoiceProvider,
+		InvoiceBaiwangEnabled:                  updatedSettings.InvoiceBaiwangEnabled,
+		InvoiceBaiwangBaseURL:                  updatedSettings.InvoiceBaiwangBaseURL,
+		InvoiceBaiwangAppKey:                   updatedSettings.InvoiceBaiwangAppKey,
+		InvoiceBaiwangAppSecretConfigured:      updatedSettings.InvoiceBaiwangAppSecretConfigured,
+		InvoiceBaiwangTaxpayerID:               updatedSettings.InvoiceBaiwangTaxpayerID,
+		InvoiceBaiwangSellerName:               updatedSettings.InvoiceBaiwangSellerName,
+		InvoiceBaiwangDefaultGoodsName:         updatedSettings.InvoiceBaiwangDefaultGoodsName,
+		InvoiceAutoRetryEnabled:                updatedSettings.InvoiceAutoRetryEnabled,
+		InvoiceRetryLimit:                      updatedSettings.InvoiceRetryLimit,
 		PaymentEnabled:                         updatedPaymentCfg.Enabled,
 		PaymentMinAmount:                       updatedPaymentCfg.MinAmount,
 		PaymentMaxAmount:                       updatedPaymentCfg.MaxAmount,

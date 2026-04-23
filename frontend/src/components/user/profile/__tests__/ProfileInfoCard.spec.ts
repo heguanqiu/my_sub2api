@@ -32,6 +32,7 @@ vi.mock('vue-i18n', async (importOriginal) => {
         if (key === 'profile.concurrencyLimit') return 'Concurrency Limit'
         if (key === 'profile.memberSince') return 'Member Since'
         if (key === 'profile.administrator') return 'Administrator'
+        if (key === 'profile.sales') return 'Sales'
         if (key === 'profile.user') return 'User'
         if (key === 'profile.authBindings.providers.email') return 'Email'
         if (key === 'profile.authBindings.providers.linuxdo') return 'LinuxDo'
@@ -109,6 +110,23 @@ describe('ProfileInfoCard', () => {
 
     expect(wrapper.text()).toContain('Avatar synced from LinuxDo')
     expect(wrapper.text()).toContain('Username synced from LinuxDo')
+  })
+
+  it('renders sales users with the sales role label', () => {
+    const wrapper = mount(ProfileInfoCard, {
+      props: {
+        user: createUser({
+          role: 'sales'
+        })
+      },
+      global: {
+        stubs: {
+          Icon: true
+        }
+      }
+    })
+
+    expect(wrapper.text()).toContain('Sales')
   })
 
   it('renders the approved overview hero and two-column content shell', () => {

@@ -255,6 +255,62 @@ func (_c *UserCreate) SetNillableLastActiveAt(v *time.Time) *UserCreate {
 	return _c
 }
 
+// SetInvitedByUserID sets the "invited_by_user_id" field.
+func (_c *UserCreate) SetInvitedByUserID(v int64) *UserCreate {
+	_c.mutation.SetInvitedByUserID(v)
+	return _c
+}
+
+// SetNillableInvitedByUserID sets the "invited_by_user_id" field if the given value is not nil.
+func (_c *UserCreate) SetNillableInvitedByUserID(v *int64) *UserCreate {
+	if v != nil {
+		_c.SetInvitedByUserID(*v)
+	}
+	return _c
+}
+
+// SetOwnerSalesID sets the "owner_sales_id" field.
+func (_c *UserCreate) SetOwnerSalesID(v int64) *UserCreate {
+	_c.mutation.SetOwnerSalesID(v)
+	return _c
+}
+
+// SetNillableOwnerSalesID sets the "owner_sales_id" field if the given value is not nil.
+func (_c *UserCreate) SetNillableOwnerSalesID(v *int64) *UserCreate {
+	if v != nil {
+		_c.SetOwnerSalesID(*v)
+	}
+	return _c
+}
+
+// SetFirstPaidOrderID sets the "first_paid_order_id" field.
+func (_c *UserCreate) SetFirstPaidOrderID(v int64) *UserCreate {
+	_c.mutation.SetFirstPaidOrderID(v)
+	return _c
+}
+
+// SetNillableFirstPaidOrderID sets the "first_paid_order_id" field if the given value is not nil.
+func (_c *UserCreate) SetNillableFirstPaidOrderID(v *int64) *UserCreate {
+	if v != nil {
+		_c.SetFirstPaidOrderID(*v)
+	}
+	return _c
+}
+
+// SetFirstPaidAt sets the "first_paid_at" field.
+func (_c *UserCreate) SetFirstPaidAt(v time.Time) *UserCreate {
+	_c.mutation.SetFirstPaidAt(v)
+	return _c
+}
+
+// SetNillableFirstPaidAt sets the "first_paid_at" field if the given value is not nil.
+func (_c *UserCreate) SetNillableFirstPaidAt(v *time.Time) *UserCreate {
+	if v != nil {
+		_c.SetFirstPaidAt(*v)
+	}
+	return _c
+}
+
 // SetBalanceNotifyEnabled sets the "balance_notify_enabled" field.
 func (_c *UserCreate) SetBalanceNotifyEnabled(v bool) *UserCreate {
 	_c.mutation.SetBalanceNotifyEnabled(v)
@@ -782,6 +838,22 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		_spec.SetField(user.FieldLastActiveAt, field.TypeTime, value)
 		_node.LastActiveAt = &value
 	}
+	if value, ok := _c.mutation.InvitedByUserID(); ok {
+		_spec.SetField(user.FieldInvitedByUserID, field.TypeInt64, value)
+		_node.InvitedByUserID = &value
+	}
+	if value, ok := _c.mutation.OwnerSalesID(); ok {
+		_spec.SetField(user.FieldOwnerSalesID, field.TypeInt64, value)
+		_node.OwnerSalesID = &value
+	}
+	if value, ok := _c.mutation.FirstPaidOrderID(); ok {
+		_spec.SetField(user.FieldFirstPaidOrderID, field.TypeInt64, value)
+		_node.FirstPaidOrderID = &value
+	}
+	if value, ok := _c.mutation.FirstPaidAt(); ok {
+		_spec.SetField(user.FieldFirstPaidAt, field.TypeTime, value)
+		_node.FirstPaidAt = &value
+	}
 	if value, ok := _c.mutation.BalanceNotifyEnabled(); ok {
 		_spec.SetField(user.FieldBalanceNotifyEnabled, field.TypeBool, value)
 		_node.BalanceNotifyEnabled = value
@@ -1284,6 +1356,96 @@ func (u *UserUpsert) ClearLastActiveAt() *UserUpsert {
 	return u
 }
 
+// SetInvitedByUserID sets the "invited_by_user_id" field.
+func (u *UserUpsert) SetInvitedByUserID(v int64) *UserUpsert {
+	u.Set(user.FieldInvitedByUserID, v)
+	return u
+}
+
+// UpdateInvitedByUserID sets the "invited_by_user_id" field to the value that was provided on create.
+func (u *UserUpsert) UpdateInvitedByUserID() *UserUpsert {
+	u.SetExcluded(user.FieldInvitedByUserID)
+	return u
+}
+
+// AddInvitedByUserID adds v to the "invited_by_user_id" field.
+func (u *UserUpsert) AddInvitedByUserID(v int64) *UserUpsert {
+	u.Add(user.FieldInvitedByUserID, v)
+	return u
+}
+
+// ClearInvitedByUserID clears the value of the "invited_by_user_id" field.
+func (u *UserUpsert) ClearInvitedByUserID() *UserUpsert {
+	u.SetNull(user.FieldInvitedByUserID)
+	return u
+}
+
+// SetOwnerSalesID sets the "owner_sales_id" field.
+func (u *UserUpsert) SetOwnerSalesID(v int64) *UserUpsert {
+	u.Set(user.FieldOwnerSalesID, v)
+	return u
+}
+
+// UpdateOwnerSalesID sets the "owner_sales_id" field to the value that was provided on create.
+func (u *UserUpsert) UpdateOwnerSalesID() *UserUpsert {
+	u.SetExcluded(user.FieldOwnerSalesID)
+	return u
+}
+
+// AddOwnerSalesID adds v to the "owner_sales_id" field.
+func (u *UserUpsert) AddOwnerSalesID(v int64) *UserUpsert {
+	u.Add(user.FieldOwnerSalesID, v)
+	return u
+}
+
+// ClearOwnerSalesID clears the value of the "owner_sales_id" field.
+func (u *UserUpsert) ClearOwnerSalesID() *UserUpsert {
+	u.SetNull(user.FieldOwnerSalesID)
+	return u
+}
+
+// SetFirstPaidOrderID sets the "first_paid_order_id" field.
+func (u *UserUpsert) SetFirstPaidOrderID(v int64) *UserUpsert {
+	u.Set(user.FieldFirstPaidOrderID, v)
+	return u
+}
+
+// UpdateFirstPaidOrderID sets the "first_paid_order_id" field to the value that was provided on create.
+func (u *UserUpsert) UpdateFirstPaidOrderID() *UserUpsert {
+	u.SetExcluded(user.FieldFirstPaidOrderID)
+	return u
+}
+
+// AddFirstPaidOrderID adds v to the "first_paid_order_id" field.
+func (u *UserUpsert) AddFirstPaidOrderID(v int64) *UserUpsert {
+	u.Add(user.FieldFirstPaidOrderID, v)
+	return u
+}
+
+// ClearFirstPaidOrderID clears the value of the "first_paid_order_id" field.
+func (u *UserUpsert) ClearFirstPaidOrderID() *UserUpsert {
+	u.SetNull(user.FieldFirstPaidOrderID)
+	return u
+}
+
+// SetFirstPaidAt sets the "first_paid_at" field.
+func (u *UserUpsert) SetFirstPaidAt(v time.Time) *UserUpsert {
+	u.Set(user.FieldFirstPaidAt, v)
+	return u
+}
+
+// UpdateFirstPaidAt sets the "first_paid_at" field to the value that was provided on create.
+func (u *UserUpsert) UpdateFirstPaidAt() *UserUpsert {
+	u.SetExcluded(user.FieldFirstPaidAt)
+	return u
+}
+
+// ClearFirstPaidAt clears the value of the "first_paid_at" field.
+func (u *UserUpsert) ClearFirstPaidAt() *UserUpsert {
+	u.SetNull(user.FieldFirstPaidAt)
+	return u
+}
+
 // SetBalanceNotifyEnabled sets the "balance_notify_enabled" field.
 func (u *UserUpsert) SetBalanceNotifyEnabled(v bool) *UserUpsert {
 	u.Set(user.FieldBalanceNotifyEnabled, v)
@@ -1677,6 +1839,111 @@ func (u *UserUpsertOne) UpdateLastActiveAt() *UserUpsertOne {
 func (u *UserUpsertOne) ClearLastActiveAt() *UserUpsertOne {
 	return u.Update(func(s *UserUpsert) {
 		s.ClearLastActiveAt()
+	})
+}
+
+// SetInvitedByUserID sets the "invited_by_user_id" field.
+func (u *UserUpsertOne) SetInvitedByUserID(v int64) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetInvitedByUserID(v)
+	})
+}
+
+// AddInvitedByUserID adds v to the "invited_by_user_id" field.
+func (u *UserUpsertOne) AddInvitedByUserID(v int64) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.AddInvitedByUserID(v)
+	})
+}
+
+// UpdateInvitedByUserID sets the "invited_by_user_id" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateInvitedByUserID() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateInvitedByUserID()
+	})
+}
+
+// ClearInvitedByUserID clears the value of the "invited_by_user_id" field.
+func (u *UserUpsertOne) ClearInvitedByUserID() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearInvitedByUserID()
+	})
+}
+
+// SetOwnerSalesID sets the "owner_sales_id" field.
+func (u *UserUpsertOne) SetOwnerSalesID(v int64) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetOwnerSalesID(v)
+	})
+}
+
+// AddOwnerSalesID adds v to the "owner_sales_id" field.
+func (u *UserUpsertOne) AddOwnerSalesID(v int64) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.AddOwnerSalesID(v)
+	})
+}
+
+// UpdateOwnerSalesID sets the "owner_sales_id" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateOwnerSalesID() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateOwnerSalesID()
+	})
+}
+
+// ClearOwnerSalesID clears the value of the "owner_sales_id" field.
+func (u *UserUpsertOne) ClearOwnerSalesID() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearOwnerSalesID()
+	})
+}
+
+// SetFirstPaidOrderID sets the "first_paid_order_id" field.
+func (u *UserUpsertOne) SetFirstPaidOrderID(v int64) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetFirstPaidOrderID(v)
+	})
+}
+
+// AddFirstPaidOrderID adds v to the "first_paid_order_id" field.
+func (u *UserUpsertOne) AddFirstPaidOrderID(v int64) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.AddFirstPaidOrderID(v)
+	})
+}
+
+// UpdateFirstPaidOrderID sets the "first_paid_order_id" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateFirstPaidOrderID() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateFirstPaidOrderID()
+	})
+}
+
+// ClearFirstPaidOrderID clears the value of the "first_paid_order_id" field.
+func (u *UserUpsertOne) ClearFirstPaidOrderID() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearFirstPaidOrderID()
+	})
+}
+
+// SetFirstPaidAt sets the "first_paid_at" field.
+func (u *UserUpsertOne) SetFirstPaidAt(v time.Time) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetFirstPaidAt(v)
+	})
+}
+
+// UpdateFirstPaidAt sets the "first_paid_at" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateFirstPaidAt() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateFirstPaidAt()
+	})
+}
+
+// ClearFirstPaidAt clears the value of the "first_paid_at" field.
+func (u *UserUpsertOne) ClearFirstPaidAt() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearFirstPaidAt()
 	})
 }
 
@@ -2252,6 +2519,111 @@ func (u *UserUpsertBulk) UpdateLastActiveAt() *UserUpsertBulk {
 func (u *UserUpsertBulk) ClearLastActiveAt() *UserUpsertBulk {
 	return u.Update(func(s *UserUpsert) {
 		s.ClearLastActiveAt()
+	})
+}
+
+// SetInvitedByUserID sets the "invited_by_user_id" field.
+func (u *UserUpsertBulk) SetInvitedByUserID(v int64) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetInvitedByUserID(v)
+	})
+}
+
+// AddInvitedByUserID adds v to the "invited_by_user_id" field.
+func (u *UserUpsertBulk) AddInvitedByUserID(v int64) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.AddInvitedByUserID(v)
+	})
+}
+
+// UpdateInvitedByUserID sets the "invited_by_user_id" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateInvitedByUserID() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateInvitedByUserID()
+	})
+}
+
+// ClearInvitedByUserID clears the value of the "invited_by_user_id" field.
+func (u *UserUpsertBulk) ClearInvitedByUserID() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearInvitedByUserID()
+	})
+}
+
+// SetOwnerSalesID sets the "owner_sales_id" field.
+func (u *UserUpsertBulk) SetOwnerSalesID(v int64) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetOwnerSalesID(v)
+	})
+}
+
+// AddOwnerSalesID adds v to the "owner_sales_id" field.
+func (u *UserUpsertBulk) AddOwnerSalesID(v int64) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.AddOwnerSalesID(v)
+	})
+}
+
+// UpdateOwnerSalesID sets the "owner_sales_id" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateOwnerSalesID() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateOwnerSalesID()
+	})
+}
+
+// ClearOwnerSalesID clears the value of the "owner_sales_id" field.
+func (u *UserUpsertBulk) ClearOwnerSalesID() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearOwnerSalesID()
+	})
+}
+
+// SetFirstPaidOrderID sets the "first_paid_order_id" field.
+func (u *UserUpsertBulk) SetFirstPaidOrderID(v int64) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetFirstPaidOrderID(v)
+	})
+}
+
+// AddFirstPaidOrderID adds v to the "first_paid_order_id" field.
+func (u *UserUpsertBulk) AddFirstPaidOrderID(v int64) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.AddFirstPaidOrderID(v)
+	})
+}
+
+// UpdateFirstPaidOrderID sets the "first_paid_order_id" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateFirstPaidOrderID() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateFirstPaidOrderID()
+	})
+}
+
+// ClearFirstPaidOrderID clears the value of the "first_paid_order_id" field.
+func (u *UserUpsertBulk) ClearFirstPaidOrderID() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearFirstPaidOrderID()
+	})
+}
+
+// SetFirstPaidAt sets the "first_paid_at" field.
+func (u *UserUpsertBulk) SetFirstPaidAt(v time.Time) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetFirstPaidAt(v)
+	})
+}
+
+// UpdateFirstPaidAt sets the "first_paid_at" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateFirstPaidAt() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateFirstPaidAt()
+	})
+}
+
+// ClearFirstPaidAt clears the value of the "first_paid_at" field.
+func (u *UserUpsertBulk) ClearFirstPaidAt() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearFirstPaidAt()
 	})
 }
 

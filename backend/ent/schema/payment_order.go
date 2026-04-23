@@ -98,6 +98,24 @@ func (PaymentOrder) Fields() []ent.Field {
 		field.JSON("provider_snapshot", map[string]any{}).
 			Optional().
 			SchemaType(map[string]string{dialect.Postgres: "jsonb"}),
+		field.Int64("owner_sales_id_snapshot").
+			Optional().
+			Nillable(),
+		field.Int64("invited_by_user_id_snapshot").
+			Optional().
+			Nillable(),
+		field.String("invite_reward_status").
+			MaxLen(30).
+			Default("not_applicable"),
+		field.Int64("invite_reward_ledger_id").
+			Optional().
+			Nillable(),
+		field.String("invoice_status").
+			MaxLen(30).
+			Default("not_requested"),
+		field.Int64("invoice_request_id").
+			Optional().
+			Nillable(),
 
 		// 状态
 		field.String("status").
@@ -193,5 +211,10 @@ func (PaymentOrder) Indexes() []ent.Index {
 		index.Fields("paid_at"),
 		index.Fields("payment_type", "paid_at"),
 		index.Fields("order_type"),
+		index.Fields("owner_sales_id_snapshot"),
+		index.Fields("invited_by_user_id_snapshot"),
+		index.Fields("invite_reward_status"),
+		index.Fields("invoice_status"),
+		index.Fields("user_id", "paid_at"),
 	}
 }

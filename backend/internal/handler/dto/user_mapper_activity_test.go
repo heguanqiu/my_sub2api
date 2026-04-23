@@ -14,20 +14,33 @@ func TestUserFromServiceAdmin_MapsActivityTimestamps(t *testing.T) {
 	lastLoginAt := time.Date(2026, time.April, 20, 10, 0, 0, 0, time.UTC)
 	lastActiveAt := lastLoginAt.Add(15 * time.Minute)
 	lastUsedAt := lastLoginAt.Add(45 * time.Minute)
+	invitedByUserID := int64(7)
+	ownerSalesID := int64(11)
+	firstPaidOrderID := int64(99)
+	firstPaidAt := lastLoginAt.Add(2 * time.Hour)
 
 	out := UserFromServiceAdmin(&service.User{
-		ID:           42,
-		Email:        "admin@example.com",
-		Username:     "admin",
-		Role:         service.RoleAdmin,
-		Status:       service.StatusActive,
-		LastActiveAt: &lastActiveAt,
-		LastUsedAt:   &lastUsedAt,
+		ID:               42,
+		Email:            "admin@example.com",
+		Username:         "admin",
+		Role:             service.RoleAdmin,
+		Status:           service.StatusActive,
+		LastActiveAt:     &lastActiveAt,
+		LastUsedAt:       &lastUsedAt,
+		InvitedByUserID:  &invitedByUserID,
+		OwnerSalesID:     &ownerSalesID,
+		FirstPaidOrderID: &firstPaidOrderID,
+		FirstPaidAt:      &firstPaidAt,
 	})
 
 	require.NotNil(t, out)
 	require.NotNil(t, out.LastActiveAt)
 	require.NotNil(t, out.LastUsedAt)
+	require.Equal(t, &invitedByUserID, out.InvitedByUserID)
+	require.Equal(t, &ownerSalesID, out.OwnerSalesID)
+	require.Equal(t, &firstPaidOrderID, out.FirstPaidOrderID)
+	require.NotNil(t, out.FirstPaidAt)
 	require.WithinDuration(t, lastActiveAt, *out.LastActiveAt, time.Second)
 	require.WithinDuration(t, lastUsedAt, *out.LastUsedAt, time.Second)
+	require.WithinDuration(t, firstPaidAt, *out.FirstPaidAt, time.Second)
 }

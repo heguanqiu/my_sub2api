@@ -83,7 +83,7 @@ export interface User {
   linuxdo_bound?: boolean
   oidc_bound?: boolean
   wechat_bound?: boolean
-  role: 'admin' | 'user' // User role for authorization
+  role: 'admin' | 'sales' | 'user' // User role for authorization
   balance: number // User balance for API usage
   concurrency: number // Allowed concurrent requests
   status: 'active' | 'disabled' // Account status
@@ -93,6 +93,10 @@ export interface User {
   balance_notify_extra_emails: NotifyEmailEntry[]
   subscriptions?: UserSubscription[] // User's active subscriptions
   last_active_at?: string | null
+  invited_by_user_id?: number | null
+  owner_sales_id?: number | null
+  first_paid_order_id?: number | null
+  first_paid_at?: string | null
   created_at: string
   updated_at: string
 }
@@ -1345,7 +1349,7 @@ export interface UpdateUserRequest {
   password?: string
   username?: string
   notes?: string
-  role?: 'admin' | 'user'
+  role?: 'admin' | 'sales' | 'user'
   balance?: number
   concurrency?: number
   status?: 'active' | 'disabled'

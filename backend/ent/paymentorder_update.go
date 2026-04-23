@@ -417,6 +417,142 @@ func (_u *PaymentOrderUpdate) ClearProviderSnapshot() *PaymentOrderUpdate {
 	return _u
 }
 
+// SetOwnerSalesIDSnapshot sets the "owner_sales_id_snapshot" field.
+func (_u *PaymentOrderUpdate) SetOwnerSalesIDSnapshot(v int64) *PaymentOrderUpdate {
+	_u.mutation.ResetOwnerSalesIDSnapshot()
+	_u.mutation.SetOwnerSalesIDSnapshot(v)
+	return _u
+}
+
+// SetNillableOwnerSalesIDSnapshot sets the "owner_sales_id_snapshot" field if the given value is not nil.
+func (_u *PaymentOrderUpdate) SetNillableOwnerSalesIDSnapshot(v *int64) *PaymentOrderUpdate {
+	if v != nil {
+		_u.SetOwnerSalesIDSnapshot(*v)
+	}
+	return _u
+}
+
+// AddOwnerSalesIDSnapshot adds value to the "owner_sales_id_snapshot" field.
+func (_u *PaymentOrderUpdate) AddOwnerSalesIDSnapshot(v int64) *PaymentOrderUpdate {
+	_u.mutation.AddOwnerSalesIDSnapshot(v)
+	return _u
+}
+
+// ClearOwnerSalesIDSnapshot clears the value of the "owner_sales_id_snapshot" field.
+func (_u *PaymentOrderUpdate) ClearOwnerSalesIDSnapshot() *PaymentOrderUpdate {
+	_u.mutation.ClearOwnerSalesIDSnapshot()
+	return _u
+}
+
+// SetInvitedByUserIDSnapshot sets the "invited_by_user_id_snapshot" field.
+func (_u *PaymentOrderUpdate) SetInvitedByUserIDSnapshot(v int64) *PaymentOrderUpdate {
+	_u.mutation.ResetInvitedByUserIDSnapshot()
+	_u.mutation.SetInvitedByUserIDSnapshot(v)
+	return _u
+}
+
+// SetNillableInvitedByUserIDSnapshot sets the "invited_by_user_id_snapshot" field if the given value is not nil.
+func (_u *PaymentOrderUpdate) SetNillableInvitedByUserIDSnapshot(v *int64) *PaymentOrderUpdate {
+	if v != nil {
+		_u.SetInvitedByUserIDSnapshot(*v)
+	}
+	return _u
+}
+
+// AddInvitedByUserIDSnapshot adds value to the "invited_by_user_id_snapshot" field.
+func (_u *PaymentOrderUpdate) AddInvitedByUserIDSnapshot(v int64) *PaymentOrderUpdate {
+	_u.mutation.AddInvitedByUserIDSnapshot(v)
+	return _u
+}
+
+// ClearInvitedByUserIDSnapshot clears the value of the "invited_by_user_id_snapshot" field.
+func (_u *PaymentOrderUpdate) ClearInvitedByUserIDSnapshot() *PaymentOrderUpdate {
+	_u.mutation.ClearInvitedByUserIDSnapshot()
+	return _u
+}
+
+// SetInviteRewardStatus sets the "invite_reward_status" field.
+func (_u *PaymentOrderUpdate) SetInviteRewardStatus(v string) *PaymentOrderUpdate {
+	_u.mutation.SetInviteRewardStatus(v)
+	return _u
+}
+
+// SetNillableInviteRewardStatus sets the "invite_reward_status" field if the given value is not nil.
+func (_u *PaymentOrderUpdate) SetNillableInviteRewardStatus(v *string) *PaymentOrderUpdate {
+	if v != nil {
+		_u.SetInviteRewardStatus(*v)
+	}
+	return _u
+}
+
+// SetInviteRewardLedgerID sets the "invite_reward_ledger_id" field.
+func (_u *PaymentOrderUpdate) SetInviteRewardLedgerID(v int64) *PaymentOrderUpdate {
+	_u.mutation.ResetInviteRewardLedgerID()
+	_u.mutation.SetInviteRewardLedgerID(v)
+	return _u
+}
+
+// SetNillableInviteRewardLedgerID sets the "invite_reward_ledger_id" field if the given value is not nil.
+func (_u *PaymentOrderUpdate) SetNillableInviteRewardLedgerID(v *int64) *PaymentOrderUpdate {
+	if v != nil {
+		_u.SetInviteRewardLedgerID(*v)
+	}
+	return _u
+}
+
+// AddInviteRewardLedgerID adds value to the "invite_reward_ledger_id" field.
+func (_u *PaymentOrderUpdate) AddInviteRewardLedgerID(v int64) *PaymentOrderUpdate {
+	_u.mutation.AddInviteRewardLedgerID(v)
+	return _u
+}
+
+// ClearInviteRewardLedgerID clears the value of the "invite_reward_ledger_id" field.
+func (_u *PaymentOrderUpdate) ClearInviteRewardLedgerID() *PaymentOrderUpdate {
+	_u.mutation.ClearInviteRewardLedgerID()
+	return _u
+}
+
+// SetInvoiceStatus sets the "invoice_status" field.
+func (_u *PaymentOrderUpdate) SetInvoiceStatus(v string) *PaymentOrderUpdate {
+	_u.mutation.SetInvoiceStatus(v)
+	return _u
+}
+
+// SetNillableInvoiceStatus sets the "invoice_status" field if the given value is not nil.
+func (_u *PaymentOrderUpdate) SetNillableInvoiceStatus(v *string) *PaymentOrderUpdate {
+	if v != nil {
+		_u.SetInvoiceStatus(*v)
+	}
+	return _u
+}
+
+// SetInvoiceRequestID sets the "invoice_request_id" field.
+func (_u *PaymentOrderUpdate) SetInvoiceRequestID(v int64) *PaymentOrderUpdate {
+	_u.mutation.ResetInvoiceRequestID()
+	_u.mutation.SetInvoiceRequestID(v)
+	return _u
+}
+
+// SetNillableInvoiceRequestID sets the "invoice_request_id" field if the given value is not nil.
+func (_u *PaymentOrderUpdate) SetNillableInvoiceRequestID(v *int64) *PaymentOrderUpdate {
+	if v != nil {
+		_u.SetInvoiceRequestID(*v)
+	}
+	return _u
+}
+
+// AddInvoiceRequestID adds value to the "invoice_request_id" field.
+func (_u *PaymentOrderUpdate) AddInvoiceRequestID(v int64) *PaymentOrderUpdate {
+	_u.mutation.AddInvoiceRequestID(v)
+	return _u
+}
+
+// ClearInvoiceRequestID clears the value of the "invoice_request_id" field.
+func (_u *PaymentOrderUpdate) ClearInvoiceRequestID() *PaymentOrderUpdate {
+	_u.mutation.ClearInvoiceRequestID()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *PaymentOrderUpdate) SetStatus(v string) *PaymentOrderUpdate {
 	_u.mutation.SetStatus(v)
@@ -813,6 +949,16 @@ func (_u *PaymentOrderUpdate) check() error {
 			return &ValidationError{Name: "provider_key", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.provider_key": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.InviteRewardStatus(); ok {
+		if err := paymentorder.InviteRewardStatusValidator(v); err != nil {
+			return &ValidationError{Name: "invite_reward_status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.invite_reward_status": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.InvoiceStatus(); ok {
+		if err := paymentorder.InvoiceStatusValidator(v); err != nil {
+			return &ValidationError{Name: "invoice_status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.invoice_status": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Status(); ok {
 		if err := paymentorder.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.status": %w`, err)}
@@ -958,6 +1104,48 @@ func (_u *PaymentOrderUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if _u.mutation.ProviderSnapshotCleared() {
 		_spec.ClearField(paymentorder.FieldProviderSnapshot, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.OwnerSalesIDSnapshot(); ok {
+		_spec.SetField(paymentorder.FieldOwnerSalesIDSnapshot, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedOwnerSalesIDSnapshot(); ok {
+		_spec.AddField(paymentorder.FieldOwnerSalesIDSnapshot, field.TypeInt64, value)
+	}
+	if _u.mutation.OwnerSalesIDSnapshotCleared() {
+		_spec.ClearField(paymentorder.FieldOwnerSalesIDSnapshot, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.InvitedByUserIDSnapshot(); ok {
+		_spec.SetField(paymentorder.FieldInvitedByUserIDSnapshot, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedInvitedByUserIDSnapshot(); ok {
+		_spec.AddField(paymentorder.FieldInvitedByUserIDSnapshot, field.TypeInt64, value)
+	}
+	if _u.mutation.InvitedByUserIDSnapshotCleared() {
+		_spec.ClearField(paymentorder.FieldInvitedByUserIDSnapshot, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.InviteRewardStatus(); ok {
+		_spec.SetField(paymentorder.FieldInviteRewardStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.InviteRewardLedgerID(); ok {
+		_spec.SetField(paymentorder.FieldInviteRewardLedgerID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedInviteRewardLedgerID(); ok {
+		_spec.AddField(paymentorder.FieldInviteRewardLedgerID, field.TypeInt64, value)
+	}
+	if _u.mutation.InviteRewardLedgerIDCleared() {
+		_spec.ClearField(paymentorder.FieldInviteRewardLedgerID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.InvoiceStatus(); ok {
+		_spec.SetField(paymentorder.FieldInvoiceStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.InvoiceRequestID(); ok {
+		_spec.SetField(paymentorder.FieldInvoiceRequestID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedInvoiceRequestID(); ok {
+		_spec.AddField(paymentorder.FieldInvoiceRequestID, field.TypeInt64, value)
+	}
+	if _u.mutation.InvoiceRequestIDCleared() {
+		_spec.ClearField(paymentorder.FieldInvoiceRequestID, field.TypeInt64)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeString, value)
@@ -1480,6 +1668,142 @@ func (_u *PaymentOrderUpdateOne) ClearProviderSnapshot() *PaymentOrderUpdateOne 
 	return _u
 }
 
+// SetOwnerSalesIDSnapshot sets the "owner_sales_id_snapshot" field.
+func (_u *PaymentOrderUpdateOne) SetOwnerSalesIDSnapshot(v int64) *PaymentOrderUpdateOne {
+	_u.mutation.ResetOwnerSalesIDSnapshot()
+	_u.mutation.SetOwnerSalesIDSnapshot(v)
+	return _u
+}
+
+// SetNillableOwnerSalesIDSnapshot sets the "owner_sales_id_snapshot" field if the given value is not nil.
+func (_u *PaymentOrderUpdateOne) SetNillableOwnerSalesIDSnapshot(v *int64) *PaymentOrderUpdateOne {
+	if v != nil {
+		_u.SetOwnerSalesIDSnapshot(*v)
+	}
+	return _u
+}
+
+// AddOwnerSalesIDSnapshot adds value to the "owner_sales_id_snapshot" field.
+func (_u *PaymentOrderUpdateOne) AddOwnerSalesIDSnapshot(v int64) *PaymentOrderUpdateOne {
+	_u.mutation.AddOwnerSalesIDSnapshot(v)
+	return _u
+}
+
+// ClearOwnerSalesIDSnapshot clears the value of the "owner_sales_id_snapshot" field.
+func (_u *PaymentOrderUpdateOne) ClearOwnerSalesIDSnapshot() *PaymentOrderUpdateOne {
+	_u.mutation.ClearOwnerSalesIDSnapshot()
+	return _u
+}
+
+// SetInvitedByUserIDSnapshot sets the "invited_by_user_id_snapshot" field.
+func (_u *PaymentOrderUpdateOne) SetInvitedByUserIDSnapshot(v int64) *PaymentOrderUpdateOne {
+	_u.mutation.ResetInvitedByUserIDSnapshot()
+	_u.mutation.SetInvitedByUserIDSnapshot(v)
+	return _u
+}
+
+// SetNillableInvitedByUserIDSnapshot sets the "invited_by_user_id_snapshot" field if the given value is not nil.
+func (_u *PaymentOrderUpdateOne) SetNillableInvitedByUserIDSnapshot(v *int64) *PaymentOrderUpdateOne {
+	if v != nil {
+		_u.SetInvitedByUserIDSnapshot(*v)
+	}
+	return _u
+}
+
+// AddInvitedByUserIDSnapshot adds value to the "invited_by_user_id_snapshot" field.
+func (_u *PaymentOrderUpdateOne) AddInvitedByUserIDSnapshot(v int64) *PaymentOrderUpdateOne {
+	_u.mutation.AddInvitedByUserIDSnapshot(v)
+	return _u
+}
+
+// ClearInvitedByUserIDSnapshot clears the value of the "invited_by_user_id_snapshot" field.
+func (_u *PaymentOrderUpdateOne) ClearInvitedByUserIDSnapshot() *PaymentOrderUpdateOne {
+	_u.mutation.ClearInvitedByUserIDSnapshot()
+	return _u
+}
+
+// SetInviteRewardStatus sets the "invite_reward_status" field.
+func (_u *PaymentOrderUpdateOne) SetInviteRewardStatus(v string) *PaymentOrderUpdateOne {
+	_u.mutation.SetInviteRewardStatus(v)
+	return _u
+}
+
+// SetNillableInviteRewardStatus sets the "invite_reward_status" field if the given value is not nil.
+func (_u *PaymentOrderUpdateOne) SetNillableInviteRewardStatus(v *string) *PaymentOrderUpdateOne {
+	if v != nil {
+		_u.SetInviteRewardStatus(*v)
+	}
+	return _u
+}
+
+// SetInviteRewardLedgerID sets the "invite_reward_ledger_id" field.
+func (_u *PaymentOrderUpdateOne) SetInviteRewardLedgerID(v int64) *PaymentOrderUpdateOne {
+	_u.mutation.ResetInviteRewardLedgerID()
+	_u.mutation.SetInviteRewardLedgerID(v)
+	return _u
+}
+
+// SetNillableInviteRewardLedgerID sets the "invite_reward_ledger_id" field if the given value is not nil.
+func (_u *PaymentOrderUpdateOne) SetNillableInviteRewardLedgerID(v *int64) *PaymentOrderUpdateOne {
+	if v != nil {
+		_u.SetInviteRewardLedgerID(*v)
+	}
+	return _u
+}
+
+// AddInviteRewardLedgerID adds value to the "invite_reward_ledger_id" field.
+func (_u *PaymentOrderUpdateOne) AddInviteRewardLedgerID(v int64) *PaymentOrderUpdateOne {
+	_u.mutation.AddInviteRewardLedgerID(v)
+	return _u
+}
+
+// ClearInviteRewardLedgerID clears the value of the "invite_reward_ledger_id" field.
+func (_u *PaymentOrderUpdateOne) ClearInviteRewardLedgerID() *PaymentOrderUpdateOne {
+	_u.mutation.ClearInviteRewardLedgerID()
+	return _u
+}
+
+// SetInvoiceStatus sets the "invoice_status" field.
+func (_u *PaymentOrderUpdateOne) SetInvoiceStatus(v string) *PaymentOrderUpdateOne {
+	_u.mutation.SetInvoiceStatus(v)
+	return _u
+}
+
+// SetNillableInvoiceStatus sets the "invoice_status" field if the given value is not nil.
+func (_u *PaymentOrderUpdateOne) SetNillableInvoiceStatus(v *string) *PaymentOrderUpdateOne {
+	if v != nil {
+		_u.SetInvoiceStatus(*v)
+	}
+	return _u
+}
+
+// SetInvoiceRequestID sets the "invoice_request_id" field.
+func (_u *PaymentOrderUpdateOne) SetInvoiceRequestID(v int64) *PaymentOrderUpdateOne {
+	_u.mutation.ResetInvoiceRequestID()
+	_u.mutation.SetInvoiceRequestID(v)
+	return _u
+}
+
+// SetNillableInvoiceRequestID sets the "invoice_request_id" field if the given value is not nil.
+func (_u *PaymentOrderUpdateOne) SetNillableInvoiceRequestID(v *int64) *PaymentOrderUpdateOne {
+	if v != nil {
+		_u.SetInvoiceRequestID(*v)
+	}
+	return _u
+}
+
+// AddInvoiceRequestID adds value to the "invoice_request_id" field.
+func (_u *PaymentOrderUpdateOne) AddInvoiceRequestID(v int64) *PaymentOrderUpdateOne {
+	_u.mutation.AddInvoiceRequestID(v)
+	return _u
+}
+
+// ClearInvoiceRequestID clears the value of the "invoice_request_id" field.
+func (_u *PaymentOrderUpdateOne) ClearInvoiceRequestID() *PaymentOrderUpdateOne {
+	_u.mutation.ClearInvoiceRequestID()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *PaymentOrderUpdateOne) SetStatus(v string) *PaymentOrderUpdateOne {
 	_u.mutation.SetStatus(v)
@@ -1889,6 +2213,16 @@ func (_u *PaymentOrderUpdateOne) check() error {
 			return &ValidationError{Name: "provider_key", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.provider_key": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.InviteRewardStatus(); ok {
+		if err := paymentorder.InviteRewardStatusValidator(v); err != nil {
+			return &ValidationError{Name: "invite_reward_status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.invite_reward_status": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.InvoiceStatus(); ok {
+		if err := paymentorder.InvoiceStatusValidator(v); err != nil {
+			return &ValidationError{Name: "invoice_status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.invoice_status": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Status(); ok {
 		if err := paymentorder.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.status": %w`, err)}
@@ -2051,6 +2385,48 @@ func (_u *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentOrd
 	}
 	if _u.mutation.ProviderSnapshotCleared() {
 		_spec.ClearField(paymentorder.FieldProviderSnapshot, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.OwnerSalesIDSnapshot(); ok {
+		_spec.SetField(paymentorder.FieldOwnerSalesIDSnapshot, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedOwnerSalesIDSnapshot(); ok {
+		_spec.AddField(paymentorder.FieldOwnerSalesIDSnapshot, field.TypeInt64, value)
+	}
+	if _u.mutation.OwnerSalesIDSnapshotCleared() {
+		_spec.ClearField(paymentorder.FieldOwnerSalesIDSnapshot, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.InvitedByUserIDSnapshot(); ok {
+		_spec.SetField(paymentorder.FieldInvitedByUserIDSnapshot, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedInvitedByUserIDSnapshot(); ok {
+		_spec.AddField(paymentorder.FieldInvitedByUserIDSnapshot, field.TypeInt64, value)
+	}
+	if _u.mutation.InvitedByUserIDSnapshotCleared() {
+		_spec.ClearField(paymentorder.FieldInvitedByUserIDSnapshot, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.InviteRewardStatus(); ok {
+		_spec.SetField(paymentorder.FieldInviteRewardStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.InviteRewardLedgerID(); ok {
+		_spec.SetField(paymentorder.FieldInviteRewardLedgerID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedInviteRewardLedgerID(); ok {
+		_spec.AddField(paymentorder.FieldInviteRewardLedgerID, field.TypeInt64, value)
+	}
+	if _u.mutation.InviteRewardLedgerIDCleared() {
+		_spec.ClearField(paymentorder.FieldInviteRewardLedgerID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.InvoiceStatus(); ok {
+		_spec.SetField(paymentorder.FieldInvoiceStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.InvoiceRequestID(); ok {
+		_spec.SetField(paymentorder.FieldInvoiceRequestID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedInvoiceRequestID(); ok {
+		_spec.AddField(paymentorder.FieldInvoiceRequestID, field.TypeInt64, value)
+	}
+	if _u.mutation.InvoiceRequestIDCleared() {
+		_spec.ClearField(paymentorder.FieldInvoiceRequestID, field.TypeInt64)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeString, value)

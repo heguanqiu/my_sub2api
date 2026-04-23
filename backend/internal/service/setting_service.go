@@ -956,6 +956,11 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	// 默认配置
 	updates[SettingKeyDefaultConcurrency] = strconv.Itoa(settings.DefaultConcurrency)
 	updates[SettingKeyDefaultBalance] = strconv.FormatFloat(settings.DefaultBalance, 'f', 8, 64)
+	if settings.DefaultSalesUserID > 0 {
+		updates[SettingKeyDefaultSalesUserID] = strconv.FormatInt(settings.DefaultSalesUserID, 10)
+	} else {
+		updates[SettingKeyDefaultSalesUserID] = ""
+	}
 	defaultSubsJSON, err := json.Marshal(settings.DefaultSubscriptions)
 	if err != nil {
 		return nil, fmt.Errorf("marshal default subscriptions: %w", err)
@@ -1007,6 +1012,19 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeyBalanceLowNotifyRechargeURL] = settings.BalanceLowNotifyRechargeURL
 	updates[SettingKeyAccountQuotaNotifyEnabled] = strconv.FormatBool(settings.AccountQuotaNotifyEnabled)
 	updates[SettingKeyAccountQuotaNotifyEmails] = MarshalNotifyEmails(settings.AccountQuotaNotifyEmails)
+	updates[SettingKeyInvoiceEnabled] = strconv.FormatBool(settings.InvoiceEnabled)
+	updates[SettingKeyInvoiceProvider] = settings.InvoiceProvider
+	updates[SettingKeyInvoiceBaiwangEnabled] = strconv.FormatBool(settings.InvoiceBaiwangEnabled)
+	updates[SettingKeyInvoiceBaiwangBaseURL] = settings.InvoiceBaiwangBaseURL
+	updates[SettingKeyInvoiceBaiwangAppKey] = settings.InvoiceBaiwangAppKey
+	if settings.InvoiceBaiwangAppSecret != "" {
+		updates[SettingKeyInvoiceBaiwangAppSecret] = settings.InvoiceBaiwangAppSecret
+	}
+	updates[SettingKeyInvoiceBaiwangTaxpayerID] = settings.InvoiceBaiwangTaxpayerID
+	updates[SettingKeyInvoiceBaiwangSellerName] = settings.InvoiceBaiwangSellerName
+	updates[SettingKeyInvoiceBaiwangDefaultGoodsName] = settings.InvoiceBaiwangDefaultGoodsName
+	updates[SettingKeyInvoiceAutoRetryEnabled] = strconv.FormatBool(settings.InvoiceAutoRetryEnabled)
+	updates[SettingKeyInvoiceRetryLimit] = strconv.Itoa(settings.InvoiceRetryLimit)
 
 	return updates, nil
 }
@@ -1512,36 +1530,47 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 func (s *SettingService) parseSettings(settings map[string]string) *SystemSettings {
 	emailVerifyEnabled := settings[SettingKeyEmailVerifyEnabled] == "true"
 	result := &SystemSettings{
-		RegistrationEnabled:              settings[SettingKeyRegistrationEnabled] == "true",
-		EmailVerifyEnabled:               emailVerifyEnabled,
-		RegistrationEmailSuffixWhitelist: ParseRegistrationEmailSuffixWhitelist(settings[SettingKeyRegistrationEmailSuffixWhitelist]),
-		PromoCodeEnabled:                 settings[SettingKeyPromoCodeEnabled] != "false", // 默认启用
-		PasswordResetEnabled:             emailVerifyEnabled && settings[SettingKeyPasswordResetEnabled] == "true",
-		FrontendURL:                      settings[SettingKeyFrontendURL],
-		InvitationCodeEnabled:            settings[SettingKeyInvitationCodeEnabled] == "true",
-		TotpEnabled:                      settings[SettingKeyTotpEnabled] == "true",
-		SMTPHost:                         settings[SettingKeySMTPHost],
-		SMTPUsername:                     settings[SettingKeySMTPUsername],
-		SMTPFrom:                         settings[SettingKeySMTPFrom],
-		SMTPFromName:                     settings[SettingKeySMTPFromName],
-		SMTPUseTLS:                       settings[SettingKeySMTPUseTLS] == "true",
-		SMTPPasswordConfigured:           settings[SettingKeySMTPPassword] != "",
-		TurnstileEnabled:                 settings[SettingKeyTurnstileEnabled] == "true",
-		TurnstileSiteKey:                 settings[SettingKeyTurnstileSiteKey],
-		TurnstileSecretKeyConfigured:     settings[SettingKeyTurnstileSecretKey] != "",
-		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, "Sub2API"),
-		SiteLogo:                         settings[SettingKeySiteLogo],
-		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
-		APIBaseURL:                       settings[SettingKeyAPIBaseURL],
-		ContactInfo:                      settings[SettingKeyContactInfo],
-		DocURL:                           settings[SettingKeyDocURL],
-		HomeContent:                      settings[SettingKeyHomeContent],
-		HideCcsImportButton:              settings[SettingKeyHideCcsImportButton] == "true",
-		PurchaseSubscriptionEnabled:      settings[SettingKeyPurchaseSubscriptionEnabled] == "true",
-		PurchaseSubscriptionURL:          strings.TrimSpace(settings[SettingKeyPurchaseSubscriptionURL]),
-		CustomMenuItems:                  settings[SettingKeyCustomMenuItems],
-		CustomEndpoints:                  settings[SettingKeyCustomEndpoints],
-		BackendModeEnabled:               settings[SettingKeyBackendModeEnabled] == "true",
+		RegistrationEnabled:               settings[SettingKeyRegistrationEnabled] == "true",
+		EmailVerifyEnabled:                emailVerifyEnabled,
+		RegistrationEmailSuffixWhitelist:  ParseRegistrationEmailSuffixWhitelist(settings[SettingKeyRegistrationEmailSuffixWhitelist]),
+		PromoCodeEnabled:                  settings[SettingKeyPromoCodeEnabled] != "false", // 默认启用
+		PasswordResetEnabled:              emailVerifyEnabled && settings[SettingKeyPasswordResetEnabled] == "true",
+		FrontendURL:                       settings[SettingKeyFrontendURL],
+		InvitationCodeEnabled:             settings[SettingKeyInvitationCodeEnabled] == "true",
+		TotpEnabled:                       settings[SettingKeyTotpEnabled] == "true",
+		SMTPHost:                          settings[SettingKeySMTPHost],
+		SMTPUsername:                      settings[SettingKeySMTPUsername],
+		SMTPFrom:                          settings[SettingKeySMTPFrom],
+		SMTPFromName:                      settings[SettingKeySMTPFromName],
+		SMTPUseTLS:                        settings[SettingKeySMTPUseTLS] == "true",
+		SMTPPasswordConfigured:            settings[SettingKeySMTPPassword] != "",
+		TurnstileEnabled:                  settings[SettingKeyTurnstileEnabled] == "true",
+		TurnstileSiteKey:                  settings[SettingKeyTurnstileSiteKey],
+		TurnstileSecretKeyConfigured:      settings[SettingKeyTurnstileSecretKey] != "",
+		SiteName:                          s.getStringOrDefault(settings, SettingKeySiteName, "Sub2API"),
+		SiteLogo:                          settings[SettingKeySiteLogo],
+		SiteSubtitle:                      s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
+		APIBaseURL:                        settings[SettingKeyAPIBaseURL],
+		ContactInfo:                       settings[SettingKeyContactInfo],
+		DocURL:                            settings[SettingKeyDocURL],
+		HomeContent:                       settings[SettingKeyHomeContent],
+		HideCcsImportButton:               settings[SettingKeyHideCcsImportButton] == "true",
+		PurchaseSubscriptionEnabled:       settings[SettingKeyPurchaseSubscriptionEnabled] == "true",
+		PurchaseSubscriptionURL:           strings.TrimSpace(settings[SettingKeyPurchaseSubscriptionURL]),
+		CustomMenuItems:                   settings[SettingKeyCustomMenuItems],
+		CustomEndpoints:                   settings[SettingKeyCustomEndpoints],
+		BackendModeEnabled:                settings[SettingKeyBackendModeEnabled] == "true",
+		InvoiceEnabled:                    settings[SettingKeyInvoiceEnabled] == "true",
+		InvoiceProvider:                   s.getStringOrDefault(settings, SettingKeyInvoiceProvider, InvoiceProviderBaiwang),
+		InvoiceBaiwangEnabled:             settings[SettingKeyInvoiceBaiwangEnabled] == "true",
+		InvoiceBaiwangBaseURL:             settings[SettingKeyInvoiceBaiwangBaseURL],
+		InvoiceBaiwangAppKey:              settings[SettingKeyInvoiceBaiwangAppKey],
+		InvoiceBaiwangAppSecret:           settings[SettingKeyInvoiceBaiwangAppSecret],
+		InvoiceBaiwangAppSecretConfigured: settings[SettingKeyInvoiceBaiwangAppSecret] != "",
+		InvoiceBaiwangTaxpayerID:          settings[SettingKeyInvoiceBaiwangTaxpayerID],
+		InvoiceBaiwangSellerName:          settings[SettingKeyInvoiceBaiwangSellerName],
+		InvoiceBaiwangDefaultGoodsName:    settings[SettingKeyInvoiceBaiwangDefaultGoodsName],
+		InvoiceAutoRetryEnabled:           settings[SettingKeyInvoiceAutoRetryEnabled] == "true",
 	}
 	result.TableDefaultPageSize, result.TablePageSizeOptions = parseTablePreferences(
 		settings[SettingKeyTableDefaultPageSize],
@@ -1560,12 +1589,20 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	} else {
 		result.DefaultConcurrency = s.cfg.Default.UserConcurrency
 	}
+	if retryLimit, err := strconv.Atoi(settings[SettingKeyInvoiceRetryLimit]); err == nil && retryLimit > 0 {
+		result.InvoiceRetryLimit = retryLimit
+	} else {
+		result.InvoiceRetryLimit = 3
+	}
 
 	// 解析浮点数类型
 	if balance, err := strconv.ParseFloat(settings[SettingKeyDefaultBalance], 64); err == nil {
 		result.DefaultBalance = balance
 	} else {
 		result.DefaultBalance = s.cfg.Default.UserBalance
+	}
+	if defaultSalesUserID, err := strconv.ParseInt(strings.TrimSpace(settings[SettingKeyDefaultSalesUserID]), 10, 64); err == nil && defaultSalesUserID > 0 {
+		result.DefaultSalesUserID = defaultSalesUserID
 	}
 	result.DefaultSubscriptions = parseDefaultSubscriptions(settings[SettingKeyDefaultSubscriptions])
 

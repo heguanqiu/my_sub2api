@@ -49,6 +49,14 @@ const (
 	FieldLastLoginAt = "last_login_at"
 	// FieldLastActiveAt holds the string denoting the last_active_at field in the database.
 	FieldLastActiveAt = "last_active_at"
+	// FieldInvitedByUserID holds the string denoting the invited_by_user_id field in the database.
+	FieldInvitedByUserID = "invited_by_user_id"
+	// FieldOwnerSalesID holds the string denoting the owner_sales_id field in the database.
+	FieldOwnerSalesID = "owner_sales_id"
+	// FieldFirstPaidOrderID holds the string denoting the first_paid_order_id field in the database.
+	FieldFirstPaidOrderID = "first_paid_order_id"
+	// FieldFirstPaidAt holds the string denoting the first_paid_at field in the database.
+	FieldFirstPaidAt = "first_paid_at"
 	// FieldBalanceNotifyEnabled holds the string denoting the balance_notify_enabled field in the database.
 	FieldBalanceNotifyEnabled = "balance_notify_enabled"
 	// FieldBalanceNotifyThresholdType holds the string denoting the balance_notify_threshold_type field in the database.
@@ -198,6 +206,10 @@ var Columns = []string{
 	FieldSignupSource,
 	FieldLastLoginAt,
 	FieldLastActiveAt,
+	FieldInvitedByUserID,
+	FieldOwnerSalesID,
+	FieldFirstPaidOrderID,
+	FieldFirstPaidAt,
 	FieldBalanceNotifyEnabled,
 	FieldBalanceNotifyThresholdType,
 	FieldBalanceNotifyThreshold,
@@ -364,6 +376,26 @@ func ByLastLoginAt(opts ...sql.OrderTermOption) OrderOption {
 // ByLastActiveAt orders the results by the last_active_at field.
 func ByLastActiveAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLastActiveAt, opts...).ToFunc()
+}
+
+// ByInvitedByUserID orders the results by the invited_by_user_id field.
+func ByInvitedByUserID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvitedByUserID, opts...).ToFunc()
+}
+
+// ByOwnerSalesID orders the results by the owner_sales_id field.
+func ByOwnerSalesID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOwnerSalesID, opts...).ToFunc()
+}
+
+// ByFirstPaidOrderID orders the results by the first_paid_order_id field.
+func ByFirstPaidOrderID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFirstPaidOrderID, opts...).ToFunc()
+}
+
+// ByFirstPaidAt orders the results by the first_paid_at field.
+func ByFirstPaidAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFirstPaidAt, opts...).ToFunc()
 }
 
 // ByBalanceNotifyEnabled orders the results by the balance_notify_enabled field.

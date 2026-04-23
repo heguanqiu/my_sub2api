@@ -30,6 +30,14 @@ export interface AdminBoundAuthIdentity {
   channel_id?: number | null
 }
 
+export interface ReferralMutationResult {
+  root_user_id: number
+  affected_user_count: number
+  affected_user_ids?: number[]
+  target_sales_user_id?: number | null
+  new_invited_by_user_id?: number | null
+}
+
 /**
  * List all users with pagination
  * @param page - Page number (default: 1)
@@ -43,7 +51,7 @@ export async function list(
   pageSize: number = 20,
   filters?: {
     status?: 'active' | 'disabled'
-    role?: 'admin' | 'user'
+    role?: 'admin' | 'sales' | 'user'
     search?: string
     group_name?: string         // fuzzy filter by allowed group name
     attributes?: Record<number, string>  // attributeId -> value
@@ -101,6 +109,7 @@ export async function getById(id: number): Promise<AdminUser> {
 export async function create(userData: {
   email: string
   password: string
+  role?: 'admin' | 'sales' | 'user'
   balance?: number
   concurrency?: number
   allowed_groups?: number[] | null
@@ -117,6 +126,32 @@ export async function create(userData: {
  */
 export async function update(id: number, updates: UpdateUserRequest): Promise<AdminUser> {
   const { data } = await apiClient.put<AdminUser>(`/admin/users/${id}`, updates)
+  return data
+}
+
+export async function changeInviter(id: number, newInvitedByUserID: number | null): Promise<ReferralMutationResult> {
+  const { data } = await apiClient.post<ReferralMutationResult>(`/admin/users/${id}/change-inviter`, {
+    new_invited_by_user_id: newInvitedByUserID
+  })
+  return data
+}
+
+export async function recomputeSalesOwner(id: number): Promise<ReferralMutationResult> {
+  const { data } = await apiClient.post<ReferralMutationResult>(`/admin/users/${id}/recompute-sales-owner`)
+  return data
+}
+
+export async function previewSalesOwnerMigration(id: number, targetSalesUserID: number): Promise<ReferralMutationResult> {
+  const { data } = await apiClient.post<ReferralMutationResult>(`/admin/users/${id}/migrate-sales-owner/preview`, {
+    target_sales_user_id: targetSalesUserID
+  })
+  return data
+}
+
+export async function migrateSalesOwner(id: number, targetSalesUserID: number): Promise<ReferralMutationResult> {
+  const { data } = await apiClient.post<ReferralMutationResult>(`/admin/users/${id}/migrate-sales-owner`, {
+    target_sales_user_id: targetSalesUserID
+  })
   return data
 }
 
@@ -295,6 +330,10 @@ export const usersAPI = {
   getUserApiKeys,
   getUserUsageStats,
   getUserBalanceHistory,
+  changeInviter,
+  recomputeSalesOwner,
+  previewSalesOwnerMigration,
+  migrateSalesOwner,
   replaceGroup,
   bindUserAuthIdentity
 }

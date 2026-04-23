@@ -112,8 +112,8 @@
           </p>
         </div>
 
-        <!-- Invitation Code Input (Required when enabled) -->
-        <div v-if="invitationCodeEnabled">
+        <!-- Invitation Code Input -->
+        <div v-if="showInvitationCodeField">
           <label for="invitation_code" class="input-label">
             {{ t('auth.invitationCodeLabel') }}
           </label>
@@ -126,8 +126,10 @@
               v-model="formData.invitation_code"
               type="text"
               :disabled="isLoading"
+              :readonly="invitationCodeLocked"
               class="input pl-11 pr-10"
               :class="{
+                'cursor-not-allowed bg-gray-50 text-gray-500 dark:bg-dark-800 dark:text-dark-300': invitationCodeLocked,
                 'border-green-500 focus:border-green-500 focus:ring-green-500': invitationValidation.valid,
                 'border-red-500 focus:border-red-500 focus:ring-red-500': invitationValidation.invalid || errors.invitation_code
               }"
@@ -157,6 +159,9 @@
               </span>
             </div>
           </transition>
+          <p v-if="invitationCodeLocked" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            {{ t('auth.invitationCodeLockedHint') }}
+          </p>
         </div>
 
         <!-- Promo Code Input (Optional) -->
@@ -377,6 +382,19 @@ watch(validationToastMessage, (value, previousValue) => {
   }
 })
 
+const routeInvitationCode = computed(() => {
+  const invitationCode = typeof route.query.invitation_code === 'string' ? route.query.invitation_code : ''
+  const referralCode = typeof route.query.ref === 'string' ? route.query.ref : ''
+  return invitationCode || referralCode || ''
+})
+
+const invitationCodeLocked = computed(() => routeInvitationCode.value.trim().length > 0)
+const hasInvitationCode = computed(() => formData.invitation_code.trim().length > 0)
+const showInvitationCodeField = computed(
+  () => invitationCodeEnabled.value || invitationCodeLocked.value || hasInvitationCode.value
+)
+const shouldValidateInvitationCode = computed(() => invitationCodeEnabled.value || hasInvitationCode.value)
+
 // ==================== Lifecycle ====================
 
 onMounted(async () => {
@@ -405,6 +423,11 @@ onMounted(async () => {
         // Validate the promo code from URL
         await validatePromoCodeDebounced(promoParam)
       }
+    }
+
+    if (routeInvitationCode.value) {
+      formData.invitation_code = routeInvitationCode.value
+      await validateInvitationCodeDebounced(routeInvitationCode.value)
     }
   } catch (error) {
     console.error('Failed to load public settings:', error)
@@ -498,6 +521,10 @@ function getPromoErrorMessage(errorCode?: string): string {
 // ==================== Invitation Code Validation ====================
 
 function handleInvitationCodeInput(): void {
+  if (invitationCodeLocked.value) {
+    return
+  }
+
   const code = formData.invitation_code.trim()
 
   // Clear previous validation
@@ -671,7 +698,7 @@ async function handleRegister(): Promise<void> {
   }
 
   // Check invitation code validation status (if enabled and code provided)
-  if (invitationCodeEnabled.value) {
+  if (shouldValidateInvitationCode.value) {
     // If still validating, wait
     if (invitationValidating.value) {
       errorMessage.value = t('auth.invitationCodeValidating')
@@ -683,7 +710,7 @@ async function handleRegister(): Promise<void> {
       return
     }
     // If invitation code is required but not validated yet
-    if (formData.invitation_code.trim() && !invitationValidation.valid) {
+    if (hasInvitationCode.value && !invitationValidation.valid) {
       errorMessage.value = t('auth.invitationCodeValidating')
       // Trigger validation
       await validateInvitationCodeDebounced(formData.invitation_code.trim())

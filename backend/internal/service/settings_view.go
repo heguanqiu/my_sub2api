@@ -107,6 +107,7 @@ type SystemSettings struct {
 	DefaultConcurrency   int
 	DefaultBalance       float64
 	DefaultSubscriptions []DefaultSubscriptionSetting
+	DefaultSalesUserID   int64
 
 	// Model fallback configuration
 	EnableModelFallback      bool   `json:"enable_model_fallback"`
@@ -160,6 +161,19 @@ type SystemSettings struct {
 	// Account quota notification
 	AccountQuotaNotifyEnabled bool
 	AccountQuotaNotifyEmails  []NotifyEmailEntry
+
+	InvoiceEnabled                    bool
+	InvoiceProvider                   string
+	InvoiceBaiwangEnabled             bool
+	InvoiceBaiwangBaseURL             string
+	InvoiceBaiwangAppKey              string
+	InvoiceBaiwangAppSecret           string
+	InvoiceBaiwangAppSecretConfigured bool
+	InvoiceBaiwangTaxpayerID          string
+	InvoiceBaiwangSellerName          string
+	InvoiceBaiwangDefaultGoodsName    string
+	InvoiceAutoRetryEnabled           bool
+	InvoiceRetryLimit                 int
 }
 
 type DefaultSubscriptionSetting struct {

@@ -119,6 +119,23 @@
       </template>
 
       <!-- Regular User View -->
+      <template v-else-if="isSales">
+        <div class="sidebar-section">
+          <router-link
+            v-for="item in salesNavItems"
+            :key="item.path"
+            :to="item.path"
+            class="sidebar-link mb-1"
+            :class="{ 'sidebar-link-active': isActive(item.path), 'sidebar-link-collapsed': sidebarCollapsed }"
+            :title="sidebarCollapsed ? item.label : undefined"
+            @click="handleMenuItemClick(item.path)"
+          >
+            <span v-if="item.iconSvg" class="h-5 w-5 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(item.iconSvg)"></span>
+            <component v-else :is="item.icon" class="h-5 w-5 flex-shrink-0" />
+            <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{ item.label }}</span>
+          </router-link>
+        </div>
+      </template>
       <template v-else-if="!appStore.backendModeEnabled">
         <div class="sidebar-section">
           <router-link
@@ -207,6 +224,7 @@ const adminSettingsStore = useAdminSettingsStore()
 const sidebarCollapsed = computed(() => appStore.sidebarCollapsed)
 const mobileOpen = computed(() => appStore.mobileOpen)
 const isAdmin = computed(() => authStore.isAdmin)
+const isSales = computed(() => authStore.isSales)
 const isDark = ref(document.documentElement.classList.contains('dark'))
 
 // Track which parent nav groups are expanded
@@ -591,6 +609,8 @@ const userNavItems = computed((): NavItem[] => {
           },
         ]
       : []),
+    { path: '/referral', label: t('nav.referral'), icon: GiftIcon, hideInSimpleMode: true },
+    { path: '/invoices', label: t('nav.invoices'), icon: TicketIcon, hideInSimpleMode: true },
     { path: '/redeem', label: t('nav.redeem'), icon: GiftIcon, hideInSimpleMode: true },
     { path: '/profile', label: t('nav.profile'), icon: UserIcon },
     ...customMenuItemsForUser.value.map((item): NavItem => ({
@@ -629,6 +649,8 @@ const personalNavItems = computed((): NavItem[] => {
           },
         ]
       : []),
+    { path: '/referral', label: t('nav.referral'), icon: GiftIcon, hideInSimpleMode: true },
+    { path: '/invoices', label: t('nav.invoices'), icon: TicketIcon, hideInSimpleMode: true },
     { path: '/redeem', label: t('nav.redeem'), icon: GiftIcon, hideInSimpleMode: true },
     { path: '/profile', label: t('nav.profile'), icon: UserIcon },
     ...customMenuItemsForUser.value.map((item): NavItem => ({
@@ -639,6 +661,20 @@ const personalNavItems = computed((): NavItem[] => {
     })),
   ]
   return authStore.isSimpleMode ? items.filter(item => !item.hideInSimpleMode) : items
+})
+
+const salesNavItems = computed((): NavItem[] => {
+  const items: NavItem[] = [
+    { path: '/sales/dashboard', label: t('nav.salesDashboard'), icon: DashboardIcon },
+    { path: '/sales/customers', label: t('nav.salesCustomers'), icon: UsersIcon },
+    { path: '/sales/referral', label: t('nav.salesReferral'), icon: GiftIcon },
+    ...(appStore.cachedPublicSettings?.payment_enabled
+      ? [{ path: '/sales/orders', label: t('nav.salesOrders'), icon: OrderListIcon }]
+      : []),
+    { path: '/invoices', label: t('nav.invoices'), icon: TicketIcon },
+    { path: '/profile', label: t('nav.profile'), icon: UserIcon }
+  ]
+  return items
 })
 
 // Custom menu items filtered by visibility

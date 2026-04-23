@@ -56,6 +56,18 @@ const (
 	FieldProviderKey = "provider_key"
 	// FieldProviderSnapshot holds the string denoting the provider_snapshot field in the database.
 	FieldProviderSnapshot = "provider_snapshot"
+	// FieldOwnerSalesIDSnapshot holds the string denoting the owner_sales_id_snapshot field in the database.
+	FieldOwnerSalesIDSnapshot = "owner_sales_id_snapshot"
+	// FieldInvitedByUserIDSnapshot holds the string denoting the invited_by_user_id_snapshot field in the database.
+	FieldInvitedByUserIDSnapshot = "invited_by_user_id_snapshot"
+	// FieldInviteRewardStatus holds the string denoting the invite_reward_status field in the database.
+	FieldInviteRewardStatus = "invite_reward_status"
+	// FieldInviteRewardLedgerID holds the string denoting the invite_reward_ledger_id field in the database.
+	FieldInviteRewardLedgerID = "invite_reward_ledger_id"
+	// FieldInvoiceStatus holds the string denoting the invoice_status field in the database.
+	FieldInvoiceStatus = "invoice_status"
+	// FieldInvoiceRequestID holds the string denoting the invoice_request_id field in the database.
+	FieldInvoiceRequestID = "invoice_request_id"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldRefundAmount holds the string denoting the refund_amount field in the database.
@@ -129,6 +141,12 @@ var Columns = []string{
 	FieldProviderInstanceID,
 	FieldProviderKey,
 	FieldProviderSnapshot,
+	FieldOwnerSalesIDSnapshot,
+	FieldInvitedByUserIDSnapshot,
+	FieldInviteRewardStatus,
+	FieldInviteRewardLedgerID,
+	FieldInvoiceStatus,
+	FieldInvoiceRequestID,
 	FieldStatus,
 	FieldRefundAmount,
 	FieldRefundReason,
@@ -184,6 +202,14 @@ var (
 	ProviderInstanceIDValidator func(string) error
 	// ProviderKeyValidator is a validator for the "provider_key" field. It is called by the builders before save.
 	ProviderKeyValidator func(string) error
+	// DefaultInviteRewardStatus holds the default value on creation for the "invite_reward_status" field.
+	DefaultInviteRewardStatus string
+	// InviteRewardStatusValidator is a validator for the "invite_reward_status" field. It is called by the builders before save.
+	InviteRewardStatusValidator func(string) error
+	// DefaultInvoiceStatus holds the default value on creation for the "invoice_status" field.
+	DefaultInvoiceStatus string
+	// InvoiceStatusValidator is a validator for the "invoice_status" field. It is called by the builders before save.
+	InvoiceStatusValidator func(string) error
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
 	// StatusValidator is a validator for the "status" field. It is called by the builders before save.
@@ -312,6 +338,36 @@ func ByProviderInstanceID(opts ...sql.OrderTermOption) OrderOption {
 // ByProviderKey orders the results by the provider_key field.
 func ByProviderKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldProviderKey, opts...).ToFunc()
+}
+
+// ByOwnerSalesIDSnapshot orders the results by the owner_sales_id_snapshot field.
+func ByOwnerSalesIDSnapshot(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOwnerSalesIDSnapshot, opts...).ToFunc()
+}
+
+// ByInvitedByUserIDSnapshot orders the results by the invited_by_user_id_snapshot field.
+func ByInvitedByUserIDSnapshot(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvitedByUserIDSnapshot, opts...).ToFunc()
+}
+
+// ByInviteRewardStatus orders the results by the invite_reward_status field.
+func ByInviteRewardStatus(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInviteRewardStatus, opts...).ToFunc()
+}
+
+// ByInviteRewardLedgerID orders the results by the invite_reward_ledger_id field.
+func ByInviteRewardLedgerID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInviteRewardLedgerID, opts...).ToFunc()
+}
+
+// ByInvoiceStatus orders the results by the invoice_status field.
+func ByInvoiceStatus(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoiceStatus, opts...).ToFunc()
+}
+
+// ByInvoiceRequestID orders the results by the invoice_request_id field.
+func ByInvoiceRequestID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoiceRequestID, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.

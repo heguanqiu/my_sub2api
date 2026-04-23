@@ -140,6 +140,26 @@ func LastActiveAt(v time.Time) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldLastActiveAt, v))
 }
 
+// InvitedByUserID applies equality check predicate on the "invited_by_user_id" field. It's identical to InvitedByUserIDEQ.
+func InvitedByUserID(v int64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldInvitedByUserID, v))
+}
+
+// OwnerSalesID applies equality check predicate on the "owner_sales_id" field. It's identical to OwnerSalesIDEQ.
+func OwnerSalesID(v int64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldOwnerSalesID, v))
+}
+
+// FirstPaidOrderID applies equality check predicate on the "first_paid_order_id" field. It's identical to FirstPaidOrderIDEQ.
+func FirstPaidOrderID(v int64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldFirstPaidOrderID, v))
+}
+
+// FirstPaidAt applies equality check predicate on the "first_paid_at" field. It's identical to FirstPaidAtEQ.
+func FirstPaidAt(v time.Time) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldFirstPaidAt, v))
+}
+
 // BalanceNotifyEnabled applies equality check predicate on the "balance_notify_enabled" field. It's identical to BalanceNotifyEnabledEQ.
 func BalanceNotifyEnabled(v bool) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldBalanceNotifyEnabled, v))
@@ -1063,6 +1083,206 @@ func LastActiveAtIsNil() predicate.User {
 // LastActiveAtNotNil applies the NotNil predicate on the "last_active_at" field.
 func LastActiveAtNotNil() predicate.User {
 	return predicate.User(sql.FieldNotNull(FieldLastActiveAt))
+}
+
+// InvitedByUserIDEQ applies the EQ predicate on the "invited_by_user_id" field.
+func InvitedByUserIDEQ(v int64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldInvitedByUserID, v))
+}
+
+// InvitedByUserIDNEQ applies the NEQ predicate on the "invited_by_user_id" field.
+func InvitedByUserIDNEQ(v int64) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldInvitedByUserID, v))
+}
+
+// InvitedByUserIDIn applies the In predicate on the "invited_by_user_id" field.
+func InvitedByUserIDIn(vs ...int64) predicate.User {
+	return predicate.User(sql.FieldIn(FieldInvitedByUserID, vs...))
+}
+
+// InvitedByUserIDNotIn applies the NotIn predicate on the "invited_by_user_id" field.
+func InvitedByUserIDNotIn(vs ...int64) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldInvitedByUserID, vs...))
+}
+
+// InvitedByUserIDGT applies the GT predicate on the "invited_by_user_id" field.
+func InvitedByUserIDGT(v int64) predicate.User {
+	return predicate.User(sql.FieldGT(FieldInvitedByUserID, v))
+}
+
+// InvitedByUserIDGTE applies the GTE predicate on the "invited_by_user_id" field.
+func InvitedByUserIDGTE(v int64) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldInvitedByUserID, v))
+}
+
+// InvitedByUserIDLT applies the LT predicate on the "invited_by_user_id" field.
+func InvitedByUserIDLT(v int64) predicate.User {
+	return predicate.User(sql.FieldLT(FieldInvitedByUserID, v))
+}
+
+// InvitedByUserIDLTE applies the LTE predicate on the "invited_by_user_id" field.
+func InvitedByUserIDLTE(v int64) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldInvitedByUserID, v))
+}
+
+// InvitedByUserIDIsNil applies the IsNil predicate on the "invited_by_user_id" field.
+func InvitedByUserIDIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldInvitedByUserID))
+}
+
+// InvitedByUserIDNotNil applies the NotNil predicate on the "invited_by_user_id" field.
+func InvitedByUserIDNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldInvitedByUserID))
+}
+
+// OwnerSalesIDEQ applies the EQ predicate on the "owner_sales_id" field.
+func OwnerSalesIDEQ(v int64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldOwnerSalesID, v))
+}
+
+// OwnerSalesIDNEQ applies the NEQ predicate on the "owner_sales_id" field.
+func OwnerSalesIDNEQ(v int64) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldOwnerSalesID, v))
+}
+
+// OwnerSalesIDIn applies the In predicate on the "owner_sales_id" field.
+func OwnerSalesIDIn(vs ...int64) predicate.User {
+	return predicate.User(sql.FieldIn(FieldOwnerSalesID, vs...))
+}
+
+// OwnerSalesIDNotIn applies the NotIn predicate on the "owner_sales_id" field.
+func OwnerSalesIDNotIn(vs ...int64) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldOwnerSalesID, vs...))
+}
+
+// OwnerSalesIDGT applies the GT predicate on the "owner_sales_id" field.
+func OwnerSalesIDGT(v int64) predicate.User {
+	return predicate.User(sql.FieldGT(FieldOwnerSalesID, v))
+}
+
+// OwnerSalesIDGTE applies the GTE predicate on the "owner_sales_id" field.
+func OwnerSalesIDGTE(v int64) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldOwnerSalesID, v))
+}
+
+// OwnerSalesIDLT applies the LT predicate on the "owner_sales_id" field.
+func OwnerSalesIDLT(v int64) predicate.User {
+	return predicate.User(sql.FieldLT(FieldOwnerSalesID, v))
+}
+
+// OwnerSalesIDLTE applies the LTE predicate on the "owner_sales_id" field.
+func OwnerSalesIDLTE(v int64) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldOwnerSalesID, v))
+}
+
+// OwnerSalesIDIsNil applies the IsNil predicate on the "owner_sales_id" field.
+func OwnerSalesIDIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldOwnerSalesID))
+}
+
+// OwnerSalesIDNotNil applies the NotNil predicate on the "owner_sales_id" field.
+func OwnerSalesIDNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldOwnerSalesID))
+}
+
+// FirstPaidOrderIDEQ applies the EQ predicate on the "first_paid_order_id" field.
+func FirstPaidOrderIDEQ(v int64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldFirstPaidOrderID, v))
+}
+
+// FirstPaidOrderIDNEQ applies the NEQ predicate on the "first_paid_order_id" field.
+func FirstPaidOrderIDNEQ(v int64) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldFirstPaidOrderID, v))
+}
+
+// FirstPaidOrderIDIn applies the In predicate on the "first_paid_order_id" field.
+func FirstPaidOrderIDIn(vs ...int64) predicate.User {
+	return predicate.User(sql.FieldIn(FieldFirstPaidOrderID, vs...))
+}
+
+// FirstPaidOrderIDNotIn applies the NotIn predicate on the "first_paid_order_id" field.
+func FirstPaidOrderIDNotIn(vs ...int64) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldFirstPaidOrderID, vs...))
+}
+
+// FirstPaidOrderIDGT applies the GT predicate on the "first_paid_order_id" field.
+func FirstPaidOrderIDGT(v int64) predicate.User {
+	return predicate.User(sql.FieldGT(FieldFirstPaidOrderID, v))
+}
+
+// FirstPaidOrderIDGTE applies the GTE predicate on the "first_paid_order_id" field.
+func FirstPaidOrderIDGTE(v int64) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldFirstPaidOrderID, v))
+}
+
+// FirstPaidOrderIDLT applies the LT predicate on the "first_paid_order_id" field.
+func FirstPaidOrderIDLT(v int64) predicate.User {
+	return predicate.User(sql.FieldLT(FieldFirstPaidOrderID, v))
+}
+
+// FirstPaidOrderIDLTE applies the LTE predicate on the "first_paid_order_id" field.
+func FirstPaidOrderIDLTE(v int64) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldFirstPaidOrderID, v))
+}
+
+// FirstPaidOrderIDIsNil applies the IsNil predicate on the "first_paid_order_id" field.
+func FirstPaidOrderIDIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldFirstPaidOrderID))
+}
+
+// FirstPaidOrderIDNotNil applies the NotNil predicate on the "first_paid_order_id" field.
+func FirstPaidOrderIDNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldFirstPaidOrderID))
+}
+
+// FirstPaidAtEQ applies the EQ predicate on the "first_paid_at" field.
+func FirstPaidAtEQ(v time.Time) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldFirstPaidAt, v))
+}
+
+// FirstPaidAtNEQ applies the NEQ predicate on the "first_paid_at" field.
+func FirstPaidAtNEQ(v time.Time) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldFirstPaidAt, v))
+}
+
+// FirstPaidAtIn applies the In predicate on the "first_paid_at" field.
+func FirstPaidAtIn(vs ...time.Time) predicate.User {
+	return predicate.User(sql.FieldIn(FieldFirstPaidAt, vs...))
+}
+
+// FirstPaidAtNotIn applies the NotIn predicate on the "first_paid_at" field.
+func FirstPaidAtNotIn(vs ...time.Time) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldFirstPaidAt, vs...))
+}
+
+// FirstPaidAtGT applies the GT predicate on the "first_paid_at" field.
+func FirstPaidAtGT(v time.Time) predicate.User {
+	return predicate.User(sql.FieldGT(FieldFirstPaidAt, v))
+}
+
+// FirstPaidAtGTE applies the GTE predicate on the "first_paid_at" field.
+func FirstPaidAtGTE(v time.Time) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldFirstPaidAt, v))
+}
+
+// FirstPaidAtLT applies the LT predicate on the "first_paid_at" field.
+func FirstPaidAtLT(v time.Time) predicate.User {
+	return predicate.User(sql.FieldLT(FieldFirstPaidAt, v))
+}
+
+// FirstPaidAtLTE applies the LTE predicate on the "first_paid_at" field.
+func FirstPaidAtLTE(v time.Time) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldFirstPaidAt, v))
+}
+
+// FirstPaidAtIsNil applies the IsNil predicate on the "first_paid_at" field.
+func FirstPaidAtIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldFirstPaidAt))
+}
+
+// FirstPaidAtNotNil applies the NotNil predicate on the "first_paid_at" field.
+func FirstPaidAtNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldFirstPaidAt))
 }
 
 // BalanceNotifyEnabledEQ applies the EQ predicate on the "balance_notify_enabled" field.

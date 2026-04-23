@@ -247,6 +247,28 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/referral',
+    name: 'Referral',
+    component: () => import('@/views/user/ReferralView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Referral',
+      titleKey: 'nav.referral'
+    }
+  },
+  {
+    path: '/invoices',
+    name: 'Invoices',
+    component: () => import('@/views/user/InvoicesView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Invoices',
+      titleKey: 'nav.invoices'
+    }
+  },
+  {
     path: '/payment/qrcode',
     name: 'PaymentQRCode',
     component: () => import('@/views/user/PaymentQRCodeView.vue'),
@@ -309,6 +331,72 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/admin',
     redirect: '/admin/dashboard'
+  },
+  {
+    path: '/sales/dashboard',
+    name: 'SalesDashboard',
+    component: () => import('@/views/sales/SalesDashboardView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresSales: true,
+      title: 'Sales Dashboard',
+      titleKey: 'nav.salesDashboard'
+    }
+  },
+  {
+    path: '/sales/customers',
+    name: 'SalesCustomers',
+    component: () => import('@/views/sales/SalesCustomersView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresSales: true,
+      title: 'Sales Customers',
+      titleKey: 'nav.salesCustomers'
+    }
+  },
+  {
+    path: '/sales/orders',
+    name: 'SalesOrders',
+    component: () => import('@/views/sales/SalesOrdersView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresSales: true,
+      title: 'Sales Orders',
+      titleKey: 'nav.salesOrders'
+    }
+  },
+  {
+    path: '/sales/referral',
+    name: 'SalesReferral',
+    component: () => import('@/views/sales/SalesReferralView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresSales: true,
+      title: 'Sales Referral',
+      titleKey: 'nav.salesReferral'
+    }
+  },
+  {
+    path: '/sales/customers/:id/orders',
+    name: 'SalesCustomerOrders',
+    component: () => import('@/views/sales/SalesCustomerOrdersView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresSales: true,
+      title: 'Sales Customer Orders',
+      titleKey: 'sales.customerRechargeRecords'
+    }
+  },
+  {
+    path: '/sales/customers/:id/invoices',
+    name: 'SalesCustomerInvoices',
+    component: () => import('@/views/sales/SalesCustomerInvoicesView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresSales: true,
+      title: 'Sales Customer Invoices',
+      titleKey: 'sales.invoices'
+    }
   },
   {
     path: '/admin/dashboard',
@@ -567,6 +655,12 @@ function isBackendModePublicRouteAllowed(path: string, hasPendingAuthSession: bo
   return false
 }
 
+function resolveDashboardPath(authStore: ReturnType<typeof useAuthStore>): string {
+  if (authStore.isAdmin) return '/admin/dashboard'
+  if (authStore.isSales) return '/sales/dashboard'
+  return '/dashboard'
+}
+
 router.beforeEach((to, _from, next) => {
   // 开始导航加载状态
   navigationLoading.startNavigation()
@@ -601,6 +695,7 @@ router.beforeEach((to, _from, next) => {
   // Check if route requires authentication
   const requiresAuth = to.meta.requiresAuth !== false // Default to true
   const requiresAdmin = to.meta.requiresAdmin === true
+  const requiresSales = to.meta.requiresSales === true
 
   // If route doesn't require auth, allow access
   if (!requiresAuth) {
@@ -613,7 +708,7 @@ router.beforeEach((to, _from, next) => {
         return
       }
       // Admin users go to admin dashboard, regular users go to user dashboard
-      next(authStore.isAdmin ? '/admin/dashboard' : '/dashboard')
+      next(resolveDashboardPath(authStore))
       return
     }
     // Backend mode: block public pages for unauthenticated users (except login, key-usage, setup)
@@ -641,7 +736,12 @@ router.beforeEach((to, _from, next) => {
   // Check admin requirement
   if (requiresAdmin && !authStore.isAdmin) {
     // User is authenticated but not admin, redirect to user dashboard
-    next('/dashboard')
+    next(resolveDashboardPath(authStore))
+    return
+  }
+
+  if (requiresSales && !authStore.isSales) {
+    next(resolveDashboardPath(authStore))
     return
   }
 
@@ -650,7 +750,7 @@ router.beforeEach((to, _from, next) => {
   if (to.meta.requiresPayment) {
     const paymentEnabled = appStore.cachedPublicSettings?.payment_enabled
     if (!paymentEnabled) {
-      next(authStore.isAdmin ? '/admin/dashboard' : '/dashboard')
+      next(resolveDashboardPath(authStore))
       return
     }
   }
@@ -667,7 +767,7 @@ router.beforeEach((to, _from, next) => {
 
     if (restrictedPaths.some((path) => to.path.startsWith(path))) {
       // 简易模式下访问受限页面,重定向到仪表板
-      next(authStore.isAdmin ? '/admin/dashboard' : '/dashboard')
+      next(resolveDashboardPath(authStore))
       return
     }
   }

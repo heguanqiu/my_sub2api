@@ -245,6 +245,90 @@ func (_c *PaymentOrderCreate) SetProviderSnapshot(v map[string]interface{}) *Pay
 	return _c
 }
 
+// SetOwnerSalesIDSnapshot sets the "owner_sales_id_snapshot" field.
+func (_c *PaymentOrderCreate) SetOwnerSalesIDSnapshot(v int64) *PaymentOrderCreate {
+	_c.mutation.SetOwnerSalesIDSnapshot(v)
+	return _c
+}
+
+// SetNillableOwnerSalesIDSnapshot sets the "owner_sales_id_snapshot" field if the given value is not nil.
+func (_c *PaymentOrderCreate) SetNillableOwnerSalesIDSnapshot(v *int64) *PaymentOrderCreate {
+	if v != nil {
+		_c.SetOwnerSalesIDSnapshot(*v)
+	}
+	return _c
+}
+
+// SetInvitedByUserIDSnapshot sets the "invited_by_user_id_snapshot" field.
+func (_c *PaymentOrderCreate) SetInvitedByUserIDSnapshot(v int64) *PaymentOrderCreate {
+	_c.mutation.SetInvitedByUserIDSnapshot(v)
+	return _c
+}
+
+// SetNillableInvitedByUserIDSnapshot sets the "invited_by_user_id_snapshot" field if the given value is not nil.
+func (_c *PaymentOrderCreate) SetNillableInvitedByUserIDSnapshot(v *int64) *PaymentOrderCreate {
+	if v != nil {
+		_c.SetInvitedByUserIDSnapshot(*v)
+	}
+	return _c
+}
+
+// SetInviteRewardStatus sets the "invite_reward_status" field.
+func (_c *PaymentOrderCreate) SetInviteRewardStatus(v string) *PaymentOrderCreate {
+	_c.mutation.SetInviteRewardStatus(v)
+	return _c
+}
+
+// SetNillableInviteRewardStatus sets the "invite_reward_status" field if the given value is not nil.
+func (_c *PaymentOrderCreate) SetNillableInviteRewardStatus(v *string) *PaymentOrderCreate {
+	if v != nil {
+		_c.SetInviteRewardStatus(*v)
+	}
+	return _c
+}
+
+// SetInviteRewardLedgerID sets the "invite_reward_ledger_id" field.
+func (_c *PaymentOrderCreate) SetInviteRewardLedgerID(v int64) *PaymentOrderCreate {
+	_c.mutation.SetInviteRewardLedgerID(v)
+	return _c
+}
+
+// SetNillableInviteRewardLedgerID sets the "invite_reward_ledger_id" field if the given value is not nil.
+func (_c *PaymentOrderCreate) SetNillableInviteRewardLedgerID(v *int64) *PaymentOrderCreate {
+	if v != nil {
+		_c.SetInviteRewardLedgerID(*v)
+	}
+	return _c
+}
+
+// SetInvoiceStatus sets the "invoice_status" field.
+func (_c *PaymentOrderCreate) SetInvoiceStatus(v string) *PaymentOrderCreate {
+	_c.mutation.SetInvoiceStatus(v)
+	return _c
+}
+
+// SetNillableInvoiceStatus sets the "invoice_status" field if the given value is not nil.
+func (_c *PaymentOrderCreate) SetNillableInvoiceStatus(v *string) *PaymentOrderCreate {
+	if v != nil {
+		_c.SetInvoiceStatus(*v)
+	}
+	return _c
+}
+
+// SetInvoiceRequestID sets the "invoice_request_id" field.
+func (_c *PaymentOrderCreate) SetInvoiceRequestID(v int64) *PaymentOrderCreate {
+	_c.mutation.SetInvoiceRequestID(v)
+	return _c
+}
+
+// SetNillableInvoiceRequestID sets the "invoice_request_id" field if the given value is not nil.
+func (_c *PaymentOrderCreate) SetNillableInvoiceRequestID(v *int64) *PaymentOrderCreate {
+	if v != nil {
+		_c.SetInvoiceRequestID(*v)
+	}
+	return _c
+}
+
 // SetStatus sets the "status" field.
 func (_c *PaymentOrderCreate) SetStatus(v string) *PaymentOrderCreate {
 	_c.mutation.SetStatus(v)
@@ -525,6 +609,14 @@ func (_c *PaymentOrderCreate) defaults() {
 		v := paymentorder.DefaultOrderType
 		_c.mutation.SetOrderType(v)
 	}
+	if _, ok := _c.mutation.InviteRewardStatus(); !ok {
+		v := paymentorder.DefaultInviteRewardStatus
+		_c.mutation.SetInviteRewardStatus(v)
+	}
+	if _, ok := _c.mutation.InvoiceStatus(); !ok {
+		v := paymentorder.DefaultInvoiceStatus
+		_c.mutation.SetInvoiceStatus(v)
+	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := paymentorder.DefaultStatus
 		_c.mutation.SetStatus(v)
@@ -625,6 +717,22 @@ func (_c *PaymentOrderCreate) check() error {
 	if v, ok := _c.mutation.ProviderKey(); ok {
 		if err := paymentorder.ProviderKeyValidator(v); err != nil {
 			return &ValidationError{Name: "provider_key", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.provider_key": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.InviteRewardStatus(); !ok {
+		return &ValidationError{Name: "invite_reward_status", err: errors.New(`ent: missing required field "PaymentOrder.invite_reward_status"`)}
+	}
+	if v, ok := _c.mutation.InviteRewardStatus(); ok {
+		if err := paymentorder.InviteRewardStatusValidator(v); err != nil {
+			return &ValidationError{Name: "invite_reward_status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.invite_reward_status": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.InvoiceStatus(); !ok {
+		return &ValidationError{Name: "invoice_status", err: errors.New(`ent: missing required field "PaymentOrder.invoice_status"`)}
+	}
+	if v, ok := _c.mutation.InvoiceStatus(); ok {
+		if err := paymentorder.InvoiceStatusValidator(v); err != nil {
+			return &ValidationError{Name: "invoice_status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.invoice_status": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Status(); !ok {
@@ -780,6 +888,30 @@ func (_c *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.ProviderSnapshot(); ok {
 		_spec.SetField(paymentorder.FieldProviderSnapshot, field.TypeJSON, value)
 		_node.ProviderSnapshot = value
+	}
+	if value, ok := _c.mutation.OwnerSalesIDSnapshot(); ok {
+		_spec.SetField(paymentorder.FieldOwnerSalesIDSnapshot, field.TypeInt64, value)
+		_node.OwnerSalesIDSnapshot = &value
+	}
+	if value, ok := _c.mutation.InvitedByUserIDSnapshot(); ok {
+		_spec.SetField(paymentorder.FieldInvitedByUserIDSnapshot, field.TypeInt64, value)
+		_node.InvitedByUserIDSnapshot = &value
+	}
+	if value, ok := _c.mutation.InviteRewardStatus(); ok {
+		_spec.SetField(paymentorder.FieldInviteRewardStatus, field.TypeString, value)
+		_node.InviteRewardStatus = value
+	}
+	if value, ok := _c.mutation.InviteRewardLedgerID(); ok {
+		_spec.SetField(paymentorder.FieldInviteRewardLedgerID, field.TypeInt64, value)
+		_node.InviteRewardLedgerID = &value
+	}
+	if value, ok := _c.mutation.InvoiceStatus(); ok {
+		_spec.SetField(paymentorder.FieldInvoiceStatus, field.TypeString, value)
+		_node.InvoiceStatus = value
+	}
+	if value, ok := _c.mutation.InvoiceRequestID(); ok {
+		_spec.SetField(paymentorder.FieldInvoiceRequestID, field.TypeInt64, value)
+		_node.InvoiceRequestID = &value
 	}
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeString, value)
@@ -1267,6 +1399,126 @@ func (u *PaymentOrderUpsert) UpdateProviderSnapshot() *PaymentOrderUpsert {
 // ClearProviderSnapshot clears the value of the "provider_snapshot" field.
 func (u *PaymentOrderUpsert) ClearProviderSnapshot() *PaymentOrderUpsert {
 	u.SetNull(paymentorder.FieldProviderSnapshot)
+	return u
+}
+
+// SetOwnerSalesIDSnapshot sets the "owner_sales_id_snapshot" field.
+func (u *PaymentOrderUpsert) SetOwnerSalesIDSnapshot(v int64) *PaymentOrderUpsert {
+	u.Set(paymentorder.FieldOwnerSalesIDSnapshot, v)
+	return u
+}
+
+// UpdateOwnerSalesIDSnapshot sets the "owner_sales_id_snapshot" field to the value that was provided on create.
+func (u *PaymentOrderUpsert) UpdateOwnerSalesIDSnapshot() *PaymentOrderUpsert {
+	u.SetExcluded(paymentorder.FieldOwnerSalesIDSnapshot)
+	return u
+}
+
+// AddOwnerSalesIDSnapshot adds v to the "owner_sales_id_snapshot" field.
+func (u *PaymentOrderUpsert) AddOwnerSalesIDSnapshot(v int64) *PaymentOrderUpsert {
+	u.Add(paymentorder.FieldOwnerSalesIDSnapshot, v)
+	return u
+}
+
+// ClearOwnerSalesIDSnapshot clears the value of the "owner_sales_id_snapshot" field.
+func (u *PaymentOrderUpsert) ClearOwnerSalesIDSnapshot() *PaymentOrderUpsert {
+	u.SetNull(paymentorder.FieldOwnerSalesIDSnapshot)
+	return u
+}
+
+// SetInvitedByUserIDSnapshot sets the "invited_by_user_id_snapshot" field.
+func (u *PaymentOrderUpsert) SetInvitedByUserIDSnapshot(v int64) *PaymentOrderUpsert {
+	u.Set(paymentorder.FieldInvitedByUserIDSnapshot, v)
+	return u
+}
+
+// UpdateInvitedByUserIDSnapshot sets the "invited_by_user_id_snapshot" field to the value that was provided on create.
+func (u *PaymentOrderUpsert) UpdateInvitedByUserIDSnapshot() *PaymentOrderUpsert {
+	u.SetExcluded(paymentorder.FieldInvitedByUserIDSnapshot)
+	return u
+}
+
+// AddInvitedByUserIDSnapshot adds v to the "invited_by_user_id_snapshot" field.
+func (u *PaymentOrderUpsert) AddInvitedByUserIDSnapshot(v int64) *PaymentOrderUpsert {
+	u.Add(paymentorder.FieldInvitedByUserIDSnapshot, v)
+	return u
+}
+
+// ClearInvitedByUserIDSnapshot clears the value of the "invited_by_user_id_snapshot" field.
+func (u *PaymentOrderUpsert) ClearInvitedByUserIDSnapshot() *PaymentOrderUpsert {
+	u.SetNull(paymentorder.FieldInvitedByUserIDSnapshot)
+	return u
+}
+
+// SetInviteRewardStatus sets the "invite_reward_status" field.
+func (u *PaymentOrderUpsert) SetInviteRewardStatus(v string) *PaymentOrderUpsert {
+	u.Set(paymentorder.FieldInviteRewardStatus, v)
+	return u
+}
+
+// UpdateInviteRewardStatus sets the "invite_reward_status" field to the value that was provided on create.
+func (u *PaymentOrderUpsert) UpdateInviteRewardStatus() *PaymentOrderUpsert {
+	u.SetExcluded(paymentorder.FieldInviteRewardStatus)
+	return u
+}
+
+// SetInviteRewardLedgerID sets the "invite_reward_ledger_id" field.
+func (u *PaymentOrderUpsert) SetInviteRewardLedgerID(v int64) *PaymentOrderUpsert {
+	u.Set(paymentorder.FieldInviteRewardLedgerID, v)
+	return u
+}
+
+// UpdateInviteRewardLedgerID sets the "invite_reward_ledger_id" field to the value that was provided on create.
+func (u *PaymentOrderUpsert) UpdateInviteRewardLedgerID() *PaymentOrderUpsert {
+	u.SetExcluded(paymentorder.FieldInviteRewardLedgerID)
+	return u
+}
+
+// AddInviteRewardLedgerID adds v to the "invite_reward_ledger_id" field.
+func (u *PaymentOrderUpsert) AddInviteRewardLedgerID(v int64) *PaymentOrderUpsert {
+	u.Add(paymentorder.FieldInviteRewardLedgerID, v)
+	return u
+}
+
+// ClearInviteRewardLedgerID clears the value of the "invite_reward_ledger_id" field.
+func (u *PaymentOrderUpsert) ClearInviteRewardLedgerID() *PaymentOrderUpsert {
+	u.SetNull(paymentorder.FieldInviteRewardLedgerID)
+	return u
+}
+
+// SetInvoiceStatus sets the "invoice_status" field.
+func (u *PaymentOrderUpsert) SetInvoiceStatus(v string) *PaymentOrderUpsert {
+	u.Set(paymentorder.FieldInvoiceStatus, v)
+	return u
+}
+
+// UpdateInvoiceStatus sets the "invoice_status" field to the value that was provided on create.
+func (u *PaymentOrderUpsert) UpdateInvoiceStatus() *PaymentOrderUpsert {
+	u.SetExcluded(paymentorder.FieldInvoiceStatus)
+	return u
+}
+
+// SetInvoiceRequestID sets the "invoice_request_id" field.
+func (u *PaymentOrderUpsert) SetInvoiceRequestID(v int64) *PaymentOrderUpsert {
+	u.Set(paymentorder.FieldInvoiceRequestID, v)
+	return u
+}
+
+// UpdateInvoiceRequestID sets the "invoice_request_id" field to the value that was provided on create.
+func (u *PaymentOrderUpsert) UpdateInvoiceRequestID() *PaymentOrderUpsert {
+	u.SetExcluded(paymentorder.FieldInvoiceRequestID)
+	return u
+}
+
+// AddInvoiceRequestID adds v to the "invoice_request_id" field.
+func (u *PaymentOrderUpsert) AddInvoiceRequestID(v int64) *PaymentOrderUpsert {
+	u.Add(paymentorder.FieldInvoiceRequestID, v)
+	return u
+}
+
+// ClearInvoiceRequestID clears the value of the "invoice_request_id" field.
+func (u *PaymentOrderUpsert) ClearInvoiceRequestID() *PaymentOrderUpsert {
+	u.SetNull(paymentorder.FieldInvoiceRequestID)
 	return u
 }
 
@@ -1988,6 +2240,146 @@ func (u *PaymentOrderUpsertOne) UpdateProviderSnapshot() *PaymentOrderUpsertOne 
 func (u *PaymentOrderUpsertOne) ClearProviderSnapshot() *PaymentOrderUpsertOne {
 	return u.Update(func(s *PaymentOrderUpsert) {
 		s.ClearProviderSnapshot()
+	})
+}
+
+// SetOwnerSalesIDSnapshot sets the "owner_sales_id_snapshot" field.
+func (u *PaymentOrderUpsertOne) SetOwnerSalesIDSnapshot(v int64) *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.SetOwnerSalesIDSnapshot(v)
+	})
+}
+
+// AddOwnerSalesIDSnapshot adds v to the "owner_sales_id_snapshot" field.
+func (u *PaymentOrderUpsertOne) AddOwnerSalesIDSnapshot(v int64) *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.AddOwnerSalesIDSnapshot(v)
+	})
+}
+
+// UpdateOwnerSalesIDSnapshot sets the "owner_sales_id_snapshot" field to the value that was provided on create.
+func (u *PaymentOrderUpsertOne) UpdateOwnerSalesIDSnapshot() *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.UpdateOwnerSalesIDSnapshot()
+	})
+}
+
+// ClearOwnerSalesIDSnapshot clears the value of the "owner_sales_id_snapshot" field.
+func (u *PaymentOrderUpsertOne) ClearOwnerSalesIDSnapshot() *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.ClearOwnerSalesIDSnapshot()
+	})
+}
+
+// SetInvitedByUserIDSnapshot sets the "invited_by_user_id_snapshot" field.
+func (u *PaymentOrderUpsertOne) SetInvitedByUserIDSnapshot(v int64) *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.SetInvitedByUserIDSnapshot(v)
+	})
+}
+
+// AddInvitedByUserIDSnapshot adds v to the "invited_by_user_id_snapshot" field.
+func (u *PaymentOrderUpsertOne) AddInvitedByUserIDSnapshot(v int64) *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.AddInvitedByUserIDSnapshot(v)
+	})
+}
+
+// UpdateInvitedByUserIDSnapshot sets the "invited_by_user_id_snapshot" field to the value that was provided on create.
+func (u *PaymentOrderUpsertOne) UpdateInvitedByUserIDSnapshot() *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.UpdateInvitedByUserIDSnapshot()
+	})
+}
+
+// ClearInvitedByUserIDSnapshot clears the value of the "invited_by_user_id_snapshot" field.
+func (u *PaymentOrderUpsertOne) ClearInvitedByUserIDSnapshot() *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.ClearInvitedByUserIDSnapshot()
+	})
+}
+
+// SetInviteRewardStatus sets the "invite_reward_status" field.
+func (u *PaymentOrderUpsertOne) SetInviteRewardStatus(v string) *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.SetInviteRewardStatus(v)
+	})
+}
+
+// UpdateInviteRewardStatus sets the "invite_reward_status" field to the value that was provided on create.
+func (u *PaymentOrderUpsertOne) UpdateInviteRewardStatus() *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.UpdateInviteRewardStatus()
+	})
+}
+
+// SetInviteRewardLedgerID sets the "invite_reward_ledger_id" field.
+func (u *PaymentOrderUpsertOne) SetInviteRewardLedgerID(v int64) *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.SetInviteRewardLedgerID(v)
+	})
+}
+
+// AddInviteRewardLedgerID adds v to the "invite_reward_ledger_id" field.
+func (u *PaymentOrderUpsertOne) AddInviteRewardLedgerID(v int64) *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.AddInviteRewardLedgerID(v)
+	})
+}
+
+// UpdateInviteRewardLedgerID sets the "invite_reward_ledger_id" field to the value that was provided on create.
+func (u *PaymentOrderUpsertOne) UpdateInviteRewardLedgerID() *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.UpdateInviteRewardLedgerID()
+	})
+}
+
+// ClearInviteRewardLedgerID clears the value of the "invite_reward_ledger_id" field.
+func (u *PaymentOrderUpsertOne) ClearInviteRewardLedgerID() *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.ClearInviteRewardLedgerID()
+	})
+}
+
+// SetInvoiceStatus sets the "invoice_status" field.
+func (u *PaymentOrderUpsertOne) SetInvoiceStatus(v string) *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.SetInvoiceStatus(v)
+	})
+}
+
+// UpdateInvoiceStatus sets the "invoice_status" field to the value that was provided on create.
+func (u *PaymentOrderUpsertOne) UpdateInvoiceStatus() *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.UpdateInvoiceStatus()
+	})
+}
+
+// SetInvoiceRequestID sets the "invoice_request_id" field.
+func (u *PaymentOrderUpsertOne) SetInvoiceRequestID(v int64) *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.SetInvoiceRequestID(v)
+	})
+}
+
+// AddInvoiceRequestID adds v to the "invoice_request_id" field.
+func (u *PaymentOrderUpsertOne) AddInvoiceRequestID(v int64) *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.AddInvoiceRequestID(v)
+	})
+}
+
+// UpdateInvoiceRequestID sets the "invoice_request_id" field to the value that was provided on create.
+func (u *PaymentOrderUpsertOne) UpdateInvoiceRequestID() *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.UpdateInvoiceRequestID()
+	})
+}
+
+// ClearInvoiceRequestID clears the value of the "invoice_request_id" field.
+func (u *PaymentOrderUpsertOne) ClearInvoiceRequestID() *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.ClearInvoiceRequestID()
 	})
 }
 
@@ -2920,6 +3312,146 @@ func (u *PaymentOrderUpsertBulk) UpdateProviderSnapshot() *PaymentOrderUpsertBul
 func (u *PaymentOrderUpsertBulk) ClearProviderSnapshot() *PaymentOrderUpsertBulk {
 	return u.Update(func(s *PaymentOrderUpsert) {
 		s.ClearProviderSnapshot()
+	})
+}
+
+// SetOwnerSalesIDSnapshot sets the "owner_sales_id_snapshot" field.
+func (u *PaymentOrderUpsertBulk) SetOwnerSalesIDSnapshot(v int64) *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.SetOwnerSalesIDSnapshot(v)
+	})
+}
+
+// AddOwnerSalesIDSnapshot adds v to the "owner_sales_id_snapshot" field.
+func (u *PaymentOrderUpsertBulk) AddOwnerSalesIDSnapshot(v int64) *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.AddOwnerSalesIDSnapshot(v)
+	})
+}
+
+// UpdateOwnerSalesIDSnapshot sets the "owner_sales_id_snapshot" field to the value that was provided on create.
+func (u *PaymentOrderUpsertBulk) UpdateOwnerSalesIDSnapshot() *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.UpdateOwnerSalesIDSnapshot()
+	})
+}
+
+// ClearOwnerSalesIDSnapshot clears the value of the "owner_sales_id_snapshot" field.
+func (u *PaymentOrderUpsertBulk) ClearOwnerSalesIDSnapshot() *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.ClearOwnerSalesIDSnapshot()
+	})
+}
+
+// SetInvitedByUserIDSnapshot sets the "invited_by_user_id_snapshot" field.
+func (u *PaymentOrderUpsertBulk) SetInvitedByUserIDSnapshot(v int64) *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.SetInvitedByUserIDSnapshot(v)
+	})
+}
+
+// AddInvitedByUserIDSnapshot adds v to the "invited_by_user_id_snapshot" field.
+func (u *PaymentOrderUpsertBulk) AddInvitedByUserIDSnapshot(v int64) *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.AddInvitedByUserIDSnapshot(v)
+	})
+}
+
+// UpdateInvitedByUserIDSnapshot sets the "invited_by_user_id_snapshot" field to the value that was provided on create.
+func (u *PaymentOrderUpsertBulk) UpdateInvitedByUserIDSnapshot() *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.UpdateInvitedByUserIDSnapshot()
+	})
+}
+
+// ClearInvitedByUserIDSnapshot clears the value of the "invited_by_user_id_snapshot" field.
+func (u *PaymentOrderUpsertBulk) ClearInvitedByUserIDSnapshot() *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.ClearInvitedByUserIDSnapshot()
+	})
+}
+
+// SetInviteRewardStatus sets the "invite_reward_status" field.
+func (u *PaymentOrderUpsertBulk) SetInviteRewardStatus(v string) *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.SetInviteRewardStatus(v)
+	})
+}
+
+// UpdateInviteRewardStatus sets the "invite_reward_status" field to the value that was provided on create.
+func (u *PaymentOrderUpsertBulk) UpdateInviteRewardStatus() *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.UpdateInviteRewardStatus()
+	})
+}
+
+// SetInviteRewardLedgerID sets the "invite_reward_ledger_id" field.
+func (u *PaymentOrderUpsertBulk) SetInviteRewardLedgerID(v int64) *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.SetInviteRewardLedgerID(v)
+	})
+}
+
+// AddInviteRewardLedgerID adds v to the "invite_reward_ledger_id" field.
+func (u *PaymentOrderUpsertBulk) AddInviteRewardLedgerID(v int64) *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.AddInviteRewardLedgerID(v)
+	})
+}
+
+// UpdateInviteRewardLedgerID sets the "invite_reward_ledger_id" field to the value that was provided on create.
+func (u *PaymentOrderUpsertBulk) UpdateInviteRewardLedgerID() *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.UpdateInviteRewardLedgerID()
+	})
+}
+
+// ClearInviteRewardLedgerID clears the value of the "invite_reward_ledger_id" field.
+func (u *PaymentOrderUpsertBulk) ClearInviteRewardLedgerID() *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.ClearInviteRewardLedgerID()
+	})
+}
+
+// SetInvoiceStatus sets the "invoice_status" field.
+func (u *PaymentOrderUpsertBulk) SetInvoiceStatus(v string) *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.SetInvoiceStatus(v)
+	})
+}
+
+// UpdateInvoiceStatus sets the "invoice_status" field to the value that was provided on create.
+func (u *PaymentOrderUpsertBulk) UpdateInvoiceStatus() *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.UpdateInvoiceStatus()
+	})
+}
+
+// SetInvoiceRequestID sets the "invoice_request_id" field.
+func (u *PaymentOrderUpsertBulk) SetInvoiceRequestID(v int64) *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.SetInvoiceRequestID(v)
+	})
+}
+
+// AddInvoiceRequestID adds v to the "invoice_request_id" field.
+func (u *PaymentOrderUpsertBulk) AddInvoiceRequestID(v int64) *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.AddInvoiceRequestID(v)
+	})
+}
+
+// UpdateInvoiceRequestID sets the "invoice_request_id" field to the value that was provided on create.
+func (u *PaymentOrderUpsertBulk) UpdateInvoiceRequestID() *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.UpdateInvoiceRequestID()
+	})
+}
+
+// ClearInvoiceRequestID clears the value of the "invoice_request_id" field.
+func (u *PaymentOrderUpsertBulk) ClearInvoiceRequestID() *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.ClearInvoiceRequestID()
 	})
 }
 

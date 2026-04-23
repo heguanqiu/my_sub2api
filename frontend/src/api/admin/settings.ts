@@ -310,6 +310,7 @@ export interface SystemSettings {
   default_balance: number;
   default_concurrency: number;
   default_subscriptions: DefaultSubscriptionSetting[];
+  default_sales_user_id: number;
   auth_source_default_email_balance?: number;
   auth_source_default_email_concurrency?: number;
   auth_source_default_email_subscriptions?: DefaultSubscriptionSetting[];
@@ -469,6 +470,17 @@ export interface SystemSettings {
   balance_low_notify_recharge_url: string;
   account_quota_notify_enabled: boolean;
   account_quota_notify_emails: NotifyEmailEntry[];
+  invoice_enabled: boolean;
+  invoice_provider: string;
+  invoice_baiwang_enabled: boolean;
+  invoice_baiwang_base_url: string;
+  invoice_baiwang_app_key: string;
+  invoice_baiwang_app_secret_configured: boolean;
+  invoice_baiwang_taxpayer_id: string;
+  invoice_baiwang_seller_name: string;
+  invoice_baiwang_default_goods_name: string;
+  invoice_auto_retry_enabled: boolean;
+  invoice_retry_limit: number;
 }
 
 export interface UpdateSettingsRequest {
@@ -483,6 +495,7 @@ export interface UpdateSettingsRequest {
   default_balance?: number;
   default_concurrency?: number;
   default_subscriptions?: DefaultSubscriptionSetting[];
+  default_sales_user_id?: number;
   auth_source_default_email_balance?: number;
   auth_source_default_email_concurrency?: number;
   auth_source_default_email_subscriptions?: DefaultSubscriptionSetting[];
@@ -618,6 +631,17 @@ export interface UpdateSettingsRequest {
   balance_low_notify_recharge_url?: string;
   account_quota_notify_enabled?: boolean;
   account_quota_notify_emails?: NotifyEmailEntry[];
+  invoice_enabled?: boolean;
+  invoice_provider?: string;
+  invoice_baiwang_enabled?: boolean;
+  invoice_baiwang_base_url?: string;
+  invoice_baiwang_app_key?: string;
+  invoice_baiwang_app_secret?: string;
+  invoice_baiwang_taxpayer_id?: string;
+  invoice_baiwang_seller_name?: string;
+  invoice_baiwang_default_goods_name?: string;
+  invoice_auto_retry_enabled?: boolean;
+  invoice_retry_limit?: number;
 }
 
 /**

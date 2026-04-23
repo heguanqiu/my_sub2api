@@ -118,8 +118,12 @@ func (s *AuthService) RegisterOAuthEmailAccount(
 	if err := s.VerifyOAuthEmailCode(ctx, email, verifyCode); err != nil {
 		return nil, nil, err
 	}
+	if s.settingService != nil && s.settingService.IsInvitationCodeEnabled(ctx) && strings.TrimSpace(invitationCode) == "" {
+		return nil, nil, ErrInvitationCodeRequired
+	}
 
-	if _, err := s.validateOAuthRegistrationInvitation(ctx, invitationCode); err != nil {
+	affiliation, err := s.resolveRegistrationAffiliation(ctx, invitationCode)
+	if err != nil && s.settingService != nil && s.settingService.IsInvitationCodeEnabled(ctx) {
 		return nil, nil, err
 	}
 
@@ -143,12 +147,21 @@ func (s *AuthService) RegisterOAuthEmailAccount(
 	grantPlan := s.resolveSignupGrantPlan(ctx, signupSource)
 
 	user := &User{
-		Email:        email,
-		PasswordHash: hashedPassword,
-		Role:         RoleUser,
-		Balance:      grantPlan.Balance,
-		Concurrency:  grantPlan.Concurrency,
-		Status:       StatusActive,
+		Email:           email,
+		PasswordHash:    hashedPassword,
+		Role:            RoleUser,
+		Balance:         grantPlan.Balance,
+		Concurrency:     grantPlan.Concurrency,
+		Status:          StatusActive,
+		InvitedByUserID: nil,
+		OwnerSalesID:    nil,
+	}
+	if affiliation != nil {
+		user.InvitedByUserID = affiliation.InvitedByUserID
+		user.OwnerSalesID = affiliation.OwnerSalesID
+	}
+	if user.OwnerSalesID == nil {
+		user.OwnerSalesID = s.defaultSalesOwnerID(ctx)
 	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
@@ -179,12 +192,12 @@ func (s *AuthService) FinalizeOAuthEmailAccount(
 	}
 
 	signupSource = normalizeOAuthSignupSource(signupSource)
-	invitationRedeemCode, err := s.validateOAuthRegistrationInvitation(ctx, invitationCode)
-	if err != nil {
+	affiliation, err := s.resolveRegistrationAffiliation(ctx, invitationCode)
+	if err != nil && s.settingService != nil && s.settingService.IsInvitationCodeEnabled(ctx) {
 		return err
 	}
-	if invitationRedeemCode != nil {
-		if err := s.useOAuthRegistrationInvitation(ctx, invitationRedeemCode.ID, user.ID); err != nil {
+	if affiliation != nil && affiliation.InvitationRedeemCode != nil {
+		if err := s.useOAuthRegistrationInvitation(ctx, affiliation.InvitationRedeemCode.ID, user.ID); err != nil {
 			return ErrInvitationCodeInvalid
 		}
 	}

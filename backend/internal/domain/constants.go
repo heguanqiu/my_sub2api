@@ -13,7 +13,78 @@ const (
 // Role constants
 const (
 	RoleAdmin = "admin"
+	RoleSales = "sales"
 	RoleUser  = "user"
+)
+
+// Invite link status constants
+const (
+	InviteLinkStatusActive   = "active"
+	InviteLinkStatusDisabled = "disabled"
+	InviteLinkStatusRevoked  = "revoked"
+)
+
+// Invite reward constants
+const (
+	InviteRewardTypeBalance = "balance"
+
+	InviteRewardStatusPending   = "pending"
+	InviteRewardStatusGranted   = "granted"
+	InviteRewardStatusReversed  = "reversed"
+	InviteRewardStatusCancelled = "cancelled"
+)
+
+// Payment order invite reward snapshot status constants
+const (
+	OrderInviteRewardStatusNotApplicable     = "not_applicable"
+	OrderInviteRewardStatusPendingEvaluation = "pending_evaluation"
+	OrderInviteRewardStatusGranted           = "granted"
+	OrderInviteRewardStatusReversed          = "reversed"
+	OrderInviteRewardStatusSkipped           = "skipped"
+)
+
+// Payment order invoice status constants
+const (
+	OrderInvoiceStatusNotRequested = "not_requested"
+	OrderInvoiceStatusRequested    = "requested"
+	OrderInvoiceStatusProcessing   = "processing"
+	OrderInvoiceStatusIssued       = "issued"
+	OrderInvoiceStatusFailed       = "failed"
+	OrderInvoiceStatusVoided       = "voided"
+)
+
+// Invoice profile / request constants
+const (
+	InvoiceTypePersonalElectronic   = "personal_electronic"
+	InvoiceTypeEnterpriseElectronic = "enterprise_electronic"
+
+	InvoiceProviderBaiwang = "baiwang"
+
+	InvoiceRequestStatusRequested  = "requested"
+	InvoiceRequestStatusProcessing = "processing"
+	InvoiceRequestStatusIssued     = "issued"
+	InvoiceRequestStatusFailed     = "failed"
+	InvoiceRequestStatusVoided     = "voided"
+
+	InvoiceDocumentTypePDF = "pdf"
+	InvoiceDocumentTypeOFD = "ofd"
+	InvoiceDocumentTypeXML = "xml"
+)
+
+// Invoice setting keys
+const (
+	SettingKeyInvoiceEnabled                 = "invoice_enabled"
+	SettingKeyInvoiceProvider                = "invoice_provider"
+	SettingKeyInvoiceBaiwangEnabled          = "invoice_baiwang_enabled"
+	SettingKeyInvoiceBaiwangBaseURL          = "invoice_baiwang_base_url"
+	SettingKeyInvoiceBaiwangAppKey           = "invoice_baiwang_app_key"
+	SettingKeyInvoiceBaiwangAppSecret        = "invoice_baiwang_app_secret"
+	SettingKeyInvoiceBaiwangTaxpayerID       = "invoice_baiwang_taxpayer_id"
+	SettingKeyInvoiceBaiwangSellerName       = "invoice_baiwang_seller_name"
+	SettingKeyInvoiceBaiwangDefaultGoodsName = "invoice_baiwang_default_goods_name"
+	SettingKeyInvoiceAutoRetryEnabled        = "invoice_auto_retry_enabled"
+	SettingKeyInvoiceRetryLimit              = "invoice_retry_limit"
+	SettingKeyDefaultSalesUserID             = "default_sales_user_id"
 )
 
 // Platform constants

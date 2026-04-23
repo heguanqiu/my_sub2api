@@ -93,6 +93,13 @@ export interface PaymentOrder {
   refund_request_reason?: string
   plan_id?: number
   provider_instance_id?: string
+  invite_reward_status?: string
+  invite_reward_ledger_id?: number | null
+  invited_by_user_id_snapshot?: number | null
+  owner_sales_id_snapshot?: number | null
+  invoice_status?: string
+  invoice_request_id?: number | null
+  can_request_invoice?: boolean
 }
 
 // ==================== Plans & Channels ====================
