@@ -1,0 +1,29 @@
+# Replace the domains below with your real domains.
+#
+# Recommended parallel-deploy strategy:
+# - old version keeps serving:   api.example.com   -> old upstream
+# - "匠心版" serves separately:  jx-api.example.com -> 127.0.0.1:18081
+#
+# When you want to switch major versions, change the main domain upstream
+# from the old instance to 127.0.0.1:18081 and reload Caddy.
+
+jx-api.example.com {
+	reverse_proxy 127.0.0.1:18081
+
+	encode zstd gzip
+
+	log {
+		output file /var/log/caddy/sub2api-jx.log {
+			roll_size 50mb
+			roll_keep 10
+			roll_keep_for 720h
+		}
+		format json
+		level INFO
+	}
+}
+
+# Future cutover example:
+# api.example.com {
+# 	reverse_proxy 127.0.0.1:18081
+# }

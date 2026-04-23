@@ -15,9 +15,13 @@ This directory contains files for deploying Sub2API on Linux servers.
 |------|-------------|
 | `docker-compose.yml` | Docker Compose configuration (named volumes) |
 | `docker-compose.local.yml` | Docker Compose configuration (local directories, easy migration) |
+| `docker-compose.jx.yml` | 匠心版并行部署配置（与旧版隔离共存） |
 | `docker-deploy.sh` | **One-click Docker deployment script (recommended)** |
+| `docker-deploy-jx.sh` | 匠心版并行部署准备脚本 |
 | `.env.example` | Docker environment variables template |
+| `.env.jx.example` | 匠心版并行部署环境变量模板 |
 | `DOCKER.md` | Docker Hub documentation |
+| `PARALLEL_DEPLOY_CN.md` | 匠心版并行部署说明（中文） |
 | `install.sh` | One-click binary installation script |
 | `install-datamanagementd.sh` | datamanagementd 一键安装脚本 |
 | `sub2api.service` | Systemd service unit file |
@@ -28,6 +32,16 @@ This directory contains files for deploying Sub2API on Linux servers.
 ---
 
 ## Docker Deployment (Recommended)
+
+### 并行部署匠心版（不影响旧版）
+
+如果服务器上已经运行旧版 `sub2api`，需要额外部署当前仓库版本用于大版本切换，请使用：
+
+- `docker-compose.jx.yml`
+- `.env.jx.example`
+- `docker-deploy-jx.sh`
+
+详细说明见：`deploy/PARALLEL_DEPLOY_CN.md`
 
 ### Method 1: One-Click Deployment (Recommended)
 

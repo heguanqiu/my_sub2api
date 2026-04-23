@@ -6,9 +6,13 @@
 data/
 postgres_data/
 redis_data/
+jx-data/
+jx-postgres_data/
+jx-redis_data/
 
 # Environment configuration (contains sensitive information)
 .env
+.env.jx
 
 # Backup files
 *.backup
