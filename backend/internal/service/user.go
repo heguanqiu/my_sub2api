@@ -23,6 +23,9 @@ type User struct {
 	Status           string
 	AllowedGroups    []int64
 	TokenVersion     int64 // Incremented on password change to invalidate existing tokens
+	// TokenVersionResolved indicates TokenVersion already contains the fingerprint-derived
+	// value expected in JWT claims and refresh-token state.
+	TokenVersionResolved bool
 	SignupSource     string
 	LastLoginAt      *time.Time
 	LastActiveAt     *time.Time
