@@ -6,12 +6,18 @@ import UsersView from '../UsersView.vue'
 
 const {
   listUsers,
+  changeInviter,
+  previewSalesOwnerMigration,
+  migrateSalesOwner,
   getAllGroups,
   getBatchUsersUsage,
   listEnabledDefinitions,
   getBatchUserAttributes
 } = vi.hoisted(() => ({
   listUsers: vi.fn(),
+  changeInviter: vi.fn(),
+  previewSalesOwnerMigration: vi.fn(),
+  migrateSalesOwner: vi.fn(),
   getAllGroups: vi.fn(),
   getBatchUsersUsage: vi.fn(),
   listEnabledDefinitions: vi.fn(),
@@ -22,6 +28,9 @@ vi.mock('@/api/admin', () => ({
   adminAPI: {
     users: {
       list: listUsers,
+      changeInviter,
+      previewSalesOwnerMigration,
+      migrateSalesOwner,
       toggleStatus: vi.fn(),
       delete: vi.fn()
     },
@@ -94,6 +103,9 @@ describe('admin UsersView', () => {
     localStorage.clear()
 
     listUsers.mockReset()
+    changeInviter.mockReset()
+    previewSalesOwnerMigration.mockReset()
+    migrateSalesOwner.mockReset()
     getAllGroups.mockReset()
     getBatchUsersUsage.mockReset()
     listEnabledDefinitions.mockReset()
@@ -110,6 +122,9 @@ describe('admin UsersView', () => {
     getBatchUsersUsage.mockResolvedValue({ stats: {} })
     listEnabledDefinitions.mockResolvedValue([])
     getBatchUserAttributes.mockResolvedValue({ values: {} })
+    changeInviter.mockResolvedValue({ root_user_id: 42, affected_user_count: 1, affected_user_ids: [42] })
+    previewSalesOwnerMigration.mockResolvedValue({ root_user_id: 42, affected_user_count: 3, affected_user_ids: [42, 43, 44], target_sales_user_id: 9 })
+    migrateSalesOwner.mockResolvedValue({ root_user_id: 42, affected_user_count: 3, affected_user_ids: [42, 43, 44], target_sales_user_id: 9 })
   })
 
   it('shows active, used, and created activity columns in order and requests last_used_at sort', async () => {
@@ -160,5 +175,93 @@ describe('admin UsersView', () => {
       }),
       expect.any(Object)
     )
+  })
+
+  it('submits inviter migration from the inline dialog', async () => {
+    const wrapper = mount(UsersView, {
+      global: {
+        stubs: {
+          AppLayout: { template: '<div><slot /></div>' },
+          TablePageLayout: {
+            template: '<div><slot name="filters" /><slot name="table" /><slot name="pagination" /></div>'
+          },
+          DataTable: DataTableStub,
+          Pagination: true,
+          ConfirmDialog: true,
+          EmptyState: true,
+          GroupBadge: true,
+          Select: true,
+          UserAttributesConfigModal: true,
+          UserConcurrencyCell: true,
+          UserCreateModal: true,
+          UserEditModal: true,
+          UserApiKeysModal: true,
+          UserAllowedGroupsModal: true,
+          UserBalanceModal: true,
+          UserBalanceHistoryModal: true,
+          GroupReplaceModal: true,
+          Icon: true,
+          Teleport: true
+        }
+      }
+    })
+
+    await flushPromises()
+
+    ;(wrapper.vm as any).openChangeInviterDialog(createAdminUser())
+    await flushPromises()
+
+    const input = wrapper.get('[data-test="change-inviter-input"]')
+    await input.setValue('9')
+    await wrapper.get('[data-test="change-inviter-submit"]').trigger('click')
+    await flushPromises()
+
+    expect(changeInviter).toHaveBeenCalledWith(42, 9)
+  })
+
+  it('previews and submits sales owner migration from the inline dialog', async () => {
+    const wrapper = mount(UsersView, {
+      global: {
+        stubs: {
+          AppLayout: { template: '<div><slot /></div>' },
+          TablePageLayout: {
+            template: '<div><slot name="filters" /><slot name="table" /><slot name="pagination" /></div>'
+          },
+          DataTable: DataTableStub,
+          Pagination: true,
+          ConfirmDialog: true,
+          EmptyState: true,
+          GroupBadge: true,
+          Select: true,
+          UserAttributesConfigModal: true,
+          UserConcurrencyCell: true,
+          UserCreateModal: true,
+          UserEditModal: true,
+          UserApiKeysModal: true,
+          UserAllowedGroupsModal: true,
+          UserBalanceModal: true,
+          UserBalanceHistoryModal: true,
+          GroupReplaceModal: true,
+          Icon: true,
+          Teleport: true
+        }
+      }
+    })
+
+    await flushPromises()
+
+    ;(wrapper.vm as any).openSalesMigrationDialog(createAdminUser())
+    await flushPromises()
+
+    const input = wrapper.get('[data-test="sales-migration-input"]')
+    await input.setValue('9')
+    await wrapper.get('[data-test="sales-migration-preview"]').trigger('click')
+    await flushPromises()
+    expect(previewSalesOwnerMigration).toHaveBeenCalledWith(42, 9)
+    expect(wrapper.text()).toContain('预计影响 3 个用户')
+
+    await wrapper.get('[data-test="sales-migration-submit"]').trigger('click')
+    await flushPromises()
+    expect(migrateSalesOwner).toHaveBeenCalledWith(42, 9)
   })
 })

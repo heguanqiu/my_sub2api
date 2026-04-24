@@ -637,28 +637,42 @@
     <BaseDialog :show="showChangeInviterDialog" title="邀请归属迁移" width="narrow" @close="closeChangeInviterDialog">
       <div class="space-y-4">
         <p class="text-sm text-gray-500">输入新的直属邀请人用户 ID，留空表示清空直属邀请人。</p>
-        <input v-model="newInviterUserIdInput" class="input" type="number" min="1" placeholder="新邀请人用户 ID" />
+        <input
+          v-model="newInviterUserIdInput"
+          data-test="change-inviter-input"
+          class="input"
+          type="number"
+          min="1"
+          placeholder="新邀请人用户 ID"
+        />
       </div>
       <template #footer>
         <div class="flex justify-end gap-3">
-          <button class="btn btn-secondary" @click="closeChangeInviterDialog">{{ t('common.cancel') }}</button>
-          <button class="btn btn-primary" @click="submitChangeInviter">提交</button>
+          <button type="button" class="btn btn-secondary" @click="closeChangeInviterDialog">{{ t('common.cancel') }}</button>
+          <button type="button" data-test="change-inviter-submit" class="btn btn-primary" @click="submitChangeInviter">提交</button>
         </div>
       </template>
     </BaseDialog>
     <BaseDialog :show="showSalesMigrationDialog" title="销售归属迁移" width="narrow" @close="closeSalesMigrationDialog">
       <div class="space-y-4">
         <p class="text-sm text-gray-500">输入目标销售用户 ID，可先预览受影响人数，再执行迁移。</p>
-        <input v-model="targetSalesUserIdInput" class="input" type="number" min="1" placeholder="目标销售用户 ID" />
+        <input
+          v-model="targetSalesUserIdInput"
+          data-test="sales-migration-input"
+          class="input"
+          type="number"
+          min="1"
+          placeholder="目标销售用户 ID"
+        />
         <div v-if="salesMigrationPreviewCount !== null" class="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-600 dark:bg-dark-800 dark:text-gray-300">
           预计影响 {{ salesMigrationPreviewCount }} 个用户
         </div>
       </div>
       <template #footer>
         <div class="flex justify-end gap-3">
-          <button class="btn btn-secondary" @click="closeSalesMigrationDialog">{{ t('common.cancel') }}</button>
-          <button class="btn btn-secondary" @click="previewSalesMigration">预览</button>
-          <button class="btn btn-primary" @click="submitSalesMigration">执行迁移</button>
+          <button type="button" class="btn btn-secondary" @click="closeSalesMigrationDialog">{{ t('common.cancel') }}</button>
+          <button type="button" data-test="sales-migration-preview" class="btn btn-secondary" @click="previewSalesMigration">预览</button>
+          <button type="button" data-test="sales-migration-submit" class="btn btn-primary" @click="submitSalesMigration">执行迁移</button>
         </div>
       </template>
     </BaseDialog>
@@ -1174,11 +1188,24 @@ const showBalanceHistoryModal = ref(false)
 const balanceHistoryUser = ref<AdminUser | null>(null)
 const showChangeInviterDialog = ref(false)
 const changeInviterUser = ref<AdminUser | null>(null)
-const newInviterUserIdInput = ref('')
+const newInviterUserIdInput = ref<string | number>('')
 const showSalesMigrationDialog = ref(false)
 const salesMigrationUser = ref<AdminUser | null>(null)
-const targetSalesUserIdInput = ref('')
+const targetSalesUserIdInput = ref<string | number>('')
 const salesMigrationPreviewCount = ref<number | null>(null)
+
+const normalizeNumericInput = (value: string | number | null | undefined): string => {
+  if (value === null || value === undefined) return ''
+  return String(value).trim()
+}
+
+const parseOptionalPositiveInt = (value: string | number | null | undefined): number | null => {
+  const normalized = normalizeNumericInput(value)
+  if (!normalized) return null
+  const parsed = Number(normalized)
+  if (!Number.isInteger(parsed) || parsed <= 0) return null
+  return parsed
+}
 
 // 计算剩余天数
 const getDaysRemaining = (expiresAt: string): number => {
@@ -1460,7 +1487,7 @@ const closeChangeInviterDialog = () => {
 const submitChangeInviter = async () => {
   if (!changeInviterUser.value) return
   try {
-    const nextInviter = newInviterUserIdInput.value.trim() ? Number(newInviterUserIdInput.value) : null
+    const nextInviter = parseOptionalPositiveInt(newInviterUserIdInput.value)
     await adminAPI.users.changeInviter(changeInviterUser.value.id, nextInviter)
     appStore.showSuccess('邀请归属迁移成功')
     closeChangeInviterDialog()
@@ -1485,9 +1512,11 @@ const closeSalesMigrationDialog = () => {
 }
 
 const previewSalesMigration = async () => {
-  if (!salesMigrationUser.value || !targetSalesUserIdInput.value.trim()) return
+  if (!salesMigrationUser.value) return
+  const targetSalesUserId = parseOptionalPositiveInt(targetSalesUserIdInput.value)
+  if (targetSalesUserId === null) return
   try {
-    const result = await adminAPI.users.previewSalesOwnerMigration(salesMigrationUser.value.id, Number(targetSalesUserIdInput.value))
+    const result = await adminAPI.users.previewSalesOwnerMigration(salesMigrationUser.value.id, targetSalesUserId)
     salesMigrationPreviewCount.value = result.affected_user_count
   } catch (error: any) {
     appStore.showError(error.response?.data?.detail || '销售归属预览失败')
@@ -1495,9 +1524,11 @@ const previewSalesMigration = async () => {
 }
 
 const submitSalesMigration = async () => {
-  if (!salesMigrationUser.value || !targetSalesUserIdInput.value.trim()) return
+  if (!salesMigrationUser.value) return
+  const targetSalesUserId = parseOptionalPositiveInt(targetSalesUserIdInput.value)
+  if (targetSalesUserId === null) return
   try {
-    await adminAPI.users.migrateSalesOwner(salesMigrationUser.value.id, Number(targetSalesUserIdInput.value))
+    await adminAPI.users.migrateSalesOwner(salesMigrationUser.value.id, targetSalesUserId)
     appStore.showSuccess('销售归属迁移成功')
     closeSalesMigrationDialog()
     loadUsers()
