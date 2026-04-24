@@ -2185,6 +2185,24 @@
                     0 表示不指定；新用户注册且未走邀请链时，会自动归属到该销售。
                   </p>
                 </div>
+                <div>
+                  <label
+                    class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {{ t("admin.settings.defaults.defaultUserRpmLimit") }}
+                  </label>
+                  <input
+                    v-model.number="form.default_user_rpm_limit"
+                    type="number"
+                    min="0"
+                    step="1"
+                    class="input"
+                    placeholder="0"
+                  />
+                  <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.defaults.defaultUserRpmLimitHint") }}
+                  </p>
+                </div>
               </div>
 
               <div class="border-t border-gray-100 pt-4 dark:border-dark-700">
@@ -4950,6 +4968,7 @@ const form = reactive<SettingsForm>({
   default_subscriptions: [],
   default_sales_user_id: 0,
   force_email_on_third_party_signup: false,
+  default_user_rpm_limit: 0,
   site_name: "Sub2API",
   site_logo: "",
   site_subtitle: "Subscription to API Conversion Platform",
@@ -5879,6 +5898,7 @@ async function saveSettings() {
       default_subscriptions: normalizedDefaultSubscriptions,
       default_sales_user_id: Number(form.default_sales_user_id) || 0,
       force_email_on_third_party_signup: form.force_email_on_third_party_signup,
+      default_user_rpm_limit: form.default_user_rpm_limit,
       site_name: form.site_name,
       site_logo: form.site_logo,
       site_subtitle: form.site_subtitle,

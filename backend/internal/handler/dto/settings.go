@@ -108,6 +108,7 @@ type SystemSettings struct {
 
 	DefaultConcurrency   int                          `json:"default_concurrency"`
 	DefaultBalance       float64                      `json:"default_balance"`
+	DefaultUserRPMLimit  int                          `json:"default_user_rpm_limit"`
 	DefaultSubscriptions []DefaultSubscriptionSetting `json:"default_subscriptions"`
 	DefaultSalesUserID   int64                        `json:"default_sales_user_id"`
 

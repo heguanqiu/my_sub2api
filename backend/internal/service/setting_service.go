@@ -1065,6 +1065,7 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	} else {
 		updates[SettingKeyDefaultSalesUserID] = ""
 	}
+	updates[SettingKeyDefaultUserRPMLimit] = strconv.Itoa(settings.DefaultUserRPMLimit)
 	defaultSubsJSON, err := json.Marshal(settings.DefaultSubscriptions)
 	if err != nil {
 		return nil, fmt.Errorf("marshal default subscriptions: %w", err)
@@ -1440,6 +1441,18 @@ func (s *SettingService) GetDefaultBalance(ctx context.Context) float64 {
 	return s.cfg.Default.UserBalance
 }
 
+// GetDefaultUserRPMLimit 获取新用户默认 RPM 限制（0 = 不限制）。未配置则返回 0。
+func (s *SettingService) GetDefaultUserRPMLimit(ctx context.Context) int {
+	value, err := s.settingRepo.GetValue(ctx, SettingKeyDefaultUserRPMLimit)
+	if err != nil || value == "" {
+		return 0
+	}
+	if v, err := strconv.Atoi(value); err == nil && v >= 0 {
+		return v
+	}
+	return 0
+}
+
 // GetDefaultSubscriptions 获取新用户默认订阅配置列表。
 func (s *SettingService) GetDefaultSubscriptions(ctx context.Context) []DefaultSubscriptionSetting {
 	value, err := s.settingRepo.GetValue(ctx, SettingKeyDefaultSubscriptions)
@@ -1608,6 +1621,7 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyOIDCConnectUserInfoUsernamePath:          "",
 		SettingKeyDefaultConcurrency:                       strconv.Itoa(s.cfg.Default.UserConcurrency),
 		SettingKeyDefaultBalance:                           strconv.FormatFloat(s.cfg.Default.UserBalance, 'f', 8, 64),
+		SettingKeyDefaultUserRPMLimit:                      "0",
 		SettingKeyDefaultSubscriptions:                     "[]",
 		SettingKeyAuthSourceDefaultEmailBalance:            "0",
 		SettingKeyAuthSourceDefaultEmailConcurrency:        "5",
@@ -1731,6 +1745,10 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		result.InvoiceRetryLimit = retryLimit
 	} else {
 		result.InvoiceRetryLimit = 3
+	}
+
+	if rpm, err := strconv.Atoi(settings[SettingKeyDefaultUserRPMLimit]); err == nil && rpm >= 0 {
+		result.DefaultUserRPMLimit = rpm
 	}
 
 	// 解析浮点数类型
