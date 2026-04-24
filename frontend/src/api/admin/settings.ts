@@ -482,6 +482,13 @@ export interface SystemSettings {
   invoice_baiwang_default_goods_name: string;
   invoice_auto_retry_enabled: boolean;
   invoice_retry_limit: number;
+
+  // Channel Monitor feature switch
+  channel_monitor_enabled: boolean;
+  channel_monitor_default_interval_seconds: number;
+
+  // Available Channels feature switch
+  available_channels_enabled: boolean;
 }
 
 export interface UpdateSettingsRequest {
@@ -644,6 +651,13 @@ export interface UpdateSettingsRequest {
   invoice_baiwang_default_goods_name?: string;
   invoice_auto_retry_enabled?: boolean;
   invoice_retry_limit?: number;
+
+  // Channel Monitor feature switch
+  channel_monitor_enabled?: boolean;
+  channel_monitor_default_interval_seconds?: number;
+
+  // Available Channels feature switch
+  available_channels_enabled?: boolean;
 }
 
 /**
