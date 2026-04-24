@@ -636,15 +636,71 @@
     <UserAttributesConfigModal :show="showAttributesModal" @close="handleAttributesModalClose" />
     <BaseDialog :show="showChangeInviterDialog" title="邀请归属迁移" width="narrow" @close="closeChangeInviterDialog">
       <div class="space-y-4">
-        <p class="text-sm text-gray-500">输入新的直属邀请人用户 ID，留空表示清空直属邀请人。</p>
-        <input
-          v-model="newInviterUserIdInput"
-          data-test="change-inviter-input"
-          class="input"
-          type="number"
-          min="1"
-          placeholder="新邀请人用户 ID"
-        />
+        <p class="text-sm text-gray-500">搜索并选择新的直属邀请人；也可以直接清空直属邀请关系。</p>
+
+        <div class="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-600 dark:bg-dark-800 dark:text-gray-300">
+          当前直属邀请人：
+          <span class="font-medium text-gray-900 dark:text-white">
+            {{ changeInviterUser?.invited_by_user_id ? `#${changeInviterUser.invited_by_user_id}` : '无' }}
+          </span>
+        </div>
+
+        <div class="flex gap-2">
+          <input
+            v-model="newInviterUserSearchQuery"
+            data-test="change-inviter-search-input"
+            class="input flex-1"
+            type="text"
+            placeholder="搜索邮箱 / 用户名 / 用户 ID"
+            @keyup.enter="searchInviterCandidates"
+          />
+          <button
+            type="button"
+            data-test="change-inviter-search"
+            class="btn btn-secondary"
+            :disabled="inviterSearchLoading"
+            @click="searchInviterCandidates"
+          >
+            {{ inviterSearchLoading ? '搜索中...' : '搜索' }}
+          </button>
+        </div>
+
+        <div
+          v-if="selectedInviterUser !== undefined"
+          class="rounded-lg border px-3 py-2 text-sm"
+          :class="selectedInviterUser ? 'border-primary-200 bg-primary-50 text-primary-700 dark:border-primary-800 dark:bg-primary-900/20 dark:text-primary-300' : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300'"
+        >
+          <template v-if="selectedInviterUser">
+            已选择邀请人：{{ selectedInviterUser.email }}<span v-if="selectedInviterUser.username">（{{ selectedInviterUser.username }}）</span> #{{ selectedInviterUser.id }}
+          </template>
+          <template v-else>
+            已选择：清空直属邀请人
+          </template>
+        </div>
+
+        <button type="button" class="btn btn-secondary w-full" @click="clearInviterSelection">清空直属邀请人</button>
+
+        <div v-if="inviterSearchResults.length > 0" class="max-h-56 space-y-2 overflow-y-auto">
+          <button
+            v-for="candidate in inviterSearchResults"
+            :key="candidate.id"
+            type="button"
+            :data-test="`change-inviter-result-${candidate.id}`"
+            class="w-full rounded-lg border border-gray-200 px-3 py-2 text-left transition-colors hover:border-primary-300 hover:bg-gray-50 dark:border-dark-600 dark:hover:border-primary-500 dark:hover:bg-dark-800"
+            @click="selectInviterCandidate(candidate)"
+          >
+            <div class="font-medium text-gray-900 dark:text-white">{{ candidate.email }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">
+              <span v-if="candidate.username">{{ candidate.username }} · </span>#{{ candidate.id }} · {{ candidate.role }}
+            </div>
+          </button>
+        </div>
+        <div
+          v-else-if="inviterSearchKeyword && !inviterSearchLoading"
+          class="rounded-lg border border-dashed border-gray-200 px-3 py-4 text-sm text-gray-500 dark:border-dark-700 dark:text-gray-400"
+        >
+          未找到匹配用户
+        </div>
       </div>
       <template #footer>
         <div class="flex justify-end gap-3">
@@ -655,15 +711,63 @@
     </BaseDialog>
     <BaseDialog :show="showSalesMigrationDialog" title="销售归属迁移" width="narrow" @close="closeSalesMigrationDialog">
       <div class="space-y-4">
-        <p class="text-sm text-gray-500">输入目标销售用户 ID，可先预览受影响人数，再执行迁移。</p>
-        <input
-          v-model="targetSalesUserIdInput"
-          data-test="sales-migration-input"
-          class="input"
-          type="number"
-          min="1"
-          placeholder="目标销售用户 ID"
-        />
+        <p class="text-sm text-gray-500">搜索并选择目标销售账号，可先预览受影响人数，再执行迁移。</p>
+
+        <div class="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-600 dark:bg-dark-800 dark:text-gray-300">
+          当前销售归属：
+          <span class="font-medium text-gray-900 dark:text-white">
+            {{ salesMigrationUser?.owner_sales_id ? `#${salesMigrationUser.owner_sales_id}` : '无' }}
+          </span>
+        </div>
+
+        <div class="flex gap-2">
+          <input
+            v-model="salesMigrationSearchQuery"
+            data-test="sales-migration-search-input"
+            class="input flex-1"
+            type="text"
+            placeholder="搜索销售邮箱 / 用户名 / 用户 ID"
+            @keyup.enter="searchSalesMigrationCandidates"
+          />
+          <button
+            type="button"
+            data-test="sales-migration-search"
+            class="btn btn-secondary"
+            :disabled="salesMigrationSearchLoading"
+            @click="searchSalesMigrationCandidates"
+          >
+            {{ salesMigrationSearchLoading ? '搜索中...' : '搜索' }}
+          </button>
+        </div>
+
+        <div
+          v-if="selectedSalesMigrationTarget"
+          class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700 dark:border-primary-800 dark:bg-primary-900/20 dark:text-primary-300"
+        >
+          已选择销售：{{ selectedSalesMigrationTarget.email }}<span v-if="selectedSalesMigrationTarget.username">（{{ selectedSalesMigrationTarget.username }}）</span> #{{ selectedSalesMigrationTarget.id }}
+        </div>
+
+        <div v-if="salesMigrationSearchResults.length > 0" class="max-h-56 space-y-2 overflow-y-auto">
+          <button
+            v-for="candidate in salesMigrationSearchResults"
+            :key="candidate.id"
+            type="button"
+            :data-test="`sales-migration-result-${candidate.id}`"
+            class="w-full rounded-lg border border-gray-200 px-3 py-2 text-left transition-colors hover:border-primary-300 hover:bg-gray-50 dark:border-dark-600 dark:hover:border-primary-500 dark:hover:bg-dark-800"
+            @click="selectSalesMigrationCandidate(candidate)"
+          >
+            <div class="font-medium text-gray-900 dark:text-white">{{ candidate.email }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">
+              <span v-if="candidate.username">{{ candidate.username }} · </span>#{{ candidate.id }} · {{ candidate.role }}
+            </div>
+          </button>
+        </div>
+        <div
+          v-else-if="salesMigrationSearchKeyword && !salesMigrationSearchLoading"
+          class="rounded-lg border border-dashed border-gray-200 px-3 py-4 text-sm text-gray-500 dark:border-dark-700 dark:text-gray-400"
+        >
+          未找到匹配销售账号
+        </div>
         <div v-if="salesMigrationPreviewCount !== null" class="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-600 dark:bg-dark-800 dark:text-gray-300">
           预计影响 {{ salesMigrationPreviewCount }} 个用户
         </div>
@@ -1188,23 +1292,28 @@ const showBalanceHistoryModal = ref(false)
 const balanceHistoryUser = ref<AdminUser | null>(null)
 const showChangeInviterDialog = ref(false)
 const changeInviterUser = ref<AdminUser | null>(null)
-const newInviterUserIdInput = ref<string | number>('')
+const newInviterUserSearchQuery = ref('')
+const inviterSearchKeyword = ref('')
+const inviterSearchResults = ref<AdminUser[]>([])
+const inviterSearchLoading = ref(false)
+const selectedInviterUser = ref<AdminUser | null | undefined>(undefined)
 const showSalesMigrationDialog = ref(false)
 const salesMigrationUser = ref<AdminUser | null>(null)
-const targetSalesUserIdInput = ref<string | number>('')
+const salesMigrationSearchQuery = ref('')
+const salesMigrationSearchKeyword = ref('')
+const salesMigrationSearchResults = ref<AdminUser[]>([])
+const salesMigrationSearchLoading = ref(false)
+const selectedSalesMigrationTarget = ref<AdminUser | null>(null)
 const salesMigrationPreviewCount = ref<number | null>(null)
 
-const normalizeNumericInput = (value: string | number | null | undefined): string => {
-  if (value === null || value === undefined) return ''
-  return String(value).trim()
-}
-
-const parseOptionalPositiveInt = (value: string | number | null | undefined): number | null => {
-  const normalized = normalizeNumericInput(value)
-  if (!normalized) return null
-  const parsed = Number(normalized)
-  if (!Number.isInteger(parsed) || parsed <= 0) return null
-  return parsed
+const searchAdminUsers = async (keyword: string, role?: 'admin' | 'sales' | 'user'): Promise<AdminUser[]> => {
+  const normalized = keyword.trim()
+  if (!normalized) return []
+  const response = await adminAPI.users.list(1, 10, {
+    search: normalized,
+    role
+  })
+  return response.items
 }
 
 // 计算剩余天数
@@ -1474,20 +1583,60 @@ const closeBalanceHistoryModal = () => {
 
 const openChangeInviterDialog = (user: AdminUser) => {
   changeInviterUser.value = user
-  newInviterUserIdInput.value = user.invited_by_user_id ? String(user.invited_by_user_id) : ''
+  newInviterUserSearchQuery.value = ''
+  inviterSearchKeyword.value = ''
+  inviterSearchResults.value = []
+  selectedInviterUser.value = undefined
   showChangeInviterDialog.value = true
 }
 
 const closeChangeInviterDialog = () => {
   showChangeInviterDialog.value = false
   changeInviterUser.value = null
-  newInviterUserIdInput.value = ''
+  newInviterUserSearchQuery.value = ''
+  inviterSearchKeyword.value = ''
+  inviterSearchResults.value = []
+  selectedInviterUser.value = undefined
+}
+
+const searchInviterCandidates = async () => {
+  if (!changeInviterUser.value) return
+  const keyword = newInviterUserSearchQuery.value.trim()
+  inviterSearchKeyword.value = keyword
+  selectedInviterUser.value = undefined
+  salesMigrationPreviewCount.value = null
+  if (!keyword) {
+    inviterSearchResults.value = []
+    return
+  }
+  inviterSearchLoading.value = true
+  try {
+    const matches = await searchAdminUsers(keyword)
+    inviterSearchResults.value = matches.filter((candidate) => candidate.id !== changeInviterUser.value?.id)
+  } catch (error: any) {
+    inviterSearchResults.value = []
+    appStore.showError(error.response?.data?.detail || '邀请人搜索失败')
+  } finally {
+    inviterSearchLoading.value = false
+  }
+}
+
+const selectInviterCandidate = (candidate: AdminUser) => {
+  selectedInviterUser.value = candidate
+}
+
+const clearInviterSelection = () => {
+  selectedInviterUser.value = null
 }
 
 const submitChangeInviter = async () => {
   if (!changeInviterUser.value) return
+  if (selectedInviterUser.value === undefined) {
+    appStore.showError('请先搜索并选择邀请人，或点击清空直属邀请人')
+    return
+  }
   try {
-    const nextInviter = parseOptionalPositiveInt(newInviterUserIdInput.value)
+    const nextInviter = selectedInviterUser.value?.id ?? null
     await adminAPI.users.changeInviter(changeInviterUser.value.id, nextInviter)
     appStore.showSuccess('邀请归属迁移成功')
     closeChangeInviterDialog()
@@ -1499,7 +1648,11 @@ const submitChangeInviter = async () => {
 
 const openSalesMigrationDialog = (user: AdminUser) => {
   salesMigrationUser.value = user
-  targetSalesUserIdInput.value = user.owner_sales_id ? String(user.owner_sales_id) : ''
+  salesMigrationSearchQuery.value = ''
+  salesMigrationSearchKeyword.value = ''
+  salesMigrationSearchResults.value = []
+  salesMigrationSearchLoading.value = false
+  selectedSalesMigrationTarget.value = null
   salesMigrationPreviewCount.value = null
   showSalesMigrationDialog.value = true
 }
@@ -1507,16 +1660,46 @@ const openSalesMigrationDialog = (user: AdminUser) => {
 const closeSalesMigrationDialog = () => {
   showSalesMigrationDialog.value = false
   salesMigrationUser.value = null
-  targetSalesUserIdInput.value = ''
+  salesMigrationSearchQuery.value = ''
+  salesMigrationSearchKeyword.value = ''
+  salesMigrationSearchResults.value = []
+  salesMigrationSearchLoading.value = false
+  selectedSalesMigrationTarget.value = null
+  salesMigrationPreviewCount.value = null
+}
+
+const searchSalesMigrationCandidates = async () => {
+  const keyword = salesMigrationSearchQuery.value.trim()
+  salesMigrationSearchKeyword.value = keyword
+  selectedSalesMigrationTarget.value = null
+  salesMigrationPreviewCount.value = null
+  if (!keyword) {
+    salesMigrationSearchResults.value = []
+    return
+  }
+  salesMigrationSearchLoading.value = true
+  try {
+    salesMigrationSearchResults.value = await searchAdminUsers(keyword, 'sales')
+  } catch (error: any) {
+    salesMigrationSearchResults.value = []
+    appStore.showError(error.response?.data?.detail || '销售账号搜索失败')
+  } finally {
+    salesMigrationSearchLoading.value = false
+  }
+}
+
+const selectSalesMigrationCandidate = (candidate: AdminUser) => {
+  selectedSalesMigrationTarget.value = candidate
   salesMigrationPreviewCount.value = null
 }
 
 const previewSalesMigration = async () => {
-  if (!salesMigrationUser.value) return
-  const targetSalesUserId = parseOptionalPositiveInt(targetSalesUserIdInput.value)
-  if (targetSalesUserId === null) return
+  if (!salesMigrationUser.value || !selectedSalesMigrationTarget.value) {
+    appStore.showError('请先搜索并选择目标销售账号')
+    return
+  }
   try {
-    const result = await adminAPI.users.previewSalesOwnerMigration(salesMigrationUser.value.id, targetSalesUserId)
+    const result = await adminAPI.users.previewSalesOwnerMigration(salesMigrationUser.value.id, selectedSalesMigrationTarget.value.id)
     salesMigrationPreviewCount.value = result.affected_user_count
   } catch (error: any) {
     appStore.showError(error.response?.data?.detail || '销售归属预览失败')
@@ -1524,11 +1707,12 @@ const previewSalesMigration = async () => {
 }
 
 const submitSalesMigration = async () => {
-  if (!salesMigrationUser.value) return
-  const targetSalesUserId = parseOptionalPositiveInt(targetSalesUserIdInput.value)
-  if (targetSalesUserId === null) return
+  if (!salesMigrationUser.value || !selectedSalesMigrationTarget.value) {
+    appStore.showError('请先搜索并选择目标销售账号')
+    return
+  }
   try {
-    await adminAPI.users.migrateSalesOwner(salesMigrationUser.value.id, targetSalesUserId)
+    await adminAPI.users.migrateSalesOwner(salesMigrationUser.value.id, selectedSalesMigrationTarget.value.id)
     appStore.showSuccess('销售归属迁移成功')
     closeSalesMigrationDialog()
     loadUsers()

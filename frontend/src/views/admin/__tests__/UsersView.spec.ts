@@ -84,6 +84,17 @@ const createAdminUser = (): AdminUser => ({
   current_concurrency: 0
 })
 
+const createSearchResultUser = (overrides: Partial<AdminUser> = {}): AdminUser => ({
+  ...createAdminUser(),
+  id: overrides.id ?? 9,
+  email: overrides.email ?? 'target@example.com',
+  username: overrides.username ?? 'target-user',
+  role: overrides.role ?? 'user',
+  invited_by_user_id: overrides.invited_by_user_id ?? null,
+  owner_sales_id: overrides.owner_sales_id ?? null,
+  ...overrides
+})
+
 const DataTableStub = {
   props: ['columns', 'data'],
   emits: ['sort'],
@@ -111,12 +122,34 @@ describe('admin UsersView', () => {
     listEnabledDefinitions.mockReset()
     getBatchUserAttributes.mockReset()
 
-    listUsers.mockResolvedValue({
-      items: [createAdminUser()],
-      total: 1,
-      page: 1,
-      page_size: 20,
-      pages: 1
+    listUsers.mockImplementation((_page, pageSize, filters) => {
+      if (filters?.search === 'invite-target') {
+        return Promise.resolve({
+          items: [createSearchResultUser({ id: 9, email: 'invite-target@example.com', username: 'invite-target', role: 'user' })],
+          total: 1,
+          page: 1,
+          page_size: pageSize,
+          pages: 1
+        })
+      }
+
+      if (filters?.search === 'sales-target' && filters?.role === 'sales') {
+        return Promise.resolve({
+          items: [createSearchResultUser({ id: 19, email: 'sales-target@example.com', username: 'sales-target', role: 'sales' })],
+          total: 1,
+          page: 1,
+          page_size: pageSize,
+          pages: 1
+        })
+      }
+
+      return Promise.resolve({
+        items: [createAdminUser()],
+        total: 1,
+        page: 1,
+        page_size: pageSize,
+        pages: 1
+      })
     })
     getAllGroups.mockResolvedValue([])
     getBatchUsersUsage.mockResolvedValue({ stats: {} })
@@ -211,8 +244,11 @@ describe('admin UsersView', () => {
     ;(wrapper.vm as any).openChangeInviterDialog(createAdminUser())
     await flushPromises()
 
-    const input = wrapper.get('[data-test="change-inviter-input"]')
-    await input.setValue('9')
+    const input = wrapper.get('[data-test="change-inviter-search-input"]')
+    await input.setValue('invite-target')
+    await wrapper.get('[data-test="change-inviter-search"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[data-test="change-inviter-result-9"]').trigger('click')
     await wrapper.get('[data-test="change-inviter-submit"]').trigger('click')
     await flushPromises()
 
@@ -253,15 +289,18 @@ describe('admin UsersView', () => {
     ;(wrapper.vm as any).openSalesMigrationDialog(createAdminUser())
     await flushPromises()
 
-    const input = wrapper.get('[data-test="sales-migration-input"]')
-    await input.setValue('9')
+    const input = wrapper.get('[data-test="sales-migration-search-input"]')
+    await input.setValue('sales-target')
+    await wrapper.get('[data-test="sales-migration-search"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[data-test="sales-migration-result-19"]').trigger('click')
     await wrapper.get('[data-test="sales-migration-preview"]').trigger('click')
     await flushPromises()
-    expect(previewSalesOwnerMigration).toHaveBeenCalledWith(42, 9)
+    expect(previewSalesOwnerMigration).toHaveBeenCalledWith(42, 19)
     expect(wrapper.text()).toContain('预计影响 3 个用户')
 
     await wrapper.get('[data-test="sales-migration-submit"]').trigger('click')
     await flushPromises()
-    expect(migrateSalesOwner).toHaveBeenCalledWith(42, 9)
+    expect(migrateSalesOwner).toHaveBeenCalledWith(42, 19)
   })
 })
