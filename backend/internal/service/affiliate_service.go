@@ -9,7 +9,6 @@ import (
 	"time"
 
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 )
 
 var (
@@ -21,31 +20,7 @@ var (
 
 const (
 	affiliateInviteesLimit = 100
-	// affiliateCodeFormatLength must stay in sync with repository.affiliateCodeLength.
-	affiliateCodeFormatLength = 12
 )
-
-// affiliateCodeValidChar is a 256-entry lookup table mirroring the charset used
-// by the repository's generateAffiliateCode (A-Z minus I/O, digits 2-9).
-var affiliateCodeValidChar = func() [256]bool {
-	var tbl [256]bool
-	for _, c := range []byte("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") {
-		tbl[c] = true
-	}
-	return tbl
-}()
-
-func isValidAffiliateCodeFormat(code string) bool {
-	if len(code) != affiliateCodeFormatLength {
-		return false
-	}
-	for i := 0; i < len(code); i++ {
-		if !affiliateCodeValidChar[code[i]] {
-			return false
-		}
-	}
-	return true
-}
 
 type AffiliateSummary struct {
 	UserID          int64     `json:"user_id"`
@@ -134,9 +109,6 @@ func (s *AffiliateService) BindInviterByCode(ctx context.Context, userID int64, 
 	code := strings.ToUpper(strings.TrimSpace(rawCode))
 	if code == "" {
 		return nil
-	}
-	if !isValidAffiliateCodeFormat(code) {
-		return ErrAffiliateCodeInvalid
 	}
 	if s == nil || s.repo == nil {
 		return infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
@@ -307,8 +279,10 @@ func (s *AffiliateService) invalidateAffiliateCaches(ctx context.Context, userID
 		s.authCacheInvalidator.InvalidateAuthCacheByUserID(ctx, userID)
 	}
 	if s.billingCacheService != nil {
-		if err := s.billingCacheService.InvalidateUserBalance(ctx, userID); err != nil {
-			logger.LegacyPrintf("service.affiliate", "[Affiliate] Failed to invalidate billing cache for user %d: %v", userID, err)
-		}
+		go func() {
+			cacheCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_ = s.billingCacheService.InvalidateUserBalance(cacheCtx, userID)
+		}()
 	}
 }
