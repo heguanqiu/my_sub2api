@@ -87,9 +87,11 @@ func TestValidateInvitationCode_AllowsInviteLinksWhenInvitationCodeSignupDisable
 	t.Parallel()
 	gin.SetMode(gin.TestMode)
 
-	db, err := sql.Open("sqlite", "file:auth_validate_invite_link?mode=memory&cache=shared")
+	db, err := sql.Open("sqlite", "file:auth_validate_invite_link?mode=memory&cache=shared&_fk=1")
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = db.Close() })
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	require.NoError(t, err)
 
 	drv := entsql.OpenDB(dialect.SQLite, db)
 	client := enttest.NewClient(t, enttest.WithOptions(dbent.Driver(drv)))

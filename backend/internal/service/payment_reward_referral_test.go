@@ -6,10 +6,22 @@ import (
 	"time"
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
-	"github.com/Wei-Shaw/sub2api/internal/repository"
 
 	"github.com/stretchr/testify/require"
 )
+
+type inviteRewardUserRepoStub struct {
+	UserRepository
+	client *dbent.Client
+}
+
+func (r *inviteRewardUserRepoStub) UpdateBalance(ctx context.Context, id int64, amount float64) error {
+	user, err := r.client.User.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+	return r.client.User.UpdateOneID(id).SetBalance(user.Balance + amount).Exec(ctx)
+}
 
 func TestMaybeApplyInviteReward_FirstBalanceOrderModeRewardsOnlyOnce(t *testing.T) {
 	ctx := context.Background()
@@ -23,7 +35,7 @@ func TestMaybeApplyInviteReward_FirstBalanceOrderModeRewardsOnlyOnce(t *testing.
 	}}
 	svc := &PaymentService{
 		entClient:     client,
-		userRepo:      repository.NewUserRepository(client, nil),
+		userRepo:      &inviteRewardUserRepoStub{client: client},
 		configService: &PaymentConfigService{entClient: client, settingRepo: settingRepo},
 	}
 
@@ -76,7 +88,7 @@ func TestMaybeApplyInviteReward_EveryBalanceOrderModeRewardsEachOrder(t *testing
 	}}
 	svc := &PaymentService{
 		entClient:     client,
-		userRepo:      repository.NewUserRepository(client, nil),
+		userRepo:      &inviteRewardUserRepoStub{client: client},
 		configService: &PaymentConfigService{entClient: client, settingRepo: settingRepo},
 	}
 

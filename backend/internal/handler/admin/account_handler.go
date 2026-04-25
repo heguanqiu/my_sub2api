@@ -37,7 +37,7 @@ type OAuthHandler struct {
 }
 
 type accountTester interface {
-	TestAccountConnection(c *gin.Context, accountID int64, modelID string, prompt string) error
+	TestAccountConnection(c *gin.Context, accountID int64, modelID string, prompt string, mode string) error
 	RunTestBackground(ctx context.Context, accountID int64, modelID string) (*service.ScheduledTestResult, error)
 }
 

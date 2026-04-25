@@ -814,7 +814,7 @@ var (
 	InviteRewardLedgerColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
 		{Name: "inviter_user_id", Type: field.TypeInt64},
-		{Name: "invitee_user_id", Type: field.TypeInt64, Unique: true},
+		{Name: "invitee_user_id", Type: field.TypeInt64},
 		{Name: "trigger_order_id", Type: field.TypeInt64},
 		{Name: "reward_type", Type: field.TypeString, Size: 20},
 		{Name: "reward_amount", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},

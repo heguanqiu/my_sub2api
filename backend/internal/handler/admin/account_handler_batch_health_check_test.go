@@ -23,7 +23,7 @@ type fakeBatchAccountTester struct {
 	}
 }
 
-func (f *fakeBatchAccountTester) TestAccountConnection(_ *gin.Context, _ int64, _ string, _ string) error {
+func (f *fakeBatchAccountTester) TestAccountConnection(_ *gin.Context, _ int64, _ string, _ string, _ string) error {
 	panic("unexpected TestAccountConnection call")
 }
 
