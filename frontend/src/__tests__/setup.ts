@@ -18,6 +18,39 @@ if (typeof globalThis.cancelIdleCallback === 'undefined') {
   }) as unknown as typeof cancelIdleCallback
 }
 
+const evaluateMediaQuery = (query: string): boolean => {
+  const normalizedQuery = query.replace(/\s+/g, '').toLowerCase()
+  const viewportWidth = window.innerWidth || 1024
+
+  if (normalizedQuery.includes('prefers-color-scheme:dark')) return false
+  if (normalizedQuery.includes('(pointer:coarse)')) return false
+  if (normalizedQuery.includes('(hover:none)')) return false
+
+  const minWidthMatch = normalizedQuery.match(/\(min-width:(\d+)px\)/)
+  if (minWidthMatch && viewportWidth < Number(minWidthMatch[1])) return false
+
+  const maxWidthMatch = normalizedQuery.match(/\(max-width:(\d+)px\)/)
+  if (maxWidthMatch && viewportWidth > Number(maxWidthMatch[1])) return false
+
+  return Boolean(minWidthMatch || maxWidthMatch)
+}
+
+if (typeof window.matchMedia === 'undefined') {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: evaluateMediaQuery(query),
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  })
+}
+
 // Mock IntersectionObserver
 class MockIntersectionObserver {
   observe = vi.fn()
