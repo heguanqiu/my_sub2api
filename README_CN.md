@@ -343,6 +343,37 @@ docker compose -f docker-compose.local.yml pull
 docker compose -f docker-compose.local.yml up -d
 ```
 
+#### 生产环境发布约束
+
+对这个仓库的生产环境发布，执行以下固定约束：
+
+- 不在云服务器上执行源码构建
+- 不在云服务器上运行 `pnpm build`、`go build`、`docker compose ... --build`
+- 必须先在本地构建前端资源和 Linux 二进制
+- 构建完成后，只把产物推送到云服务器，再做无构建重启
+
+推荐流程：
+
+```bash
+# 本地构建前端
+cd frontend
+pnpm exec vite build
+
+# 本地构建 Linux 二进制
+cd ../backend
+CGO_ENABLED=0 GOOS=linux go build -tags embed -ldflags="-s -w -X main.BuildType=release" -trimpath -o ../deploy/sub2api-local ./cmd/server
+
+# 上传到云服务器
+scp ../deploy/sub2api-local root@<server>:/opt/sub2api-jx/deploy/sub2api-local.new
+
+# 云服务器替换并重启（不构建）
+ssh root@<server>
+cd /opt/sub2api-jx/deploy
+mv -f sub2api-local.new sub2api-local
+chmod 755 sub2api-local
+docker compose --env-file .env.jx -f docker-compose.jx.yml -f docker-compose.app-binary.override.yml up -d --force-recreate --no-deps --no-build sub2api-jx
+```
+
 #### 轻松迁移（本地目录版）
 
 使用 `docker-compose.local.yml` 时，可以轻松迁移到新服务器：

@@ -72,7 +72,39 @@ cd backend && golangci-lint run ./...
 cd frontend && pnpm install
 ```
 
-## 四、常见坑点 & 解决方案
+## 四、生产部署约束
+
+生产环境部署执行以下强约束：
+
+- 禁止在云服务器上直接执行源码构建，包括 `pnpm build`、`go build`、`docker compose up --build`。
+- 生产发布必须先在本地完成前端构建和 Linux 二进制构建，再把构建产物推送到云服务器更新。
+- 服务器端只允许做三类动作：备份、替换二进制/镜像、重启容器或服务。
+- 任何生产更新前必须先导出数据库备份，确认可回滚后再替换程序。
+- 本地构建产物不得提交到仓库，`deploy/sub2api-local`、`deploy/backups/`、本地 override 文件必须保持忽略。
+
+推荐生产发布流程：
+
+```bash
+# 1. 本地构建前端静态资源
+cd frontend
+pnpm exec vite build
+
+# 2. 本地构建 Linux 二进制
+cd ../backend
+CGO_ENABLED=0 GOOS=linux go build -tags embed -ldflags="-s -w -X main.BuildType=release" -trimpath -o ../deploy/sub2api-local ./cmd/server
+
+# 3. 上传二进制到云服务器
+scp ../deploy/sub2api-local root@<server>:/opt/sub2api-jx/deploy/sub2api-local.new
+
+# 4. 云服务器替换二进制并重启（禁止 build）
+ssh root@<server>
+cd /opt/sub2api-jx/deploy
+mv -f sub2api-local.new sub2api-local
+chmod 755 sub2api-local
+docker compose --env-file .env.jx -f docker-compose.jx.yml -f docker-compose.app-binary.override.yml up -d --force-recreate --no-deps --no-build sub2api-jx
+```
+
+## 五、常见坑点 & 解决方案
 
 ### 坑 1：pnpm-lock.yaml 必须同步提交
 
@@ -243,7 +275,7 @@ git add ent/       # 生成的文件也要提交
 - [ ] 所有 test stub 补全新接口方法（如果改了 interface）
 - [ ] Ent 生成的代码已提交（如果改了 schema）
 
-## 五、常用命令速查
+## 六、常用命令速查
 
 ### 数据库操作
 

@@ -37,6 +37,40 @@ chmod +x docker-deploy-jx.sh
 docker compose --env-file .env.jx -f docker-compose.jx.yml up -d --build
 ```
 
+## 生产环境约束
+
+这个仓库的生产发布现在统一采用以下约束：
+
+- 禁止在云服务器上执行 `docker compose ... --build`、`pnpm build`、`go build`
+- 必须先在本地构建前端和 Linux 二进制
+- 构建完成后，将二进制上传到服务器，再通过 override 挂载方式重启容器
+- 服务器只负责备份、替换产物、重启，不负责源码编译
+
+推荐流程：
+
+```bash
+# 本地
+cd frontend
+pnpm exec vite build
+
+cd ../backend
+CGO_ENABLED=0 GOOS=linux go build -tags embed -ldflags="-s -w -X main.BuildType=release" -trimpath -o ../deploy/sub2api-local ./cmd/server
+
+scp ../deploy/sub2api-local root@<server>:/opt/sub2api-jx/deploy/sub2api-local.new
+
+# 云服务器
+cd /opt/sub2api-jx/deploy
+mv -f sub2api-local.new sub2api-local
+chmod 755 sub2api-local
+cat > docker-compose.app-binary.override.yml <<'EOF'
+services:
+  sub2api-jx:
+    volumes:
+      - ./sub2api-local:/app/sub2api:ro
+EOF
+docker compose --env-file .env.jx -f docker-compose.jx.yml -f docker-compose.app-binary.override.yml up -d --force-recreate --no-deps --no-build sub2api-jx
+```
+
 ## 验证
 
 ```bash
