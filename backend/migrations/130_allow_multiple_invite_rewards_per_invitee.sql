@@ -1,0 +1,2 @@
+DROP INDEX IF EXISTS uniq_invite_reward_ledger_invitee_user_id;
+CREATE INDEX IF NOT EXISTS idx_invite_reward_ledger_invitee_user_id ON invite_reward_ledger(invitee_user_id);

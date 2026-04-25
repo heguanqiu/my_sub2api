@@ -85,10 +85,11 @@ func (e *EasyPay) CreatePayment(ctx context.Context, req payment.CreatePaymentRe
 // TradeNo is empty; it arrives via the notify callback after payment.
 func (e *EasyPay) createRedirectPayment(req payment.CreatePaymentRequest) (*payment.CreatePaymentResponse, error) {
 	notifyURL, returnURL := e.resolveURLs(req)
+	subject := sanitizeEasyPaySubject(req.Subject)
 	params := map[string]string{
 		"pid": e.config["pid"], "type": req.PaymentType,
 		"out_trade_no": req.OrderID, "notify_url": notifyURL,
-		"return_url": returnURL, "name": req.Subject,
+		"return_url": returnURL, "name": subject,
 		"money": req.Amount,
 	}
 	if cid := e.resolveCID(req.PaymentType); cid != "" {
@@ -112,10 +113,11 @@ func (e *EasyPay) createRedirectPayment(req payment.CreatePaymentRequest) (*paym
 // createAPIPayment calls mapi.php to get payurl/qrcode (existing behavior).
 func (e *EasyPay) createAPIPayment(ctx context.Context, req payment.CreatePaymentRequest) (*payment.CreatePaymentResponse, error) {
 	notifyURL, returnURL := e.resolveURLs(req)
+	subject := sanitizeEasyPaySubject(req.Subject)
 	params := map[string]string{
 		"pid": e.config["pid"], "type": req.PaymentType,
 		"out_trade_no": req.OrderID, "notify_url": notifyURL,
-		"return_url": returnURL, "name": req.Subject,
+		"return_url": returnURL, "name": subject,
 		"money": req.Amount, "clientip": req.ClientIP,
 	}
 	if cid := e.resolveCID(req.PaymentType); cid != "" {
@@ -266,6 +268,22 @@ func (e *EasyPay) resolveCID(paymentType string) string {
 		return v
 	}
 	return e.config["cid"]
+}
+
+func sanitizeEasyPaySubject(subject string) string {
+	// Some EasyPay implementations still store request subjects in utf8mb3 columns.
+	// Strip non-BMP runes such as emoji to avoid upstream 500/HTML error pages.
+	cleaned := strings.Map(func(r rune) rune {
+		if r == 0 || r > 0xFFFF {
+			return -1
+		}
+		return r
+	}, subject)
+	cleaned = strings.TrimSpace(cleaned)
+	if cleaned == "" {
+		return "Sub2API"
+	}
+	return cleaned
 }
 
 func (e *EasyPay) post(ctx context.Context, endpoint string, params map[string]string) ([]byte, error) {

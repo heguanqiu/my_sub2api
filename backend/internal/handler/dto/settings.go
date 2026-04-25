@@ -171,6 +171,9 @@ type SystemSettings struct {
 	PaymentProductNameSuffix         string   `json:"payment_product_name_suffix"`
 	PaymentHelpImageURL              string   `json:"payment_help_image_url"`
 	PaymentHelpText                  string   `json:"payment_help_text"`
+	PaymentInviteRewardEnabled       bool     `json:"payment_invite_reward_enabled"`
+	PaymentInviteRewardRate          float64  `json:"payment_invite_reward_rate"`
+	PaymentInviteRewardTriggerMode   string   `json:"payment_invite_reward_trigger_mode"`
 
 	// Cancel rate limit
 	PaymentCancelRateLimitEnabled bool   `json:"payment_cancel_rate_limit_enabled"`

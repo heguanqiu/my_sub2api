@@ -24,8 +24,7 @@ func (InviteRewardLedger) Annotations() []schema.Annotation {
 func (InviteRewardLedger) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int64("inviter_user_id"),
-		field.Int64("invitee_user_id").
-			Unique(),
+		field.Int64("invitee_user_id"),
 		field.Int64("trigger_order_id"),
 		field.String("reward_type").
 			MaxLen(20),
@@ -55,6 +54,7 @@ func (InviteRewardLedger) Fields() []ent.Field {
 func (InviteRewardLedger) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("inviter_user_id"),
+		index.Fields("invitee_user_id"),
 		index.Fields("trigger_order_id"),
 		index.Fields("status"),
 	}

@@ -99,6 +99,15 @@ func TestParsePaymentConfig(t *testing.T) {
 		if cfg.LoadBalanceStrategy != payment.DefaultLoadBalanceStrategy {
 			t.Fatalf("expected LoadBalanceStrategy=%s, got %q", payment.DefaultLoadBalanceStrategy, cfg.LoadBalanceStrategy)
 		}
+		if !cfg.InviteRewardEnabled {
+			t.Fatal("expected InviteRewardEnabled=true by default")
+		}
+		if cfg.InviteRewardRate != defaultInviteRewardRate {
+			t.Fatalf("expected InviteRewardRate=%v, got %v", defaultInviteRewardRate, cfg.InviteRewardRate)
+		}
+		if cfg.InviteRewardTriggerMode != InviteRewardTriggerFirstBalanceOrder {
+			t.Fatalf("expected InviteRewardTriggerMode=%q, got %q", InviteRewardTriggerFirstBalanceOrder, cfg.InviteRewardTriggerMode)
+		}
 		if len(cfg.EnabledTypes) != 0 {
 			t.Fatalf("expected empty EnabledTypes, got %v", cfg.EnabledTypes)
 		}
@@ -118,6 +127,9 @@ func TestParsePaymentConfig(t *testing.T) {
 			SettingLoadBalanceStrategy: "least_amount",
 			SettingProductNamePrefix:   "PRE",
 			SettingProductNameSuffix:   "SUF",
+			SettingInviteRewardEnabled: "false",
+			SettingInviteRewardRate:    "25.50",
+			SettingInviteRewardTrigger: InviteRewardTriggerEveryBalanceOrder,
 		}
 		cfg := svc.parsePaymentConfig(vals)
 
@@ -156,6 +168,15 @@ func TestParsePaymentConfig(t *testing.T) {
 		}
 		if cfg.ProductNameSuffix != "SUF" {
 			t.Fatalf("ProductNameSuffix = %q, want %q", cfg.ProductNameSuffix, "SUF")
+		}
+		if cfg.InviteRewardEnabled {
+			t.Fatal("expected InviteRewardEnabled=false")
+		}
+		if cfg.InviteRewardRate != 25.5 {
+			t.Fatalf("InviteRewardRate = %v, want 25.5", cfg.InviteRewardRate)
+		}
+		if cfg.InviteRewardTriggerMode != InviteRewardTriggerEveryBalanceOrder {
+			t.Fatalf("InviteRewardTriggerMode = %q, want %q", cfg.InviteRewardTriggerMode, InviteRewardTriggerEveryBalanceOrder)
 		}
 	})
 
@@ -429,6 +450,33 @@ func TestUpdatePaymentConfig_PersistsVisibleMethodRouting(t *testing.T) {
 	}
 	if repo.values[SettingPaymentVisibleMethodWxpaySource] != VisibleMethodSourceOfficialWechat {
 		t.Fatalf("wxpay source = %q, want %q", repo.values[SettingPaymentVisibleMethodWxpaySource], VisibleMethodSourceOfficialWechat)
+	}
+}
+
+func TestUpdatePaymentConfig_PersistsInviteRewardSettings(t *testing.T) {
+	repo := &paymentConfigSettingRepoStub{values: map[string]string{}}
+	svc := &PaymentConfigService{settingRepo: repo}
+
+	enabled := false
+	rate := 12.5
+	mode := InviteRewardTriggerEveryBalanceOrder
+	err := svc.UpdatePaymentConfig(context.Background(), UpdatePaymentConfigRequest{
+		InviteRewardEnabled:     &enabled,
+		InviteRewardRate:        &rate,
+		InviteRewardTriggerMode: &mode,
+	})
+	if err != nil {
+		t.Fatalf("UpdatePaymentConfig returned error: %v", err)
+	}
+
+	if repo.values[SettingInviteRewardEnabled] != "false" {
+		t.Fatalf("invite reward enabled = %q, want false", repo.values[SettingInviteRewardEnabled])
+	}
+	if repo.values[SettingInviteRewardRate] != "12.50" {
+		t.Fatalf("invite reward rate = %q, want 12.50", repo.values[SettingInviteRewardRate])
+	}
+	if repo.values[SettingInviteRewardTrigger] != InviteRewardTriggerEveryBalanceOrder {
+		t.Fatalf("invite reward trigger = %q, want %q", repo.values[SettingInviteRewardTrigger], InviteRewardTriggerEveryBalanceOrder)
 	}
 }
 

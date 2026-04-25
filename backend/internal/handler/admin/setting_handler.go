@@ -243,6 +243,9 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		PaymentProductNameSuffix:               paymentCfg.ProductNameSuffix,
 		PaymentHelpImageURL:                    paymentCfg.HelpImageURL,
 		PaymentHelpText:                        paymentCfg.HelpText,
+		PaymentInviteRewardEnabled:             paymentCfg.InviteRewardEnabled,
+		PaymentInviteRewardRate:                paymentCfg.InviteRewardRate,
+		PaymentInviteRewardTriggerMode:         paymentCfg.InviteRewardTriggerMode,
 		PaymentCancelRateLimitEnabled:          paymentCfg.CancelRateLimitEnabled,
 		PaymentCancelRateLimitMax:              paymentCfg.CancelRateLimitMax,
 		PaymentCancelRateLimitWindow:           paymentCfg.CancelRateLimitWindow,
@@ -449,6 +452,9 @@ type UpdateSettingsRequest struct {
 	PaymentProductNameSuffix         *string  `json:"payment_product_name_suffix"`
 	PaymentHelpImageURL              *string  `json:"payment_help_image_url"`
 	PaymentHelpText                  *string  `json:"payment_help_text"`
+	PaymentInviteRewardEnabled       *bool    `json:"payment_invite_reward_enabled"`
+	PaymentInviteRewardRate          *float64 `json:"payment_invite_reward_rate"`
+	PaymentInviteRewardTriggerMode   *string  `json:"payment_invite_reward_trigger_mode"`
 
 	// Cancel rate limit
 	PaymentCancelRateLimitEnabled *bool   `json:"payment_cancel_rate_limit_enabled"`
@@ -1400,6 +1406,9 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			ProductNameSuffix:         req.PaymentProductNameSuffix,
 			HelpImageURL:              req.PaymentHelpImageURL,
 			HelpText:                  req.PaymentHelpText,
+			InviteRewardEnabled:       req.PaymentInviteRewardEnabled,
+			InviteRewardRate:          req.PaymentInviteRewardRate,
+			InviteRewardTriggerMode:   req.PaymentInviteRewardTriggerMode,
 			CancelRateLimitEnabled:    req.PaymentCancelRateLimitEnabled,
 			CancelRateLimitMax:        req.PaymentCancelRateLimitMax,
 			CancelRateLimitWindow:     req.PaymentCancelRateLimitWindow,
@@ -1581,6 +1590,9 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		PaymentProductNameSuffix:               updatedPaymentCfg.ProductNameSuffix,
 		PaymentHelpImageURL:                    updatedPaymentCfg.HelpImageURL,
 		PaymentHelpText:                        updatedPaymentCfg.HelpText,
+		PaymentInviteRewardEnabled:             updatedPaymentCfg.InviteRewardEnabled,
+		PaymentInviteRewardRate:                updatedPaymentCfg.InviteRewardRate,
+		PaymentInviteRewardTriggerMode:         updatedPaymentCfg.InviteRewardTriggerMode,
 		PaymentCancelRateLimitEnabled:          updatedPaymentCfg.CancelRateLimitEnabled,
 		PaymentCancelRateLimitMax:              updatedPaymentCfg.CancelRateLimitMax,
 		PaymentCancelRateLimitWindow:           updatedPaymentCfg.CancelRateLimitWindow,
@@ -1604,6 +1616,8 @@ func hasPaymentFields(req UpdateSettingsRequest) bool {
 		req.PaymentBalanceRechargeMultiplier != nil || req.PaymentRechargeFeeRate != nil ||
 		req.PaymentLoadBalanceStrat != nil || req.PaymentProductNamePrefix != nil ||
 		req.PaymentProductNameSuffix != nil || req.PaymentHelpImageURL != nil ||
+		req.PaymentInviteRewardEnabled != nil || req.PaymentInviteRewardRate != nil ||
+		req.PaymentInviteRewardTriggerMode != nil ||
 		req.PaymentHelpText != nil || req.PaymentCancelRateLimitEnabled != nil ||
 		req.PaymentCancelRateLimitMax != nil || req.PaymentCancelRateLimitWindow != nil ||
 		req.PaymentCancelRateLimitUnit != nil || req.PaymentCancelRateLimitMode != nil

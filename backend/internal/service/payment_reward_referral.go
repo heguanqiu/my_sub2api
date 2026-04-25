@@ -7,6 +7,7 @@ import (
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/ent/inviterewardledger"
 	dbuser "github.com/Wei-Shaw/sub2api/ent/user"
+	"github.com/shopspring/decimal"
 )
 
 func orderInviteRewardStatusForUser(user *User, orderType string) string {
@@ -24,24 +25,35 @@ func (s *PaymentService) maybeApplyInviteReward(ctx context.Context, orderID int
 	if err != nil || order.OrderType != "balance" {
 		return
 	}
+	if order.InviteRewardLedgerID != nil || order.InviteRewardStatus == OrderInviteRewardStatusGranted {
+		return
+	}
 	if order.InvitedByUserIDSnapshot == nil {
 		_, _ = s.entClient.PaymentOrder.UpdateOneID(orderID).SetInviteRewardStatus(OrderInviteRewardStatusNotApplicable).Save(ctx)
 		return
 	}
-	user, err := s.entClient.User.Get(ctx, order.UserID)
+	if s.configService == nil {
+		return
+	}
+	cfg, err := s.configService.GetPaymentConfig(ctx)
 	if err != nil {
+		return
+	}
+	if !cfg.InviteRewardEnabled || cfg.InviteRewardRate <= 0 {
+		_, _ = s.entClient.PaymentOrder.UpdateOneID(orderID).SetInviteRewardStatus(OrderInviteRewardStatusSkipped).Save(ctx)
 		return
 	}
 	now := time.Now()
-	updated, err := s.entClient.User.Update().
-		Where(dbuser.IDEQ(user.ID), dbuser.FirstPaidOrderIDIsNil()).
-		SetFirstPaidOrderID(order.ID).
-		SetFirstPaidAt(now).
-		Save(ctx)
+	recordedFirstPaid, err := s.recordFirstPaidOrderIfMissing(ctx, order.UserID, order.ID, now)
 	if err != nil {
 		return
 	}
-	if updated == 0 {
+	if normalizeInviteRewardTriggerMode(cfg.InviteRewardTriggerMode) == InviteRewardTriggerFirstBalanceOrder && !recordedFirstPaid {
+		_, _ = s.entClient.PaymentOrder.UpdateOneID(orderID).SetInviteRewardStatus(OrderInviteRewardStatusSkipped).Save(ctx)
+		return
+	}
+	rewardAmount := calculateInviteRewardAmount(order.Amount, cfg.InviteRewardRate)
+	if rewardAmount <= 0 {
 		_, _ = s.entClient.PaymentOrder.UpdateOneID(orderID).SetInviteRewardStatus(OrderInviteRewardStatusSkipped).Save(ctx)
 		return
 	}
@@ -50,7 +62,7 @@ func (s *PaymentService) maybeApplyInviteReward(ctx context.Context, orderID int
 		SetInviteeUserID(order.UserID).
 		SetTriggerOrderID(order.ID).
 		SetRewardType(InviteRewardTypeBalance).
-		SetRewardAmount(order.Amount).
+		SetRewardAmount(rewardAmount).
 		SetStatus(InviteRewardStatusGranted).
 		SetConfirmedAt(now).
 		Save(ctx)
@@ -70,6 +82,29 @@ func (s *PaymentService) maybeApplyInviteReward(ctx context.Context, orderID int
 		SetInviteRewardStatus(OrderInviteRewardStatusGranted).
 		SetInviteRewardLedgerID(ledger.ID).
 		Save(ctx)
+}
+
+func (s *PaymentService) recordFirstPaidOrderIfMissing(ctx context.Context, userID, orderID int64, now time.Time) (bool, error) {
+	updated, err := s.entClient.User.Update().
+		Where(dbuser.IDEQ(userID), dbuser.FirstPaidOrderIDIsNil()).
+		SetFirstPaidOrderID(orderID).
+		SetFirstPaidAt(now).
+		Save(ctx)
+	if err != nil {
+		return false, err
+	}
+	return updated > 0, nil
+}
+
+func calculateInviteRewardAmount(orderAmount, rate float64) float64 {
+	if orderAmount <= 0 || rate <= 0 {
+		return 0
+	}
+	return decimal.NewFromFloat(orderAmount).
+		Mul(decimal.NewFromFloat(rate)).
+		Div(decimal.NewFromInt(100)).
+		Round(8).
+		InexactFloat64()
 }
 
 func (s *PaymentService) maybeReverseInviteReward(ctx context.Context, orderID int64) {

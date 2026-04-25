@@ -4119,6 +4119,69 @@
                     </p>
                   </div>
                 </div>
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div class="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3 dark:border-dark-600">
+                    <div>
+                      <label class="font-medium text-gray-900 dark:text-white">{{
+                        t("admin.settings.payment.inviteRewardEnabled")
+                      }}</label>
+                      <p class="text-xs text-gray-500 dark:text-gray-400">
+                        {{ t("admin.settings.payment.inviteRewardEnabledHint") }}
+                      </p>
+                    </div>
+                    <Toggle v-model="form.payment_invite_reward_enabled" />
+                  </div>
+                  <div>
+                    <label class="input-label">{{
+                      t("admin.settings.payment.inviteRewardRate")
+                    }}</label>
+                    <div class="relative">
+                      <input
+                        :value="form.payment_invite_reward_rate ?? ''"
+                        @input="
+                          form.payment_invite_reward_rate = Math.min(
+                            100,
+                            Math.max(
+                              0,
+                              Math.round(
+                                parseFloat(
+                                  ($event.target as HTMLInputElement).value ||
+                                    '0',
+                                ) * 100,
+                              ) / 100,
+                            ),
+                          )
+                        "
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        class="input pr-8"
+                        :disabled="!form.payment_invite_reward_enabled"
+                      />
+                      <span
+                        class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400"
+                        >%</span
+                      >
+                    </div>
+                    <p class="mt-0.5 text-xs text-gray-400">
+                      {{ t("admin.settings.payment.inviteRewardRateHint") }}
+                    </p>
+                  </div>
+                  <div>
+                    <label class="input-label">{{
+                      t("admin.settings.payment.inviteRewardTriggerMode")
+                    }}</label>
+                    <Select
+                      v-model="form.payment_invite_reward_trigger_mode"
+                      :options="inviteRewardTriggerModeOptions"
+                      :disabled="!form.payment_invite_reward_enabled"
+                    />
+                    <p class="mt-0.5 text-xs text-gray-400">
+                      {{ t("admin.settings.payment.inviteRewardTriggerModeHint") }}
+                    </p>
+                  </div>
+                </div>
                 <!-- Row 3: Pending orders + load balance + cancel rate limit (all in one row) -->
                 <div class="flex flex-wrap items-end gap-4">
                   <div class="w-28">
@@ -5080,6 +5143,9 @@ const form = reactive<SettingsForm>({
   payment_enabled_types: [],
   payment_help_image_url: "",
   payment_help_text: "",
+  payment_invite_reward_enabled: true,
+  payment_invite_reward_rate: 100,
+  payment_invite_reward_trigger_mode: "first_balance_order",
   payment_product_name_prefix: "",
   payment_product_name_suffix: "",
   payment_load_balance_strategy: "round-robin",
@@ -6104,6 +6170,10 @@ async function saveSettings() {
       payment_product_name_suffix: form.payment_product_name_suffix,
       payment_help_image_url: form.payment_help_image_url,
       payment_help_text: form.payment_help_text,
+      payment_invite_reward_enabled: form.payment_invite_reward_enabled,
+      payment_invite_reward_rate: Number(form.payment_invite_reward_rate) || 0,
+      payment_invite_reward_trigger_mode:
+        form.payment_invite_reward_trigger_mode,
       payment_cancel_rate_limit_enabled: form.payment_cancel_rate_limit_enabled,
       payment_cancel_rate_limit_max:
         Number(form.payment_cancel_rate_limit_max) || 10,
@@ -6642,6 +6712,17 @@ const loadBalanceOptions = computed(() => [
   {
     value: "least-amount",
     label: t("admin.settings.payment.strategyLeastAmount"),
+  },
+]);
+
+const inviteRewardTriggerModeOptions = computed(() => [
+  {
+    value: "first_balance_order",
+    label: t("admin.settings.payment.inviteRewardTriggerFirstBalanceOrder"),
+  },
+  {
+    value: "every_balance_order",
+    label: t("admin.settings.payment.inviteRewardTriggerEveryBalanceOrder"),
   },
 ]);
 

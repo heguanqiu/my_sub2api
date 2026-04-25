@@ -505,15 +505,6 @@ type ValidateInvitationCodeResponse struct {
 // ValidateInvitationCode 验证邀请码（公开接口，注册前调用）
 // POST /api/v1/auth/validate-invitation-code
 func (h *AuthHandler) ValidateInvitationCode(c *gin.Context) {
-	// 检查邀请码功能是否启用
-	if h.settingSvc == nil || !h.settingSvc.IsInvitationCodeEnabled(c.Request.Context()) {
-		response.Success(c, ValidateInvitationCodeResponse{
-			Valid:     false,
-			ErrorCode: "INVITATION_CODE_DISABLED",
-		})
-		return
-	}
-
 	var req ValidateInvitationCodeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "Invalid request: "+err.Error())
@@ -521,6 +512,15 @@ func (h *AuthHandler) ValidateInvitationCode(c *gin.Context) {
 	}
 
 	if _, err := h.authService.ResolveRegistrationAffiliation(c.Request.Context(), req.Code); err != nil {
+		// 邀请链接在未开启“邀请码注册”时依然允许建立邀请归属；
+		// 校验接口必须与真实注册逻辑保持一致，避免分享注册链接被前端误判为失效。
+		if h.settingSvc == nil || !h.settingSvc.IsInvitationCodeEnabled(c.Request.Context()) {
+			response.Success(c, ValidateInvitationCodeResponse{
+				Valid:     false,
+				ErrorCode: "INVITATION_CODE_INVALID",
+			})
+			return
+		}
 		response.Success(c, ValidateInvitationCodeResponse{
 			Valid:     false,
 			ErrorCode: "INVITATION_CODE_INVALID",

@@ -29,6 +29,9 @@ const (
 	SettingProductNameSuffix   = "PRODUCT_NAME_SUFFIX"
 	SettingHelpImageURL        = "PAYMENT_HELP_IMAGE_URL"
 	SettingHelpText            = "PAYMENT_HELP_TEXT"
+	SettingInviteRewardEnabled = "INVITE_REWARD_ENABLED"
+	SettingInviteRewardRate    = "INVITE_REWARD_RATE"
+	SettingInviteRewardTrigger = "INVITE_REWARD_TRIGGER_MODE"
 	SettingCancelRateLimitOn   = "CANCEL_RATE_LIMIT_ENABLED"
 	SettingCancelRateLimitMax  = "CANCEL_RATE_LIMIT_MAX"
 	SettingCancelWindowSize    = "CANCEL_RATE_LIMIT_WINDOW"
@@ -40,6 +43,12 @@ const (
 const (
 	defaultOrderTimeoutMin  = 30
 	defaultMaxPendingOrders = 3
+	defaultInviteRewardRate = 100.0
+)
+
+const (
+	InviteRewardTriggerFirstBalanceOrder = "first_balance_order"
+	InviteRewardTriggerEveryBalanceOrder = "every_balance_order"
 )
 
 // PaymentConfig holds the payment system configuration.
@@ -59,6 +68,9 @@ type PaymentConfig struct {
 	ProductNameSuffix         string   `json:"product_name_suffix"`
 	HelpImageURL              string   `json:"help_image_url"`
 	HelpText                  string   `json:"help_text"`
+	InviteRewardEnabled       bool     `json:"invite_reward_enabled"`
+	InviteRewardRate          float64  `json:"invite_reward_rate"`
+	InviteRewardTriggerMode   string   `json:"invite_reward_trigger_mode"`
 	StripePublishableKey      string   `json:"stripe_publishable_key,omitempty"`
 
 	// Cancel rate limit settings
@@ -86,6 +98,9 @@ type UpdatePaymentConfigRequest struct {
 	ProductNameSuffix         *string  `json:"product_name_suffix"`
 	HelpImageURL              *string  `json:"help_image_url"`
 	HelpText                  *string  `json:"help_text"`
+	InviteRewardEnabled       *bool    `json:"invite_reward_enabled"`
+	InviteRewardRate          *float64 `json:"invite_reward_rate"`
+	InviteRewardTriggerMode   *string  `json:"invite_reward_trigger_mode"`
 
 	// Cancel rate limit settings
 	CancelRateLimitEnabled *bool   `json:"cancel_rate_limit_enabled"`
@@ -199,6 +214,7 @@ func (s *PaymentConfigService) GetPaymentConfig(ctx context.Context) (*PaymentCo
 		SettingEnabledPaymentTypes, SettingBalancePayDisabled, SettingBalanceRechargeMult, SettingRechargeFeeRate, SettingLoadBalanceStrategy,
 		SettingProductNamePrefix, SettingProductNameSuffix,
 		SettingHelpImageURL, SettingHelpText,
+		SettingInviteRewardEnabled, SettingInviteRewardRate, SettingInviteRewardTrigger,
 		SettingCancelRateLimitOn, SettingCancelRateLimitMax,
 		SettingCancelWindowSize, SettingCancelWindowUnit, SettingCancelWindowMode,
 		SettingPaymentVisibleMethodAlipayEnabled, SettingPaymentVisibleMethodAlipaySource,
@@ -215,6 +231,10 @@ func (s *PaymentConfigService) GetPaymentConfig(ctx context.Context) (*PaymentCo
 }
 
 func (s *PaymentConfigService) parsePaymentConfig(vals map[string]string) *PaymentConfig {
+	inviteRewardTriggerMode := normalizeInviteRewardTriggerMode(vals[SettingInviteRewardTrigger])
+	if inviteRewardTriggerMode == "" {
+		inviteRewardTriggerMode = InviteRewardTriggerFirstBalanceOrder
+	}
 	cfg := &PaymentConfig{
 		Enabled:                   vals[SettingPaymentEnabled] == "true",
 		MinAmount:                 pcParseFloat(vals[SettingMinRechargeAmount], 1),
@@ -230,6 +250,9 @@ func (s *PaymentConfigService) parsePaymentConfig(vals map[string]string) *Payme
 		ProductNameSuffix:         vals[SettingProductNameSuffix],
 		HelpImageURL:              vals[SettingHelpImageURL],
 		HelpText:                  vals[SettingHelpText],
+		InviteRewardEnabled:       vals[SettingInviteRewardEnabled] == "true" || vals[SettingInviteRewardEnabled] == "",
+		InviteRewardRate:          pcParseFloat(vals[SettingInviteRewardRate], defaultInviteRewardRate),
+		InviteRewardTriggerMode:   inviteRewardTriggerMode,
 
 		CancelRateLimitEnabled: vals[SettingCancelRateLimitOn] == "true",
 		CancelRateLimitMax:     pcParseInt(vals[SettingCancelRateLimitMax], 10),
@@ -239,6 +262,9 @@ func (s *PaymentConfigService) parsePaymentConfig(vals map[string]string) *Payme
 	}
 	if cfg.LoadBalanceStrategy == "" {
 		cfg.LoadBalanceStrategy = payment.DefaultLoadBalanceStrategy
+	}
+	if cfg.InviteRewardRate < 0 {
+		cfg.InviteRewardRate = 0
 	}
 	if raw := vals[SettingEnabledPaymentTypes]; raw != "" {
 		types := make([]string, 0, len(strings.Split(raw, ",")))
@@ -293,6 +319,20 @@ func (s *PaymentConfigService) UpdatePaymentConfig(ctx context.Context, req Upda
 			return infraerrors.BadRequest("INVALID_RECHARGE_FEE_RATE", "recharge fee rate allows at most 2 decimal places")
 		}
 	}
+	if req.InviteRewardRate != nil {
+		v := *req.InviteRewardRate
+		if math.IsNaN(v) || math.IsInf(v, 0) || v < 0 || v > 100 {
+			return infraerrors.BadRequest("INVALID_INVITE_REWARD_RATE", "invite reward rate must be between 0 and 100")
+		}
+		if math.Round(v*100) != v*100 {
+			return infraerrors.BadRequest("INVALID_INVITE_REWARD_RATE", "invite reward rate allows at most 2 decimal places")
+		}
+	}
+	if req.InviteRewardTriggerMode != nil {
+		if normalized := normalizeInviteRewardTriggerMode(*req.InviteRewardTriggerMode); normalized == "" {
+			return infraerrors.BadRequest("INVALID_INVITE_REWARD_TRIGGER_MODE", "invalid invite reward trigger mode")
+		}
+	}
 	m := map[string]string{
 		SettingPaymentEnabled:                    formatBoolOrEmpty(req.Enabled),
 		SettingMinRechargeAmount:                 formatPositiveFloat(req.MinAmount),
@@ -308,6 +348,9 @@ func (s *PaymentConfigService) UpdatePaymentConfig(ctx context.Context, req Upda
 		SettingProductNameSuffix:                 derefStr(req.ProductNameSuffix),
 		SettingHelpImageURL:                      derefStr(req.HelpImageURL),
 		SettingHelpText:                          derefStr(req.HelpText),
+		SettingInviteRewardEnabled:               formatBoolOrEmpty(req.InviteRewardEnabled),
+		SettingInviteRewardRate:                  formatNonNegativeFloat(req.InviteRewardRate),
+		SettingInviteRewardTrigger:               formatInviteRewardTriggerMode(req.InviteRewardTriggerMode),
 		SettingCancelRateLimitOn:                 formatBoolOrEmpty(req.CancelRateLimitEnabled),
 		SettingCancelRateLimitMax:                formatPositiveInt(req.CancelRateLimitMax),
 		SettingCancelWindowSize:                  formatPositiveInt(req.CancelRateLimitWindow),
@@ -352,6 +395,24 @@ func formatPositiveInt(v *int) string {
 		return ""
 	}
 	return strconv.Itoa(*v)
+}
+
+func normalizeInviteRewardTriggerMode(mode string) string {
+	switch strings.TrimSpace(mode) {
+	case "", InviteRewardTriggerFirstBalanceOrder:
+		return InviteRewardTriggerFirstBalanceOrder
+	case InviteRewardTriggerEveryBalanceOrder:
+		return InviteRewardTriggerEveryBalanceOrder
+	default:
+		return ""
+	}
+}
+
+func formatInviteRewardTriggerMode(v *string) string {
+	if v == nil {
+		return ""
+	}
+	return normalizeInviteRewardTriggerMode(*v)
 }
 
 func derefStr(v *string) string {
