@@ -87,7 +87,11 @@ func (s *authIdentitySettingRepoStub) SetMultiple(context.Context, map[string]st
 }
 
 func (s *authIdentitySettingRepoStub) GetAll(context.Context) (map[string]string, error) {
-	panic("unexpected GetAll call")
+	out := make(map[string]string, len(s.values))
+	for key, value := range s.values {
+		out[key] = value
+	}
+	return out, nil
 }
 
 func (s *authIdentitySettingRepoStub) Delete(context.Context, string) error {
