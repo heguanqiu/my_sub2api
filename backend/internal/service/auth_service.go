@@ -230,8 +230,8 @@ func (s *AuthService) RegisterWithVerification(ctx context.Context, email, passw
 	s.postAuthUserBootstrap(ctx, user, "email", true)
 	s.assignSubscriptions(ctx, user.ID, grantPlan.Subscriptions, "auto assigned by signup defaults")
 
-	// 标记邀请码为已使用（如果使用了邀请码）
-	if affiliation != nil && affiliation.InvitationRedeemCode != nil {
+	// 邀请码类型改为可重复使用，不再在注册成功后消费。
+	if affiliation != nil && affiliation.InvitationRedeemCode != nil && !canUseRegistrationInvitationRedeemCode(affiliation.InvitationRedeemCode) {
 		if err := s.redeemRepo.Use(ctx, affiliation.InvitationRedeemCode.ID, user.ID); err != nil {
 			// 邀请码标记失败不影响注册，只记录日志
 			logger.LegacyPrintf("service.auth", "[Auth] Failed to mark invitation code as used for user %d: %v", user.ID, err)
@@ -658,8 +658,10 @@ func (s *AuthService) LoginOrRegisterOAuthWithTokenPair(ctx context.Context, ema
 						return nil, nil, ErrServiceUnavailable
 					}
 				} else {
-					if err := s.redeemRepo.Use(txCtx, affiliation.InvitationRedeemCode.ID, newUser.ID); err != nil {
-						return nil, nil, ErrInvitationCodeInvalid
+					if affiliation.InvitationRedeemCode != nil && !canUseRegistrationInvitationRedeemCode(affiliation.InvitationRedeemCode) {
+						if err := s.redeemRepo.Use(txCtx, affiliation.InvitationRedeemCode.ID, newUser.ID); err != nil {
+							return nil, nil, ErrInvitationCodeInvalid
+						}
 					}
 					if err := tx.Commit(); err != nil {
 						logger.LegacyPrintf("service.auth", "[Auth] Failed to commit oauth registration transaction: %v", err)
@@ -685,7 +687,7 @@ func (s *AuthService) LoginOrRegisterOAuthWithTokenPair(ctx context.Context, ema
 					user = newUser
 					s.postAuthUserBootstrap(ctx, user, signupSource, false)
 					s.assignSubscriptions(ctx, user.ID, grantPlan.Subscriptions, "auto assigned by signup defaults")
-					if affiliation != nil && affiliation.InvitationRedeemCode != nil {
+					if affiliation != nil && affiliation.InvitationRedeemCode != nil && !canUseRegistrationInvitationRedeemCode(affiliation.InvitationRedeemCode) {
 						if err := s.redeemRepo.Use(ctx, affiliation.InvitationRedeemCode.ID, user.ID); err != nil {
 							return nil, nil, ErrInvitationCodeInvalid
 						}

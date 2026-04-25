@@ -3765,7 +3765,7 @@ export default {
       concurrency: 'Concurrency',
       subscription: 'Subscription',
       invitation: 'Invitation',
-      invitationHint: 'Invitation codes are used to restrict user registration. They are automatically marked as used after use.',
+      invitationHint: 'Invitation codes are used to restrict user registration. They remain reusable and are not consumed after a successful signup.',
       unused: 'Unused',
       used: 'Used',
       columns: {

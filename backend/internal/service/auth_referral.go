@@ -23,6 +23,14 @@ type registrationAffiliation struct {
 	InvitationRedeemCode *RedeemCode
 }
 
+func canUseRegistrationInvitationRedeemCode(code *RedeemCode) bool {
+	if code == nil || code.Type != RedeemTypeInvitation {
+		return false
+	}
+	// 邀请码类型改为可重复使用，不再依赖 used/unused 状态。
+	return true
+}
+
 func cloneInt64Ptr(value *int64) *int64 {
 	if value == nil {
 		return nil
@@ -86,7 +94,7 @@ func (s *AuthService) resolveRegistrationAffiliation(ctx context.Context, invita
 	if err != nil {
 		return nil, ErrInvitationCodeInvalid
 	}
-	if redeemCode.Type != RedeemTypeInvitation || redeemCode.Status != StatusUnused {
+	if !canUseRegistrationInvitationRedeemCode(redeemCode) {
 		return nil, ErrInvitationCodeInvalid
 	}
 	return &registrationAffiliation{InvitationRedeemCode: redeemCode}, nil

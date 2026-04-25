@@ -265,6 +265,54 @@ func TestRegisterOAuthEmailAccountFallsBackUnknownSignupSourceToEmail(t *testing
 	require.Equal(t, "email", userRepo.created[0].SignupSource)
 }
 
+func TestResolveRegistrationAffiliation_AllowsUsedInvitationRedeemCodeReuse(t *testing.T) {
+	redeemRepo := &redeemCodeRepoStub{
+		codesByCode: map[string]*RedeemCode{
+			"INVITE-REUSE": {
+				ID:     9,
+				Code:   "INVITE-REUSE",
+				Type:   RedeemTypeInvitation,
+				Status: StatusUsed,
+			},
+		},
+	}
+	authService := &AuthService{redeemRepo: redeemRepo}
+
+	affiliation, err := authService.ResolveRegistrationAffiliation(context.Background(), "INVITE-REUSE")
+
+	require.NoError(t, err)
+	require.NotNil(t, affiliation)
+	require.NotNil(t, affiliation.InvitationRedeemCode)
+	require.Equal(t, int64(9), affiliation.InvitationRedeemCode.ID)
+}
+
+func TestValidateOAuthRegistrationInvitation_AllowsUsedInvitationRedeemCodeReuse(t *testing.T) {
+	authService := newOAuthEmailFlowAuthService(
+		&userRepoStub{},
+		&redeemCodeRepoStub{
+			codesByCode: map[string]*RedeemCode{
+				"INVITE-REUSE": {
+					ID:     10,
+					Code:   "INVITE-REUSE",
+					Type:   RedeemTypeInvitation,
+					Status: StatusUsed,
+				},
+			},
+		},
+		&refreshTokenCacheStub{},
+		map[string]string{
+			SettingKeyInvitationCodeEnabled: "true",
+		},
+		&emailCacheStub{},
+	)
+
+	redeemCode, err := authService.validateOAuthRegistrationInvitation(context.Background(), "INVITE-REUSE")
+
+	require.NoError(t, err)
+	require.NotNil(t, redeemCode)
+	require.Equal(t, int64(10), redeemCode.ID)
+}
+
 func TestRollbackOAuthEmailAccountCreationRestoresInvitationUsage(t *testing.T) {
 	userRepo := &userRepoStub{}
 	redeemRepo := &redeemCodeRepoStub{

@@ -70,7 +70,7 @@ func (s *AuthService) validateOAuthRegistrationInvitation(ctx context.Context, i
 	if err != nil {
 		return nil, ErrInvitationCodeInvalid
 	}
-	if redeemCode.Type != RedeemTypeInvitation || redeemCode.Status != StatusUnused {
+	if !canUseRegistrationInvitationRedeemCode(redeemCode) {
 		return nil, ErrInvitationCodeInvalid
 	}
 	return redeemCode, nil
@@ -148,13 +148,13 @@ func (s *AuthService) RegisterOAuthEmailAccount(
 	grantPlan := s.resolveSignupGrantPlan(ctx, signupSource)
 
 	user := &User{
-		Email:        email,
-		PasswordHash: hashedPassword,
-		Role:         RoleUser,
-		Balance:      grantPlan.Balance,
-		Concurrency:  grantPlan.Concurrency,
-		Status:       StatusActive,
-		SignupSource: signupSource,
+		Email:           email,
+		PasswordHash:    hashedPassword,
+		Role:            RoleUser,
+		Balance:         grantPlan.Balance,
+		Concurrency:     grantPlan.Concurrency,
+		Status:          StatusActive,
+		SignupSource:    signupSource,
 		InvitedByUserID: nil,
 		OwnerSalesID:    nil,
 	}
@@ -199,8 +199,10 @@ func (s *AuthService) FinalizeOAuthEmailAccount(
 		return err
 	}
 	if affiliation != nil && affiliation.InvitationRedeemCode != nil {
-		if err := s.useOAuthRegistrationInvitation(ctx, affiliation.InvitationRedeemCode.ID, user.ID); err != nil {
-			return ErrInvitationCodeInvalid
+		if !canUseRegistrationInvitationRedeemCode(affiliation.InvitationRedeemCode) {
+			if err := s.useOAuthRegistrationInvitation(ctx, affiliation.InvitationRedeemCode.ID, user.ID); err != nil {
+				return ErrInvitationCodeInvalid
+			}
 		}
 	}
 
