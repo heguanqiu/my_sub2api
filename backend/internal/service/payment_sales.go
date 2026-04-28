@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"strings"
+	"time"
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
@@ -15,6 +16,7 @@ type SalesDashboardSummary struct {
 	TotalOrders      int     `json:"total_orders"`
 	CompletedOrders  int     `json:"completed_orders"`
 	TotalOrderAmount float64 `json:"total_order_amount"`
+	Range            string  `json:"range"`
 }
 
 type SalesCustomerSummary struct {
@@ -23,10 +25,17 @@ type SalesCustomerSummary struct {
 	CompletedOrderAmount float64 `json:"completed_order_amount"`
 }
 
-func (s *PaymentService) GetSalesDashboard(ctx context.Context, salesUserID int64) (*SalesDashboardSummary, error) {
+const (
+	SalesDashboardRangeToday  = "today"
+	SalesDashboardRange7Days  = "7d"
+	SalesDashboardRange30Days = "30d"
+)
+
+func (s *PaymentService) GetSalesDashboard(ctx context.Context, salesUserID int64, rangeKey string) (*SalesDashboardSummary, error) {
 	if err := s.ensureSalesAccess(ctx, salesUserID); err != nil {
 		return nil, err
 	}
+	rangeKey, start, end := salesDashboardTimeRange(rangeKey, time.Now())
 	customerCount, err := s.entClient.User.Query().
 		Where(dbuser.OwnerSalesIDEQ(salesUserID), dbuser.RoleEQ(RoleUser)).
 		Count(ctx)
@@ -34,13 +43,19 @@ func (s *PaymentService) GetSalesDashboard(ctx context.Context, salesUserID int6
 		return nil, err
 	}
 	totalOrders, err := s.entClient.PaymentOrder.Query().
-		Where(paymentorder.HasUserWith(dbuser.OwnerSalesIDEQ(salesUserID), dbuser.RoleEQ(RoleUser))).
+		Where(
+			paymentorder.HasUserWith(dbuser.OwnerSalesIDEQ(salesUserID), dbuser.RoleEQ(RoleUser)),
+			paymentorder.CreatedAtGTE(start),
+			paymentorder.CreatedAtLT(end),
+		).
 		Count(ctx)
 	if err != nil {
 		return nil, err
 	}
 	completedOrders, err := s.entClient.PaymentOrder.Query().Where(
 		paymentorder.HasUserWith(dbuser.OwnerSalesIDEQ(salesUserID), dbuser.RoleEQ(RoleUser)),
+		paymentorder.CreatedAtGTE(start),
+		paymentorder.CreatedAtLT(end),
 		paymentorder.StatusEQ(OrderStatusCompleted),
 	).All(ctx)
 	if err != nil {
@@ -55,7 +70,22 @@ func (s *PaymentService) GetSalesDashboard(ctx context.Context, salesUserID int6
 		TotalOrders:      totalOrders,
 		CompletedOrders:  len(completedOrders),
 		TotalOrderAmount: completedAmount,
+		Range:            rangeKey,
 	}, nil
+}
+
+func salesDashboardTimeRange(rangeKey string, now time.Time) (string, time.Time, time.Time) {
+	localNow := now.In(time.Local)
+	todayStart := time.Date(localNow.Year(), localNow.Month(), localNow.Day(), 0, 0, 0, 0, localNow.Location())
+	end := todayStart.AddDate(0, 0, 1)
+	switch strings.TrimSpace(rangeKey) {
+	case SalesDashboardRange7Days:
+		return SalesDashboardRange7Days, todayStart.AddDate(0, 0, -6), end
+	case SalesDashboardRange30Days:
+		return SalesDashboardRange30Days, todayStart.AddDate(0, 0, -29), end
+	default:
+		return SalesDashboardRangeToday, todayStart, end
+	}
 }
 
 func (s *PaymentService) ListSalesCustomers(ctx context.Context, salesUserID int64, page, pageSize int, search, status string) ([]SalesCustomerSummary, int, error) {

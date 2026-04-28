@@ -7,7 +7,10 @@ export interface SalesDashboardSummary {
   total_orders: number
   completed_orders: number
   total_order_amount: number
+  range: SalesDashboardRange
 }
+
+export type SalesDashboardRange = 'today' | '7d' | '30d'
 
 export interface SalesCustomerSummary {
   user: User
@@ -16,8 +19,8 @@ export interface SalesCustomerSummary {
 }
 
 export const salesAPI = {
-  getDashboard() {
-    return apiClient.get<SalesDashboardSummary>('/sales/dashboard')
+  getDashboard(params?: { range?: SalesDashboardRange }) {
+    return apiClient.get<SalesDashboardSummary>('/sales/dashboard', { params })
   },
   listCustomers(params?: { page?: number; page_size?: number; search?: string; status?: string }) {
     return apiClient.get<BasePaginationResponse<SalesCustomerSummary>>('/sales/customers', { params })

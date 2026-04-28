@@ -35,7 +35,7 @@ func (h *PaymentHandler) GetSalesDashboard(c *gin.Context) {
 	if !ok {
 		return
 	}
-	stats, err := h.paymentService.GetSalesDashboard(c.Request.Context(), subject.UserID)
+	stats, err := h.paymentService.GetSalesDashboard(c.Request.Context(), subject.UserID, c.Query("range"))
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
