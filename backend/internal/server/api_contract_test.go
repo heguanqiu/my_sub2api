@@ -726,17 +726,6 @@ func TestAPIContracts(t *testing.T) {
 						"enable_identity_patch": true,
 						"identity_patch_prompt": "",
 						"invitation_code_enabled": false,
-					"invoice_enabled": false,
-					"invoice_provider": "baiwang",
-					"invoice_retry_limit": 3,
-					"invoice_auto_retry_enabled": false,
-					"invoice_baiwang_enabled": false,
-					"invoice_baiwang_base_url": "",
-					"invoice_baiwang_app_key": "",
-					"invoice_baiwang_app_secret_configured": false,
-					"invoice_baiwang_taxpayer_id": "",
-					"invoice_baiwang_seller_name": "",
-					"invoice_baiwang_default_goods_name": "",
 						"home_content": "",
 					"hide_ccs_import_button": false,
 					"purchase_subscription_enabled": false,
@@ -756,6 +745,16 @@ func TestAPIContracts(t *testing.T) {
 					"payment_visible_method_alipay_enabled": true,
 					"payment_visible_method_wxpay_enabled": false,
 					"openai_advanced_scheduler_enabled": true,
+					"openai_fast_policy_settings": {
+						"rules": [
+							{
+								"service_tier": "priority",
+								"action": "filter",
+								"scope": "all",
+								"fallback_action": "pass"
+							}
+						]
+					},
 					"custom_menu_items": [],
 					"custom_endpoints": [],
 					"payment_enabled": false,
@@ -937,6 +936,16 @@ func TestAPIContracts(t *testing.T) {
 					"payment_visible_method_alipay_enabled": false,
 					"payment_visible_method_wxpay_enabled": false,
 					"openai_advanced_scheduler_enabled": false,
+					"openai_fast_policy_settings": {
+						"rules": [
+							{
+								"service_tier": "priority",
+								"action": "filter",
+								"scope": "all",
+								"fallback_action": "pass"
+							}
+						]
+					},
 					"payment_enabled": false,
 					"payment_min_amount": 0,
 					"payment_max_amount": 0,
@@ -1005,17 +1014,6 @@ func TestAPIContracts(t *testing.T) {
 					"auth_source_default_wechat_grant_on_signup": false,
 					"auth_source_default_wechat_grant_on_first_bind": false,
 					"force_email_on_third_party_signup": false,
-					"invoice_enabled": false,
-					"invoice_provider": "baiwang",
-					"invoice_retry_limit": 3,
-					"invoice_auto_retry_enabled": false,
-					"invoice_baiwang_enabled": false,
-					"invoice_baiwang_base_url": "",
-					"invoice_baiwang_app_key": "",
-					"invoice_baiwang_app_secret_configured": false,
-					"invoice_baiwang_taxpayer_id": "",
-					"invoice_baiwang_seller_name": "",
-					"invoice_baiwang_default_goods_name": ""
 				}
 			}`,
 		},

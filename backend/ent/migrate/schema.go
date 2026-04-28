@@ -836,6 +836,11 @@ var (
 				Columns: []*schema.Column{InviteRewardLedgerColumns[1]},
 			},
 			{
+				Name:    "inviterewardledger_invitee_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{InviteRewardLedgerColumns[2]},
+			},
+			{
 				Name:    "inviterewardledger_trigger_order_id",
 				Unique:  false,
 				Columns: []*schema.Column{InviteRewardLedgerColumns[3]},
@@ -844,114 +849,6 @@ var (
 				Name:    "inviterewardledger_status",
 				Unique:  false,
 				Columns: []*schema.Column{InviteRewardLedgerColumns[6]},
-			},
-		},
-	}
-	// InvoiceDocumentsColumns holds the columns for the "invoice_documents" table.
-	InvoiceDocumentsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt64, Increment: true},
-		{Name: "invoice_request_id", Type: field.TypeInt64},
-		{Name: "invoice_no", Type: field.TypeString, Nullable: true, Size: 100},
-		{Name: "invoice_code", Type: field.TypeString, Nullable: true, Size: 100},
-		{Name: "file_url", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "text"}},
-		{Name: "file_type", Type: field.TypeString, Nullable: true, Size: 20},
-		{Name: "raw_payload_summary", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
-	}
-	// InvoiceDocumentsTable holds the schema information for the "invoice_documents" table.
-	InvoiceDocumentsTable = &schema.Table{
-		Name:       "invoice_documents",
-		Columns:    InvoiceDocumentsColumns,
-		PrimaryKey: []*schema.Column{InvoiceDocumentsColumns[0]},
-		Indexes: []*schema.Index{
-			{
-				Name:    "invoicedocument_invoice_request_id",
-				Unique:  false,
-				Columns: []*schema.Column{InvoiceDocumentsColumns[1]},
-			},
-			{
-				Name:    "invoicedocument_invoice_no",
-				Unique:  false,
-				Columns: []*schema.Column{InvoiceDocumentsColumns[2]},
-			},
-		},
-	}
-	// InvoiceProfilesColumns holds the columns for the "invoice_profiles" table.
-	InvoiceProfilesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt64, Increment: true},
-		{Name: "user_id", Type: field.TypeInt64},
-		{Name: "title", Type: field.TypeString, Size: 255},
-		{Name: "tax_no", Type: field.TypeString, Nullable: true, Size: 100},
-		{Name: "email", Type: field.TypeString, Nullable: true, Size: 255},
-		{Name: "phone", Type: field.TypeString, Nullable: true, Size: 50},
-		{Name: "address", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "text"}},
-		{Name: "bank_name", Type: field.TypeString, Nullable: true, Size: 255},
-		{Name: "bank_account", Type: field.TypeString, Nullable: true, Size: 255},
-		{Name: "invoice_type", Type: field.TypeString, Size: 30},
-		{Name: "is_default", Type: field.TypeBool, Default: false},
-		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
-		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
-	}
-	// InvoiceProfilesTable holds the schema information for the "invoice_profiles" table.
-	InvoiceProfilesTable = &schema.Table{
-		Name:       "invoice_profiles",
-		Columns:    InvoiceProfilesColumns,
-		PrimaryKey: []*schema.Column{InvoiceProfilesColumns[0]},
-		Indexes: []*schema.Index{
-			{
-				Name:    "invoiceprofile_user_id",
-				Unique:  false,
-				Columns: []*schema.Column{InvoiceProfilesColumns[1]},
-			},
-			{
-				Name:    "invoiceprofile_user_id_is_default",
-				Unique:  false,
-				Columns: []*schema.Column{InvoiceProfilesColumns[1], InvoiceProfilesColumns[10]},
-			},
-		},
-	}
-	// InvoiceRequestsColumns holds the columns for the "invoice_requests" table.
-	InvoiceRequestsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt64, Increment: true},
-		{Name: "user_id", Type: field.TypeInt64},
-		{Name: "order_id", Type: field.TypeInt64},
-		{Name: "profile_id", Type: field.TypeInt64},
-		{Name: "status", Type: field.TypeString, Size: 30, Default: "requested"},
-		{Name: "provider", Type: field.TypeString, Size: 50, Default: "baiwang"},
-		{Name: "provider_request_id", Type: field.TypeString, Nullable: true, Size: 255},
-		{Name: "provider_invoice_id", Type: field.TypeString, Nullable: true, Size: 255},
-		{Name: "fail_reason", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "text"}},
-		{Name: "retry_count", Type: field.TypeInt, Default: 0},
-		{Name: "requested_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
-		{Name: "issued_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
-		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
-		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
-	}
-	// InvoiceRequestsTable holds the schema information for the "invoice_requests" table.
-	InvoiceRequestsTable = &schema.Table{
-		Name:       "invoice_requests",
-		Columns:    InvoiceRequestsColumns,
-		PrimaryKey: []*schema.Column{InvoiceRequestsColumns[0]},
-		Indexes: []*schema.Index{
-			{
-				Name:    "invoicerequest_user_id",
-				Unique:  false,
-				Columns: []*schema.Column{InvoiceRequestsColumns[1]},
-			},
-			{
-				Name:    "invoicerequest_order_id",
-				Unique:  false,
-				Columns: []*schema.Column{InvoiceRequestsColumns[2]},
-			},
-			{
-				Name:    "invoicerequest_status",
-				Unique:  false,
-				Columns: []*schema.Column{InvoiceRequestsColumns[4]},
-			},
-			{
-				Name:    "invoicerequest_provider",
-				Unique:  false,
-				Columns: []*schema.Column{InvoiceRequestsColumns[5]},
 			},
 		},
 	}
@@ -1004,8 +901,6 @@ var (
 		{Name: "invited_by_user_id_snapshot", Type: field.TypeInt64, Nullable: true},
 		{Name: "invite_reward_status", Type: field.TypeString, Size: 30, Default: "not_applicable"},
 		{Name: "invite_reward_ledger_id", Type: field.TypeInt64, Nullable: true},
-		{Name: "invoice_status", Type: field.TypeString, Size: 30, Default: "not_requested"},
-		{Name: "invoice_request_id", Type: field.TypeInt64, Nullable: true},
 		{Name: "status", Type: field.TypeString, Size: 30, Default: "PENDING"},
 		{Name: "refund_amount", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,2)"}},
 		{Name: "refund_reason", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "text"}},
@@ -1034,7 +929,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "payment_orders_users_payment_orders",
-				Columns:    []*schema.Column{PaymentOrdersColumns[45]},
+				Columns:    []*schema.Column{PaymentOrdersColumns[43]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1051,32 +946,32 @@ var (
 			{
 				Name:    "paymentorder_user_id",
 				Unique:  false,
-				Columns: []*schema.Column{PaymentOrdersColumns[45]},
+				Columns: []*schema.Column{PaymentOrdersColumns[43]},
 			},
 			{
 				Name:    "paymentorder_status",
 				Unique:  false,
-				Columns: []*schema.Column{PaymentOrdersColumns[27]},
+				Columns: []*schema.Column{PaymentOrdersColumns[25]},
 			},
 			{
 				Name:    "paymentorder_expires_at",
 				Unique:  false,
-				Columns: []*schema.Column{PaymentOrdersColumns[35]},
+				Columns: []*schema.Column{PaymentOrdersColumns[33]},
 			},
 			{
 				Name:    "paymentorder_created_at",
 				Unique:  false,
-				Columns: []*schema.Column{PaymentOrdersColumns[43]},
+				Columns: []*schema.Column{PaymentOrdersColumns[41]},
 			},
 			{
 				Name:    "paymentorder_paid_at",
 				Unique:  false,
-				Columns: []*schema.Column{PaymentOrdersColumns[36]},
+				Columns: []*schema.Column{PaymentOrdersColumns[34]},
 			},
 			{
 				Name:    "paymentorder_payment_type_paid_at",
 				Unique:  false,
-				Columns: []*schema.Column{PaymentOrdersColumns[9], PaymentOrdersColumns[36]},
+				Columns: []*schema.Column{PaymentOrdersColumns[9], PaymentOrdersColumns[34]},
 			},
 			{
 				Name:    "paymentorder_order_type",
@@ -1099,14 +994,9 @@ var (
 				Columns: []*schema.Column{PaymentOrdersColumns[23]},
 			},
 			{
-				Name:    "paymentorder_invoice_status",
-				Unique:  false,
-				Columns: []*schema.Column{PaymentOrdersColumns[25]},
-			},
-			{
 				Name:    "paymentorder_user_id_paid_at",
 				Unique:  false,
-				Columns: []*schema.Column{PaymentOrdersColumns[45], PaymentOrdersColumns[36]},
+				Columns: []*schema.Column{PaymentOrdersColumns[43], PaymentOrdersColumns[34]},
 			},
 		},
 	}
@@ -1925,9 +1815,6 @@ var (
 		IdentityAdoptionDecisionsTable,
 		InviteLinksTable,
 		InviteRewardLedgerTable,
-		InvoiceDocumentsTable,
-		InvoiceProfilesTable,
-		InvoiceRequestsTable,
 		PaymentAuditLogsTable,
 		PaymentOrdersTable,
 		PaymentProviderInstancesTable,
@@ -2015,15 +1902,6 @@ func init() {
 	}
 	InviteRewardLedgerTable.Annotation = &entsql.Annotation{
 		Table: "invite_reward_ledger",
-	}
-	InvoiceDocumentsTable.Annotation = &entsql.Annotation{
-		Table: "invoice_documents",
-	}
-	InvoiceProfilesTable.Annotation = &entsql.Annotation{
-		Table: "invoice_profiles",
-	}
-	InvoiceRequestsTable.Annotation = &entsql.Annotation{
-		Table: "invoice_requests",
 	}
 	PaymentAuditLogsTable.Annotation = &entsql.Annotation{
 		Table: "payment_audit_logs",

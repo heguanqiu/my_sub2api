@@ -53,13 +53,6 @@ func RegisterAdminRoutes(
 		// 系统设置
 		registerSettingsRoutes(admin, h)
 
-		invoices := admin.Group("/invoices")
-		{
-			invoices.GET("", h.Admin.Payment.ListInvoices)
-			invoices.GET("/:id", h.Admin.Payment.GetInvoiceDetail)
-			invoices.POST("/:id/retry", h.Admin.Payment.RetryInvoice)
-		}
-
 		inviteRewards := admin.Group("/invite-rewards")
 		{
 			inviteRewards.GET("", h.Admin.Payment.ListInviteRewards)
@@ -104,6 +97,7 @@ func RegisterAdminRoutes(
 
 		// 渠道监控
 		registerChannelMonitorRoutes(admin, h)
+
 	}
 }
 
@@ -237,11 +231,11 @@ func registerUserManagementRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		users.GET("/:id/usage", h.Admin.User.GetUserUsage)
 		users.GET("/:id/balance-history", h.Admin.User.GetBalanceHistory)
 		users.POST("/:id/replace-group", h.Admin.User.ReplaceGroup)
-			users.POST("/:id/change-inviter", h.Admin.User.ChangeInviter)
-			users.POST("/:id/recompute-sales-owner", h.Admin.User.RecomputeSalesOwner)
-			users.POST("/:id/migrate-sales-owner/preview", h.Admin.User.PreviewSalesOwnerMigration)
-			users.POST("/:id/migrate-sales-owner", h.Admin.User.MigrateSalesOwner)
-			users.GET("/:id/rpm-status", h.Admin.User.GetUserRPMStatus)
+		users.POST("/:id/change-inviter", h.Admin.User.ChangeInviter)
+		users.POST("/:id/recompute-sales-owner", h.Admin.User.RecomputeSalesOwner)
+		users.POST("/:id/migrate-sales-owner/preview", h.Admin.User.PreviewSalesOwnerMigration)
+		users.POST("/:id/migrate-sales-owner", h.Admin.User.MigrateSalesOwner)
+		users.GET("/:id/rpm-status", h.Admin.User.GetUserRPMStatus)
 
 		// User attribute values
 		users.GET("/:id/attributes", h.Admin.UserAttribute.GetUserAttributes)

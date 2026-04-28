@@ -45,34 +45,6 @@ const (
 	OrderInviteRewardStatusSkipped           = domain.OrderInviteRewardStatusSkipped
 )
 
-// Payment order invoice status constants
-const (
-	OrderInvoiceStatusNotRequested = domain.OrderInvoiceStatusNotRequested
-	OrderInvoiceStatusRequested    = domain.OrderInvoiceStatusRequested
-	OrderInvoiceStatusProcessing   = domain.OrderInvoiceStatusProcessing
-	OrderInvoiceStatusIssued       = domain.OrderInvoiceStatusIssued
-	OrderInvoiceStatusFailed       = domain.OrderInvoiceStatusFailed
-	OrderInvoiceStatusVoided       = domain.OrderInvoiceStatusVoided
-)
-
-// Invoice profile / request constants
-const (
-	InvoiceTypePersonalElectronic   = domain.InvoiceTypePersonalElectronic
-	InvoiceTypeEnterpriseElectronic = domain.InvoiceTypeEnterpriseElectronic
-
-	InvoiceProviderBaiwang = domain.InvoiceProviderBaiwang
-
-	InvoiceRequestStatusRequested  = domain.InvoiceRequestStatusRequested
-	InvoiceRequestStatusProcessing = domain.InvoiceRequestStatusProcessing
-	InvoiceRequestStatusIssued     = domain.InvoiceRequestStatusIssued
-	InvoiceRequestStatusFailed     = domain.InvoiceRequestStatusFailed
-	InvoiceRequestStatusVoided     = domain.InvoiceRequestStatusVoided
-
-	InvoiceDocumentTypePDF = domain.InvoiceDocumentTypePDF
-	InvoiceDocumentTypeOFD = domain.InvoiceDocumentTypeOFD
-	InvoiceDocumentTypeXML = domain.InvoiceDocumentTypeXML
-)
-
 // Platform constants
 const (
 	PlatformAnthropic   = domain.PlatformAnthropic
@@ -343,6 +315,12 @@ const (
 	// SettingKeyBetaPolicySettings stores JSON config for beta policy rules.
 	SettingKeyBetaPolicySettings = "beta_policy_settings"
 
+	// SettingKeyOpenAIFastPolicySettings stores JSON config for OpenAI
+	// service_tier (fast/flex) policy rules. Mirrors BetaPolicySettings but
+	// targets OpenAI's body-level service_tier field instead of Claude's
+	// anthropic-beta header.
+	SettingKeyOpenAIFastPolicySettings = "openai_fast_policy_settings"
+
 	// =========================
 	// Claude Code Version Check
 	// =========================
@@ -376,18 +354,7 @@ const (
 	SettingKeyAccountQuotaNotifyEnabled = "account_quota_notify_enabled" // 全局开关
 	SettingKeyAccountQuotaNotifyEmails  = "account_quota_notify_emails"  // 管理员通知邮箱列表（JSON 数组）
 
-	SettingKeyInvoiceEnabled                 = domain.SettingKeyInvoiceEnabled
-	SettingKeyInvoiceProvider                = domain.SettingKeyInvoiceProvider
-	SettingKeyInvoiceBaiwangEnabled          = domain.SettingKeyInvoiceBaiwangEnabled
-	SettingKeyInvoiceBaiwangBaseURL          = domain.SettingKeyInvoiceBaiwangBaseURL
-	SettingKeyInvoiceBaiwangAppKey           = domain.SettingKeyInvoiceBaiwangAppKey
-	SettingKeyInvoiceBaiwangAppSecret        = domain.SettingKeyInvoiceBaiwangAppSecret
-	SettingKeyInvoiceBaiwangTaxpayerID       = domain.SettingKeyInvoiceBaiwangTaxpayerID
-	SettingKeyInvoiceBaiwangSellerName       = domain.SettingKeyInvoiceBaiwangSellerName
-	SettingKeyInvoiceBaiwangDefaultGoodsName = domain.SettingKeyInvoiceBaiwangDefaultGoodsName
-	SettingKeyInvoiceAutoRetryEnabled        = domain.SettingKeyInvoiceAutoRetryEnabled
-	SettingKeyInvoiceRetryLimit              = domain.SettingKeyInvoiceRetryLimit
-	SettingKeyDefaultSalesUserID             = domain.SettingKeyDefaultSalesUserID
+	SettingKeyDefaultSalesUserID = domain.SettingKeyDefaultSalesUserID
 
 	// Web Search Emulation
 	SettingKeyWebSearchEmulationConfig = "web_search_emulation_config" // JSON 配置

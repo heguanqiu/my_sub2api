@@ -210,6 +210,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/models',
+    name: 'ModelMarketplace',
+    component: () => import('@/views/user/ModelMarketplaceView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Model Marketplace',
+      titleKey: 'modelMarketplace.title',
+      descriptionKey: 'modelMarketplace.description'
+    }
+  },
+  {
     path: '/profile',
     name: 'Profile',
     component: () => import('@/views/user/ProfileView.vue'),
@@ -270,17 +282,6 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
-    path: '/invoices',
-    name: 'Invoices',
-    component: () => import('@/views/user/InvoicesView.vue'),
-    meta: {
-      requiresAuth: true,
-      requiresAdmin: false,
-      title: 'Invoices',
-      titleKey: 'nav.invoices'
-    }
-  },
-  {
     path: '/payment/qrcode',
     name: 'PaymentQRCode',
     component: () => import('@/views/user/PaymentQRCodeView.vue'),
@@ -309,11 +310,11 @@ const routes: RouteRecordRaw[] = [
     name: 'StripePayment',
     component: () => import('@/views/user/StripePaymentView.vue'),
     meta: {
-      requiresAuth: true,
+      requiresAuth: false,
       requiresAdmin: false,
       title: 'Stripe Payment',
       titleKey: 'payment.stripePay',
-      requiresPayment: true
+      requiresPayment: false
     }
   },
   {
@@ -321,10 +322,10 @@ const routes: RouteRecordRaw[] = [
     name: 'StripePopup',
     component: () => import('@/views/user/StripePopupView.vue'),
     meta: {
-      requiresAuth: true,
+      requiresAuth: false,
       requiresAdmin: false,
       title: 'Payment',
-      requiresPayment: true
+      requiresPayment: false
     }
   },
   {
@@ -397,17 +398,6 @@ const routes: RouteRecordRaw[] = [
       requiresSales: true,
       title: 'Sales Customer Orders',
       titleKey: 'sales.customerRechargeRecords'
-    }
-  },
-  {
-    path: '/sales/customers/:id/invoices',
-    name: 'SalesCustomerInvoices',
-    component: () => import('@/views/sales/SalesCustomerInvoicesView.vue'),
-    meta: {
-      requiresAuth: true,
-      requiresSales: true,
-      title: 'Sales Customer Invoices',
-      titleKey: 'sales.invoices'
     }
   },
   {

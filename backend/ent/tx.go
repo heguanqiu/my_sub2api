@@ -48,12 +48,6 @@ type Tx struct {
 	InviteLink *InviteLinkClient
 	// InviteRewardLedger is the client for interacting with the InviteRewardLedger builders.
 	InviteRewardLedger *InviteRewardLedgerClient
-	// InvoiceDocument is the client for interacting with the InvoiceDocument builders.
-	InvoiceDocument *InvoiceDocumentClient
-	// InvoiceProfile is the client for interacting with the InvoiceProfile builders.
-	InvoiceProfile *InvoiceProfileClient
-	// InvoiceRequest is the client for interacting with the InvoiceRequest builders.
-	InvoiceRequest *InvoiceRequestClient
 	// PaymentAuditLog is the client for interacting with the PaymentAuditLog builders.
 	PaymentAuditLog *PaymentAuditLogClient
 	// PaymentOrder is the client for interacting with the PaymentOrder builders.
@@ -240,9 +234,6 @@ func (tx *Tx) init() {
 	tx.IdentityAdoptionDecision = NewIdentityAdoptionDecisionClient(tx.config)
 	tx.InviteLink = NewInviteLinkClient(tx.config)
 	tx.InviteRewardLedger = NewInviteRewardLedgerClient(tx.config)
-	tx.InvoiceDocument = NewInvoiceDocumentClient(tx.config)
-	tx.InvoiceProfile = NewInvoiceProfileClient(tx.config)
-	tx.InvoiceRequest = NewInvoiceRequestClient(tx.config)
 	tx.PaymentAuditLog = NewPaymentAuditLogClient(tx.config)
 	tx.PaymentOrder = NewPaymentOrderClient(tx.config)
 	tx.PaymentProviderInstance = NewPaymentProviderInstanceClient(tx.config)

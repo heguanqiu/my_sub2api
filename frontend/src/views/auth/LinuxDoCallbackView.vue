@@ -627,18 +627,16 @@ async function handleSubmitInvitation() {
 
   isSubmitting.value = true
   try {
+    const decision = currentAdoptionDecision()
     const completion: LinuxDoPendingActionResponse = legacyPendingOAuthToken.value
       ? (
           await apiClient.post<LinuxDoPendingActionResponse>('/auth/oauth/linuxdo/complete-registration', {
             pending_oauth_token: legacyPendingOAuthToken.value,
             invitation_code: invitationCode.value.trim(),
-            ...serializeAdoptionDecision(currentAdoptionDecision())
+            ...serializeAdoptionDecision(decision)
           })
         ).data
-      : await completeLinuxDoOAuthRegistration(
-          invitationCode.value.trim(),
-          currentAdoptionDecision()
-        )
+      : await completeLinuxDoOAuthRegistration(invitationCode.value.trim(), decision)
     await finalizePendingAccountResponse(completion)
   } catch (e: unknown) {
     const err = e as { message?: string; response?: { data?: { message?: string } } }

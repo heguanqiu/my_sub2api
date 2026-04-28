@@ -28,7 +28,6 @@
                 <td class="py-3">
                   <div class="flex gap-2">
                     <button class="btn btn-secondary" @click="router.push(`/sales/customers/${item.user.id}/orders`)">{{ t('sales.orders') }}</button>
-                    <button class="btn btn-secondary" @click="router.push(`/sales/customers/${item.user.id}/invoices`)">{{ t('sales.invoices') }}</button>
                   </div>
                 </td>
               </tr>

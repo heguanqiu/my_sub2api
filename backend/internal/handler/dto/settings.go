@@ -189,24 +189,15 @@ type SystemSettings struct {
 	AccountQuotaNotifyEnabled   bool               `json:"account_quota_notify_enabled"`
 	AccountQuotaNotifyEmails    []NotifyEmailEntry `json:"account_quota_notify_emails"`
 
-	InvoiceEnabled                    bool   `json:"invoice_enabled"`
-	InvoiceProvider                   string `json:"invoice_provider"`
-	InvoiceBaiwangEnabled             bool   `json:"invoice_baiwang_enabled"`
-	InvoiceBaiwangBaseURL             string `json:"invoice_baiwang_base_url"`
-	InvoiceBaiwangAppKey              string `json:"invoice_baiwang_app_key"`
-	InvoiceBaiwangAppSecretConfigured bool   `json:"invoice_baiwang_app_secret_configured"`
-	InvoiceBaiwangTaxpayerID          string `json:"invoice_baiwang_taxpayer_id"`
-	InvoiceBaiwangSellerName          string `json:"invoice_baiwang_seller_name"`
-	InvoiceBaiwangDefaultGoodsName    string `json:"invoice_baiwang_default_goods_name"`
-	InvoiceAutoRetryEnabled           bool   `json:"invoice_auto_retry_enabled"`
-	InvoiceRetryLimit                 int    `json:"invoice_retry_limit"`
-
 	// Channel Monitor feature switch
 	ChannelMonitorEnabled                bool `json:"channel_monitor_enabled"`
 	ChannelMonitorDefaultIntervalSeconds int  `json:"channel_monitor_default_interval_seconds"`
 
 	// Available Channels feature switch (user-facing aggregate view)
 	AvailableChannelsEnabled bool `json:"available_channels_enabled"`
+
+	// OpenAI fast/flex policy
+	OpenAIFastPolicySettings *OpenAIFastPolicySettings `json:"openai_fast_policy_settings,omitempty"`
 }
 
 type DefaultSubscriptionSetting struct {
@@ -299,6 +290,22 @@ type BetaPolicyRule struct {
 // BetaPolicySettings Beta 策略配置 DTO
 type BetaPolicySettings struct {
 	Rules []BetaPolicyRule `json:"rules"`
+}
+
+// OpenAIFastPolicyRule OpenAI fast/flex 策略规则 DTO
+type OpenAIFastPolicyRule struct {
+	ServiceTier          string   `json:"service_tier"`
+	Action               string   `json:"action"`
+	Scope                string   `json:"scope"`
+	ErrorMessage         string   `json:"error_message,omitempty"`
+	ModelWhitelist       []string `json:"model_whitelist,omitempty"`
+	FallbackAction       string   `json:"fallback_action,omitempty"`
+	FallbackErrorMessage string   `json:"fallback_error_message,omitempty"`
+}
+
+// OpenAIFastPolicySettings OpenAI fast 策略配置 DTO
+type OpenAIFastPolicySettings struct {
+	Rules []OpenAIFastPolicyRule `json:"rules"`
 }
 
 // ParseCustomMenuItems parses a JSON string into a slice of CustomMenuItem.

@@ -38,8 +38,8 @@
             <div v-for="(step, i) in row.model_mapping_chain.split('→')" :key="i"
                  class="break-all"
                  :class="i === 0 ? 'font-medium text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'"
-                 :style="i > 0 ? `padding-left: ${i * 0.75}rem` : ''">
-              <span v-if="i > 0" class="mr-0.5">↳</span>{{ step }}
+                 :style="modelMappingStepStyle(i)">
+              <span v-if="isNestedModelMappingStep(i)" class="mr-0.5">↳</span>{{ step }}
             </div>
           </div>
           <div v-else-if="row.upstream_model && row.upstream_model !== row.model" class="space-y-0.5 text-xs">
@@ -386,6 +386,13 @@ defineEmits<{
   sort: [key: string, order: 'asc' | 'desc']
 }>()
 const { t } = useI18n()
+
+const modelMappingStepStyle = (index: string | number): string => {
+  const depth = Number(index)
+  return depth > 0 ? `padding-left: ${depth * 0.75}rem` : ''
+}
+
+const isNestedModelMappingStep = (index: string | number): boolean => Number(index) > 0
 
 // Tooltip state - cost
 const tooltipVisible = ref(false)

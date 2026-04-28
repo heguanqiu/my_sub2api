@@ -649,18 +649,16 @@ async function handleSubmitInvitation() {
 
   isSubmitting.value = true
   try {
+    const decision = currentAdoptionDecision()
     const completion: PendingOidcCompletion = legacyPendingOAuthToken.value
       ? (
           await apiClient.post<PendingOidcCompletion>('/auth/oauth/oidc/complete-registration', {
             pending_oauth_token: legacyPendingOAuthToken.value,
             invitation_code: invitationCode.value.trim(),
-            ...serializeAdoptionDecision(currentAdoptionDecision())
+            ...serializeAdoptionDecision(decision)
           })
         ).data
-      : await completeOIDCOAuthRegistration(
-          invitationCode.value.trim(),
-          currentAdoptionDecision()
-        )
+      : await completeOIDCOAuthRegistration(invitationCode.value.trim(), decision)
     await finalizePendingAccountResponse(completion)
   } catch (e: unknown) {
     const err = e as { message?: string; response?: { data?: { message?: string } } }

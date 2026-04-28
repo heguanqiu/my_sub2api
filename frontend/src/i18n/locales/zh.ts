@@ -350,6 +350,7 @@ export default {
     users: '用户管理',
     groups: '分组管理',
     channels: '渠道管理',
+    modelMarketplace: '模型广场',
     availableChannels: '可用渠道',
     subscriptions: '订阅管理',
     accounts: '账号管理',
@@ -370,7 +371,6 @@ export default {
     docs: '文档',
     myOrders: '充值记录',
     referral: '邀请中心',
-    invoices: '开票',
     salesDashboard: '销售概览',
     salesCustomers: '销售客户',
     salesReferral: '专属邀请',
@@ -983,6 +983,48 @@ export default {
     }
   },
 
+  modelMarketplace: {
+    title: '模型广场',
+    description: '按厂商与分组查看可访问模型及收费标准',
+    searchPlaceholder: '搜索厂商、分组、平台或模型...',
+    empty: '暂无可用模型',
+    noModels: '未配置模型',
+    noPricing: '未配置定价',
+    exclusive: '专属',
+    public: '公开',
+    effectiveRate: '实际倍率',
+    groupCount: '{count} 个分组',
+    columns: {
+      model: '模型',
+      billingMode: '计费',
+      inputOutput: '输入 / 输出',
+      cache: '缓存',
+      extra: '额外',
+      tiers: '阶梯'
+    },
+    short: {
+      input: '入',
+      output: '出',
+      write: '写',
+      read: '读'
+    },
+    pricing: {
+      billingMode: '计费模式',
+      billingModeToken: '按 Token',
+      billingModePerRequest: '按次',
+      billingModeImage: '按图片',
+      inputPrice: '输入',
+      outputPrice: '输出',
+      cacheWritePrice: '缓存写入',
+      cacheReadPrice: '缓存读取',
+      imageOutputPrice: '图片输出',
+      perRequestPrice: '每次请求',
+      intervals: '阶梯定价',
+      unitPerMillion: '/ 1M token',
+      unitPerRequest: '/ 次'
+    }
+  },
+
   // Redeem
   redeem: {
     title: '兑换码',
@@ -1219,49 +1261,13 @@ export default {
     }
   },
 
-  invoice: {
-    title: '开票管理',
-    description: '管理发票资料，并对已完成订单发起开票申请。',
-    profiles: '发票资料',
-    records: '开票记录',
-    provider: '服务商',
-    requestInvoice: '申请开票',
-    requestableOrders: '可申请开票订单',
-    invoiceStatus: '开票状态',
-    setDefault: '设为默认',
-    profileTitle: '抬头',
-    profileRequired: '请先创建发票资料',
-    taxNo: '税号',
-    phone: '电话',
-    address: '地址',
-    bankName: '开户行',
-    bankAccount: '银行账号',
-    providers: {
-      baiwang: '百望云'
-    },
-    statuses: {
-      not_requested: '未申请',
-      requested: '已申请',
-      processing: '处理中',
-      issued: '已开票',
-      failed: '失败',
-      voided: '已作废'
-    },
-    profileTypes: {
-      personal_electronic: '个人电子发票',
-      enterprise_electronic: '企业电子发票'
-    }
-  },
-
   sales: {
     totalCustomers: '客户总数',
     totalOrders: '订单总数',
     completedOrders: '已完成订单',
-    totalInvoices: '开票记录',
     totalOrderAmount: '累计充值金额',
     completedOrderAmount: '完成金额',
     orders: '订单',
-    invoices: '开票',
     referralTitle: '销售专属邀请注册链接',
     referralDescription: '在这里管理销售专属邀请注册链接。请直接分享后端返回的注册链接，客户通过该链接注册后会自动归属到当前销售名下。',
     exclusiveRegisterLink: '专属邀请注册链接',
@@ -5290,25 +5296,6 @@ export default {
         integrationDoc: '支付集成文档',
         integrationDocHint: '包含接口说明、幂等语义及示例代码'
       },
-      invoice: {
-        sectionTitle: '开票设置',
-        sectionDescription: '配置百望云开票集成；本地联调时可将 Base URL 设为 `mock`。',
-        invoiceEnabled: '启用开票功能',
-        invoiceEnabledHint: '开启后，用户可以对已完成订单发起开票申请。',
-        baiwangEnabled: '启用百望云提交',
-        baiwangEnabledHint: '开启后，系统会执行百望云提交流程与失败重试。',
-        provider: '开票服务商',
-        baiwangBaseURL: '百望云 Base URL',
-        appKey: 'App Key',
-        appSecret: 'App Secret',
-        appSecretPlaceholder: '留空则保持当前密钥',
-        taxpayerID: '纳税人识别号',
-        sellerName: '销方名称',
-        defaultGoodsName: '默认商品名称',
-        retryLimit: '重试上限',
-        autoRetry: '自动重试',
-        autoRetryHint: '自动重试失败的开票任务。'
-      },
       soraClient: {
         title: 'Sora 客户端',
         description: '控制是否在侧边栏展示 Sora 客户端入口',
@@ -5746,6 +5733,38 @@ export default {
         presetOpusOnly: '仅 Opus 允许 1M',
         presetOpusOnlyDesc: 'Opus 透传，其他模型过滤',
         commonPatterns: '常用模式'
+      },
+      openaiFastPolicy: {
+        title: 'OpenAI Fast/Flex 策略',
+        description: '基于请求体 service_tier 字段拦截/过滤/透传 OpenAI fast(priority) 与 flex 请求；仅作用于 OpenAI 网关。',
+        empty: '尚未配置任何规则。点击下方按钮新增。',
+        ruleHeader: '规则 #{index}',
+        removeRule: '删除规则',
+        addRule: '新增规则',
+        saveHint: '保存时随系统设置一起提交（点击页面底部「保存」按钮）。',
+        serviceTier: 'service_tier 匹配',
+        tierAll: '全部 tier',
+        tierPriority: 'priority（fast）',
+        tierFlex: 'flex',
+        action: '处理方式',
+        actionPass: '透传（保留 service_tier）',
+        actionFilter: '过滤（移除 service_tier）',
+        actionBlock: '拦截（拒绝请求）',
+        scope: '生效范围',
+        scopeAll: '全部账号',
+        scopeOAuth: '仅 OAuth 账号',
+        scopeAPIKey: '仅 API Key 账号',
+        scopeBedrock: '仅 Bedrock 账号',
+        errorMessage: '错误消息',
+        errorMessagePlaceholder: '拦截时返回的自定义错误消息',
+        errorMessageHint: '留空则使用默认错误消息。',
+        modelWhitelist: '模型白名单',
+        modelWhitelistHint: '留空表示对所有模型生效；支持精确匹配与通配符（如 gpt-5.5*）。',
+        modelPatternPlaceholder: '例如: gpt-5.5 或 gpt-5.5*',
+        addModelPattern: '添加模型规则',
+        fallbackAction: '未匹配模型处理方式',
+        fallbackActionHint: '当请求模型不在白名单中时的处理方式。',
+        fallbackErrorMessagePlaceholder: '未匹配模型被拦截时返回的自定义错误消息'
       },
       wechatConnect: {
         title: '微信登录',

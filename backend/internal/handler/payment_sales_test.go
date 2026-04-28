@@ -25,7 +25,7 @@ import (
 func TestSalesCustomerResponsesUseFrontendJSONShape(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	client, rawDB := newPaymentInvoiceSalesHandlerTestClient(t)
+	client, rawDB := newPaymentSalesHandlerTestClient(t)
 	userRepo := repository.NewUserRepository(client, rawDB)
 	paymentSvc := service.NewPaymentService(client, nil, nil, nil, nil, nil, userRepo, nil)
 	handler := NewPaymentHandler(paymentSvc, nil, nil)
@@ -90,10 +90,10 @@ func TestSalesCustomerResponsesUseFrontendJSONShape(t *testing.T) {
 	require.NotContains(t, detailResp.Data, "Email")
 }
 
-func newPaymentInvoiceSalesHandlerTestClient(t *testing.T) (*dbent.Client, *sql.DB) {
+func newPaymentSalesHandlerTestClient(t *testing.T) (*dbent.Client, *sql.DB) {
 	t.Helper()
 
-	db, err := sql.Open("sqlite", "file:payment_invoice_sales_handler?mode=memory&cache=shared&_fk=1")
+	db, err := sql.Open("sqlite", "file:payment_sales_handler?mode=memory&cache=shared&_fk=1")
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = db.Close() })
 

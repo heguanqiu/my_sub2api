@@ -1,7 +1,7 @@
 <template>
   <AppLayout>
     <div class="space-y-4">
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div class="card p-6" v-for="item in cards" :key="item.label">
           <p class="text-sm text-gray-500">{{ item.label }}</p>
           <p class="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">{{ item.value }}</p>
@@ -53,7 +53,6 @@ const cards = computed(() => [
   { label: t('sales.totalCustomers'), value: stats.value?.total_customers ?? 0 },
   { label: t('sales.totalOrders'), value: stats.value?.total_orders ?? 0 },
   { label: t('sales.completedOrders'), value: stats.value?.completed_orders ?? 0 },
-  { label: t('sales.totalInvoices'), value: stats.value?.total_invoice_records ?? 0 },
   {
     label: t('sales.totalOrderAmount'),
     value: `¥${(stats.value?.total_order_amount ?? 0).toFixed(2)}`

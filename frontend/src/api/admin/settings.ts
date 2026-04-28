@@ -474,17 +474,6 @@ export interface SystemSettings {
   balance_low_notify_recharge_url: string;
   account_quota_notify_enabled: boolean;
   account_quota_notify_emails: NotifyEmailEntry[];
-  invoice_enabled: boolean;
-  invoice_provider: string;
-  invoice_baiwang_enabled: boolean;
-  invoice_baiwang_base_url: string;
-  invoice_baiwang_app_key: string;
-  invoice_baiwang_app_secret_configured: boolean;
-  invoice_baiwang_taxpayer_id: string;
-  invoice_baiwang_seller_name: string;
-  invoice_baiwang_default_goods_name: string;
-  invoice_auto_retry_enabled: boolean;
-  invoice_retry_limit: number;
 
   // Channel Monitor feature switch
   channel_monitor_enabled: boolean;
@@ -492,6 +481,9 @@ export interface SystemSettings {
 
   // Available Channels feature switch
   available_channels_enabled: boolean;
+
+  // OpenAI fast/flex policy
+  openai_fast_policy_settings?: OpenAIFastPolicySettings;
 }
 
 export interface UpdateSettingsRequest {
@@ -646,17 +638,6 @@ export interface UpdateSettingsRequest {
   balance_low_notify_recharge_url?: string;
   account_quota_notify_enabled?: boolean;
   account_quota_notify_emails?: NotifyEmailEntry[];
-  invoice_enabled?: boolean;
-  invoice_provider?: string;
-  invoice_baiwang_enabled?: boolean;
-  invoice_baiwang_base_url?: string;
-  invoice_baiwang_app_key?: string;
-  invoice_baiwang_app_secret?: string;
-  invoice_baiwang_taxpayer_id?: string;
-  invoice_baiwang_seller_name?: string;
-  invoice_baiwang_default_goods_name?: string;
-  invoice_auto_retry_enabled?: boolean;
-  invoice_retry_limit?: number;
 
   // Channel Monitor feature switch
   channel_monitor_enabled?: boolean;
@@ -664,6 +645,9 @@ export interface UpdateSettingsRequest {
 
   // Available Channels feature switch
   available_channels_enabled?: boolean;
+
+  // OpenAI fast/flex policy
+  openai_fast_policy_settings?: OpenAIFastPolicySettings;
 }
 
 /**
@@ -889,6 +873,29 @@ export async function updateRectifierSettings(
     settings,
   );
   return data;
+}
+
+// ==================== OpenAI Fast Policy Settings ====================
+
+/**
+ * OpenAI fast/flex policy rule interface.
+ * Matches backend dto.OpenAIFastPolicyRule.
+ */
+export interface OpenAIFastPolicyRule {
+  service_tier: "all" | "priority" | "flex";
+  action: "pass" | "filter" | "block";
+  scope: "all" | "oauth" | "apikey" | "bedrock";
+  error_message?: string;
+  model_whitelist?: string[];
+  fallback_action?: "pass" | "filter" | "block";
+  fallback_error_message?: string;
+}
+
+/**
+ * OpenAI fast/flex policy settings interface.
+ */
+export interface OpenAIFastPolicySettings {
+  rules: OpenAIFastPolicyRule[];
 }
 
 // ==================== Beta Policy Settings ====================

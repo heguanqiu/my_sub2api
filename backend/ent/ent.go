@@ -29,9 +29,6 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/identityadoptiondecision"
 	"github.com/Wei-Shaw/sub2api/ent/invitelink"
 	"github.com/Wei-Shaw/sub2api/ent/inviterewardledger"
-	"github.com/Wei-Shaw/sub2api/ent/invoicedocument"
-	"github.com/Wei-Shaw/sub2api/ent/invoiceprofile"
-	"github.com/Wei-Shaw/sub2api/ent/invoicerequest"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/paymentproviderinstance"
@@ -128,9 +125,6 @@ func checkColumn(t, c string) error {
 			identityadoptiondecision.Table:      identityadoptiondecision.ValidColumn,
 			invitelink.Table:                    invitelink.ValidColumn,
 			inviterewardledger.Table:            inviterewardledger.ValidColumn,
-			invoicedocument.Table:               invoicedocument.ValidColumn,
-			invoiceprofile.Table:                invoiceprofile.ValidColumn,
-			invoicerequest.Table:                invoicerequest.ValidColumn,
 			paymentauditlog.Table:               paymentauditlog.ValidColumn,
 			paymentorder.Table:                  paymentorder.ValidColumn,
 			paymentproviderinstance.Table:       paymentproviderinstance.ValidColumn,

@@ -217,17 +217,6 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		BalanceLowNotifyRechargeURL:            settings.BalanceLowNotifyRechargeURL,
 		AccountQuotaNotifyEnabled:              settings.AccountQuotaNotifyEnabled,
 		AccountQuotaNotifyEmails:               dto.NotifyEmailEntriesFromService(settings.AccountQuotaNotifyEmails),
-		InvoiceEnabled:                         settings.InvoiceEnabled,
-		InvoiceProvider:                        settings.InvoiceProvider,
-		InvoiceBaiwangEnabled:                  settings.InvoiceBaiwangEnabled,
-		InvoiceBaiwangBaseURL:                  settings.InvoiceBaiwangBaseURL,
-		InvoiceBaiwangAppKey:                   settings.InvoiceBaiwangAppKey,
-		InvoiceBaiwangAppSecretConfigured:      settings.InvoiceBaiwangAppSecretConfigured,
-		InvoiceBaiwangTaxpayerID:               settings.InvoiceBaiwangTaxpayerID,
-		InvoiceBaiwangSellerName:               settings.InvoiceBaiwangSellerName,
-		InvoiceBaiwangDefaultGoodsName:         settings.InvoiceBaiwangDefaultGoodsName,
-		InvoiceAutoRetryEnabled:                settings.InvoiceAutoRetryEnabled,
-		InvoiceRetryLimit:                      settings.InvoiceRetryLimit,
 		PaymentEnabled:                         paymentCfg.Enabled,
 		PaymentMinAmount:                       paymentCfg.MinAmount,
 		PaymentMaxAmount:                       paymentCfg.MaxAmount,
@@ -257,7 +246,49 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 
 		AvailableChannelsEnabled: settings.AvailableChannelsEnabled,
 	}
+
+	// OpenAI fast policy (stored under a dedicated setting key)
+	if fastPolicy, err := h.settingService.GetOpenAIFastPolicySettings(c.Request.Context()); err != nil {
+		slog.Error("openai_fast_policy_settings_get_failed", "error", err)
+	} else if fastPolicy != nil {
+		payload.OpenAIFastPolicySettings = openaiFastPolicySettingsToDTO(fastPolicy)
+	}
+
 	response.Success(c, systemSettingsResponseData(payload, authSourceDefaults))
+}
+
+// openaiFastPolicySettingsToDTO converts service -> dto for OpenAI fast policy.
+func openaiFastPolicySettingsToDTO(s *service.OpenAIFastPolicySettings) *dto.OpenAIFastPolicySettings {
+	if s == nil {
+		return nil
+	}
+	rules := make([]dto.OpenAIFastPolicyRule, len(s.Rules))
+	for i, r := range s.Rules {
+		rules[i] = dto.OpenAIFastPolicyRule(r)
+	}
+	return &dto.OpenAIFastPolicySettings{Rules: rules}
+}
+
+// openaiFastPolicySettingsFromDTO converts dto -> service for OpenAI fast policy.
+//
+// 规范化 ServiceTier：在 DTO 进入 service 层之前统一把空字符串归一为
+// service.OpenAIFastTierAny ("all")，避免管理员保存时空串与 "all" 同时
+// 表达"匹配任意 tier"造成数据库取值的二义性。其它非空值原样透传，由
+// service.SetOpenAIFastPolicySettings 负责合法值校验。
+func openaiFastPolicySettingsFromDTO(s *dto.OpenAIFastPolicySettings) *service.OpenAIFastPolicySettings {
+	if s == nil {
+		return nil
+	}
+	rules := make([]service.OpenAIFastPolicyRule, len(s.Rules))
+	for i, r := range s.Rules {
+		rules[i] = service.OpenAIFastPolicyRule(r)
+		tier := strings.ToLower(strings.TrimSpace(rules[i].ServiceTier))
+		if tier == "" {
+			tier = service.OpenAIFastTierAny
+		}
+		rules[i].ServiceTier = tier
+	}
+	return &service.OpenAIFastPolicySettings{Rules: rules}
 }
 
 // UpdateSettingsRequest 更新设置请求
@@ -419,22 +450,11 @@ type UpdateSettingsRequest struct {
 	OpenAIAdvancedSchedulerEnabled *bool `json:"openai_advanced_scheduler_enabled"`
 
 	// Balance low notification
-	BalanceLowNotifyEnabled        *bool                   `json:"balance_low_notify_enabled"`
-	BalanceLowNotifyThreshold      *float64                `json:"balance_low_notify_threshold"`
-	BalanceLowNotifyRechargeURL    *string                 `json:"balance_low_notify_recharge_url"`
-	AccountQuotaNotifyEnabled      *bool                   `json:"account_quota_notify_enabled"`
-	AccountQuotaNotifyEmails       *[]dto.NotifyEmailEntry `json:"account_quota_notify_emails"`
-	InvoiceEnabled                 *bool                   `json:"invoice_enabled"`
-	InvoiceProvider                *string                 `json:"invoice_provider"`
-	InvoiceBaiwangEnabled          *bool                   `json:"invoice_baiwang_enabled"`
-	InvoiceBaiwangBaseURL          *string                 `json:"invoice_baiwang_base_url"`
-	InvoiceBaiwangAppKey           *string                 `json:"invoice_baiwang_app_key"`
-	InvoiceBaiwangAppSecret        string                  `json:"invoice_baiwang_app_secret"`
-	InvoiceBaiwangTaxpayerID       *string                 `json:"invoice_baiwang_taxpayer_id"`
-	InvoiceBaiwangSellerName       *string                 `json:"invoice_baiwang_seller_name"`
-	InvoiceBaiwangDefaultGoodsName *string                 `json:"invoice_baiwang_default_goods_name"`
-	InvoiceAutoRetryEnabled        *bool                   `json:"invoice_auto_retry_enabled"`
-	InvoiceRetryLimit              *int                    `json:"invoice_retry_limit"`
+	BalanceLowNotifyEnabled     *bool                   `json:"balance_low_notify_enabled"`
+	BalanceLowNotifyThreshold   *float64                `json:"balance_low_notify_threshold"`
+	BalanceLowNotifyRechargeURL *string                 `json:"balance_low_notify_recharge_url"`
+	AccountQuotaNotifyEnabled   *bool                   `json:"account_quota_notify_enabled"`
+	AccountQuotaNotifyEmails    *[]dto.NotifyEmailEntry `json:"account_quota_notify_emails"`
 
 	// Payment configuration (integrated into settings, full replace)
 	PaymentEnabled                   *bool    `json:"payment_enabled"`
@@ -469,6 +489,9 @@ type UpdateSettingsRequest struct {
 
 	// Available Channels feature switch (user-facing)
 	AvailableChannelsEnabled *bool `json:"available_channels_enabled"`
+
+	// OpenAI fast/flex policy (optional, only updated when provided)
+	OpenAIFastPolicySettings *dto.OpenAIFastPolicySettings `json:"openai_fast_policy_settings,omitempty"`
 }
 
 // UpdateSettings 更新系统设置
@@ -1283,72 +1306,6 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			}
 			return previousSettings.AvailableChannelsEnabled
 		}(),
-		InvoiceEnabled: func() bool {
-			if req.InvoiceEnabled != nil {
-				return *req.InvoiceEnabled
-			}
-			return previousSettings.InvoiceEnabled
-		}(),
-		InvoiceProvider: func() string {
-			if req.InvoiceProvider != nil {
-				return *req.InvoiceProvider
-			}
-			return previousSettings.InvoiceProvider
-		}(),
-		InvoiceBaiwangEnabled: func() bool {
-			if req.InvoiceBaiwangEnabled != nil {
-				return *req.InvoiceBaiwangEnabled
-			}
-			return previousSettings.InvoiceBaiwangEnabled
-		}(),
-		InvoiceBaiwangBaseURL: func() string {
-			if req.InvoiceBaiwangBaseURL != nil {
-				return *req.InvoiceBaiwangBaseURL
-			}
-			return previousSettings.InvoiceBaiwangBaseURL
-		}(),
-		InvoiceBaiwangAppKey: func() string {
-			if req.InvoiceBaiwangAppKey != nil {
-				return *req.InvoiceBaiwangAppKey
-			}
-			return previousSettings.InvoiceBaiwangAppKey
-		}(),
-		InvoiceBaiwangAppSecret: func() string {
-			if req.InvoiceBaiwangAppSecret != "" {
-				return req.InvoiceBaiwangAppSecret
-			}
-			return previousSettings.InvoiceBaiwangAppSecret
-		}(),
-		InvoiceBaiwangTaxpayerID: func() string {
-			if req.InvoiceBaiwangTaxpayerID != nil {
-				return *req.InvoiceBaiwangTaxpayerID
-			}
-			return previousSettings.InvoiceBaiwangTaxpayerID
-		}(),
-		InvoiceBaiwangSellerName: func() string {
-			if req.InvoiceBaiwangSellerName != nil {
-				return *req.InvoiceBaiwangSellerName
-			}
-			return previousSettings.InvoiceBaiwangSellerName
-		}(),
-		InvoiceBaiwangDefaultGoodsName: func() string {
-			if req.InvoiceBaiwangDefaultGoodsName != nil {
-				return *req.InvoiceBaiwangDefaultGoodsName
-			}
-			return previousSettings.InvoiceBaiwangDefaultGoodsName
-		}(),
-		InvoiceAutoRetryEnabled: func() bool {
-			if req.InvoiceAutoRetryEnabled != nil {
-				return *req.InvoiceAutoRetryEnabled
-			}
-			return previousSettings.InvoiceAutoRetryEnabled
-		}(),
-		InvoiceRetryLimit: func() int {
-			if req.InvoiceRetryLimit != nil {
-				return *req.InvoiceRetryLimit
-			}
-			return previousSettings.InvoiceRetryLimit
-		}(),
 	}
 
 	authSourceDefaults := &service.AuthSourceDefaultSettings{
@@ -1385,6 +1342,14 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 	if err := h.settingService.UpdateSettingsWithAuthSourceDefaults(c.Request.Context(), settings, authSourceDefaults); err != nil {
 		response.ErrorFrom(c, err)
 		return
+	}
+
+	// Update OpenAI fast policy (stored under dedicated key, only when provided).
+	if req.OpenAIFastPolicySettings != nil {
+		if err := h.settingService.SetOpenAIFastPolicySettings(c.Request.Context(), openaiFastPolicySettingsFromDTO(req.OpenAIFastPolicySettings)); err != nil {
+			response.BadRequest(c, err.Error())
+			return
+		}
 	}
 
 	// Update payment configuration (integrated into system settings).
@@ -1564,17 +1529,6 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		BalanceLowNotifyRechargeURL:            updatedSettings.BalanceLowNotifyRechargeURL,
 		AccountQuotaNotifyEnabled:              updatedSettings.AccountQuotaNotifyEnabled,
 		AccountQuotaNotifyEmails:               dto.NotifyEmailEntriesFromService(updatedSettings.AccountQuotaNotifyEmails),
-		InvoiceEnabled:                         updatedSettings.InvoiceEnabled,
-		InvoiceProvider:                        updatedSettings.InvoiceProvider,
-		InvoiceBaiwangEnabled:                  updatedSettings.InvoiceBaiwangEnabled,
-		InvoiceBaiwangBaseURL:                  updatedSettings.InvoiceBaiwangBaseURL,
-		InvoiceBaiwangAppKey:                   updatedSettings.InvoiceBaiwangAppKey,
-		InvoiceBaiwangAppSecretConfigured:      updatedSettings.InvoiceBaiwangAppSecretConfigured,
-		InvoiceBaiwangTaxpayerID:               updatedSettings.InvoiceBaiwangTaxpayerID,
-		InvoiceBaiwangSellerName:               updatedSettings.InvoiceBaiwangSellerName,
-		InvoiceBaiwangDefaultGoodsName:         updatedSettings.InvoiceBaiwangDefaultGoodsName,
-		InvoiceAutoRetryEnabled:                updatedSettings.InvoiceAutoRetryEnabled,
-		InvoiceRetryLimit:                      updatedSettings.InvoiceRetryLimit,
 		PaymentEnabled:                         updatedPaymentCfg.Enabled,
 		PaymentMinAmount:                       updatedPaymentCfg.MinAmount,
 		PaymentMaxAmount:                       updatedPaymentCfg.MaxAmount,
@@ -1603,6 +1557,11 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		ChannelMonitorDefaultIntervalSeconds: updatedSettings.ChannelMonitorDefaultIntervalSeconds,
 
 		AvailableChannelsEnabled: updatedSettings.AvailableChannelsEnabled,
+	}
+	if fastPolicy, err := h.settingService.GetOpenAIFastPolicySettings(c.Request.Context()); err != nil {
+		slog.Error("openai_fast_policy_settings_get_failed", "error", err)
+	} else if fastPolicy != nil {
+		payload.OpenAIFastPolicySettings = openaiFastPolicySettingsToDTO(fastPolicy)
 	}
 	response.Success(c, systemSettingsResponseData(payload, updatedAuthSourceDefaults))
 }

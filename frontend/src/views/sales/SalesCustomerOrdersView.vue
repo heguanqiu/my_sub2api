@@ -41,16 +41,7 @@
         </div>
       </div>
 
-      <OrderTable :orders="orders" :loading="loading">
-        <template #actions>
-          <button
-            class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium text-primary-600 transition-colors hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/20"
-            @click="router.push(`/sales/customers/${customerId}/invoices`)"
-          >
-            {{ t('sales.invoices') }}
-          </button>
-        </template>
-      </OrderTable>
+      <OrderTable :orders="orders" :loading="loading" />
 
       <Pagination
         v-if="pagination.total > 0"

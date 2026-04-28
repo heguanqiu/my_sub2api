@@ -1233,19 +1233,6 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeyBalanceLowNotifyRechargeURL] = settings.BalanceLowNotifyRechargeURL
 	updates[SettingKeyAccountQuotaNotifyEnabled] = strconv.FormatBool(settings.AccountQuotaNotifyEnabled)
 	updates[SettingKeyAccountQuotaNotifyEmails] = MarshalNotifyEmails(settings.AccountQuotaNotifyEmails)
-	updates[SettingKeyInvoiceEnabled] = strconv.FormatBool(settings.InvoiceEnabled)
-	updates[SettingKeyInvoiceProvider] = settings.InvoiceProvider
-	updates[SettingKeyInvoiceBaiwangEnabled] = strconv.FormatBool(settings.InvoiceBaiwangEnabled)
-	updates[SettingKeyInvoiceBaiwangBaseURL] = settings.InvoiceBaiwangBaseURL
-	updates[SettingKeyInvoiceBaiwangAppKey] = settings.InvoiceBaiwangAppKey
-	if settings.InvoiceBaiwangAppSecret != "" {
-		updates[SettingKeyInvoiceBaiwangAppSecret] = settings.InvoiceBaiwangAppSecret
-	}
-	updates[SettingKeyInvoiceBaiwangTaxpayerID] = settings.InvoiceBaiwangTaxpayerID
-	updates[SettingKeyInvoiceBaiwangSellerName] = settings.InvoiceBaiwangSellerName
-	updates[SettingKeyInvoiceBaiwangDefaultGoodsName] = settings.InvoiceBaiwangDefaultGoodsName
-	updates[SettingKeyInvoiceAutoRetryEnabled] = strconv.FormatBool(settings.InvoiceAutoRetryEnabled)
-	updates[SettingKeyInvoiceRetryLimit] = strconv.Itoa(settings.InvoiceRetryLimit)
 
 	return updates, nil
 }
@@ -1805,47 +1792,36 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 func (s *SettingService) parseSettings(settings map[string]string) *SystemSettings {
 	emailVerifyEnabled := settings[SettingKeyEmailVerifyEnabled] == "true"
 	result := &SystemSettings{
-		RegistrationEnabled:               settings[SettingKeyRegistrationEnabled] == "true",
-		EmailVerifyEnabled:                emailVerifyEnabled,
-		RegistrationEmailSuffixWhitelist:  ParseRegistrationEmailSuffixWhitelist(settings[SettingKeyRegistrationEmailSuffixWhitelist]),
-		PromoCodeEnabled:                  settings[SettingKeyPromoCodeEnabled] != "false", // 默认启用
-		PasswordResetEnabled:              emailVerifyEnabled && settings[SettingKeyPasswordResetEnabled] == "true",
-		FrontendURL:                       settings[SettingKeyFrontendURL],
-		InvitationCodeEnabled:             settings[SettingKeyInvitationCodeEnabled] == "true",
-		TotpEnabled:                       settings[SettingKeyTotpEnabled] == "true",
-		SMTPHost:                          settings[SettingKeySMTPHost],
-		SMTPUsername:                      settings[SettingKeySMTPUsername],
-		SMTPFrom:                          settings[SettingKeySMTPFrom],
-		SMTPFromName:                      settings[SettingKeySMTPFromName],
-		SMTPUseTLS:                        settings[SettingKeySMTPUseTLS] == "true",
-		SMTPPasswordConfigured:            settings[SettingKeySMTPPassword] != "",
-		TurnstileEnabled:                  settings[SettingKeyTurnstileEnabled] == "true",
-		TurnstileSiteKey:                  settings[SettingKeyTurnstileSiteKey],
-		TurnstileSecretKeyConfigured:      settings[SettingKeyTurnstileSecretKey] != "",
-		SiteName:                          s.getStringOrDefault(settings, SettingKeySiteName, "Sub2API"),
-		SiteLogo:                          settings[SettingKeySiteLogo],
-		SiteSubtitle:                      s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
-		APIBaseURL:                        settings[SettingKeyAPIBaseURL],
-		ContactInfo:                       settings[SettingKeyContactInfo],
-		DocURL:                            settings[SettingKeyDocURL],
-		HomeContent:                       settings[SettingKeyHomeContent],
-		HideCcsImportButton:               settings[SettingKeyHideCcsImportButton] == "true",
-		PurchaseSubscriptionEnabled:       settings[SettingKeyPurchaseSubscriptionEnabled] == "true",
-		PurchaseSubscriptionURL:           strings.TrimSpace(settings[SettingKeyPurchaseSubscriptionURL]),
-		CustomMenuItems:                   settings[SettingKeyCustomMenuItems],
-		CustomEndpoints:                   settings[SettingKeyCustomEndpoints],
-		BackendModeEnabled:                settings[SettingKeyBackendModeEnabled] == "true",
-		InvoiceEnabled:                    settings[SettingKeyInvoiceEnabled] == "true",
-		InvoiceProvider:                   s.getStringOrDefault(settings, SettingKeyInvoiceProvider, InvoiceProviderBaiwang),
-		InvoiceBaiwangEnabled:             settings[SettingKeyInvoiceBaiwangEnabled] == "true",
-		InvoiceBaiwangBaseURL:             settings[SettingKeyInvoiceBaiwangBaseURL],
-		InvoiceBaiwangAppKey:              settings[SettingKeyInvoiceBaiwangAppKey],
-		InvoiceBaiwangAppSecret:           settings[SettingKeyInvoiceBaiwangAppSecret],
-		InvoiceBaiwangAppSecretConfigured: settings[SettingKeyInvoiceBaiwangAppSecret] != "",
-		InvoiceBaiwangTaxpayerID:          settings[SettingKeyInvoiceBaiwangTaxpayerID],
-		InvoiceBaiwangSellerName:          settings[SettingKeyInvoiceBaiwangSellerName],
-		InvoiceBaiwangDefaultGoodsName:    settings[SettingKeyInvoiceBaiwangDefaultGoodsName],
-		InvoiceAutoRetryEnabled:           settings[SettingKeyInvoiceAutoRetryEnabled] == "true",
+		RegistrationEnabled:              settings[SettingKeyRegistrationEnabled] == "true",
+		EmailVerifyEnabled:               emailVerifyEnabled,
+		RegistrationEmailSuffixWhitelist: ParseRegistrationEmailSuffixWhitelist(settings[SettingKeyRegistrationEmailSuffixWhitelist]),
+		PromoCodeEnabled:                 settings[SettingKeyPromoCodeEnabled] != "false", // 默认启用
+		PasswordResetEnabled:             emailVerifyEnabled && settings[SettingKeyPasswordResetEnabled] == "true",
+		FrontendURL:                      settings[SettingKeyFrontendURL],
+		InvitationCodeEnabled:            settings[SettingKeyInvitationCodeEnabled] == "true",
+		TotpEnabled:                      settings[SettingKeyTotpEnabled] == "true",
+		SMTPHost:                         settings[SettingKeySMTPHost],
+		SMTPUsername:                     settings[SettingKeySMTPUsername],
+		SMTPFrom:                         settings[SettingKeySMTPFrom],
+		SMTPFromName:                     settings[SettingKeySMTPFromName],
+		SMTPUseTLS:                       settings[SettingKeySMTPUseTLS] == "true",
+		SMTPPasswordConfigured:           settings[SettingKeySMTPPassword] != "",
+		TurnstileEnabled:                 settings[SettingKeyTurnstileEnabled] == "true",
+		TurnstileSiteKey:                 settings[SettingKeyTurnstileSiteKey],
+		TurnstileSecretKeyConfigured:     settings[SettingKeyTurnstileSecretKey] != "",
+		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, "Sub2API"),
+		SiteLogo:                         settings[SettingKeySiteLogo],
+		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
+		APIBaseURL:                       settings[SettingKeyAPIBaseURL],
+		ContactInfo:                      settings[SettingKeyContactInfo],
+		DocURL:                           settings[SettingKeyDocURL],
+		HomeContent:                      settings[SettingKeyHomeContent],
+		HideCcsImportButton:              settings[SettingKeyHideCcsImportButton] == "true",
+		PurchaseSubscriptionEnabled:      settings[SettingKeyPurchaseSubscriptionEnabled] == "true",
+		PurchaseSubscriptionURL:          strings.TrimSpace(settings[SettingKeyPurchaseSubscriptionURL]),
+		CustomMenuItems:                  settings[SettingKeyCustomMenuItems],
+		CustomEndpoints:                  settings[SettingKeyCustomEndpoints],
+		BackendModeEnabled:               settings[SettingKeyBackendModeEnabled] == "true",
 	}
 	result.TableDefaultPageSize, result.TablePageSizeOptions = parseTablePreferences(
 		settings[SettingKeyTableDefaultPageSize],
@@ -1863,11 +1839,6 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		result.DefaultConcurrency = concurrency
 	} else {
 		result.DefaultConcurrency = s.cfg.Default.UserConcurrency
-	}
-	if retryLimit, err := strconv.Atoi(settings[SettingKeyInvoiceRetryLimit]); err == nil && retryLimit > 0 {
-		result.InvoiceRetryLimit = retryLimit
-	} else {
-		result.InvoiceRetryLimit = 3
 	}
 
 	if rpm, err := strconv.Atoi(settings[SettingKeyDefaultUserRPMLimit]); err == nil && rpm >= 0 {
@@ -3150,6 +3121,84 @@ func (s *SettingService) SetBetaPolicySettings(ctx context.Context, settings *Be
 	}
 
 	return s.settingRepo.Set(ctx, SettingKeyBetaPolicySettings, string(data))
+}
+
+// GetOpenAIFastPolicySettings 获取 OpenAI fast 策略配置
+func (s *SettingService) GetOpenAIFastPolicySettings(ctx context.Context) (*OpenAIFastPolicySettings, error) {
+	value, err := s.settingRepo.GetValue(ctx, SettingKeyOpenAIFastPolicySettings)
+	if err != nil {
+		if errors.Is(err, ErrSettingNotFound) {
+			return DefaultOpenAIFastPolicySettings(), nil
+		}
+		return nil, fmt.Errorf("get openai fast policy settings: %w", err)
+	}
+	if value == "" {
+		return DefaultOpenAIFastPolicySettings(), nil
+	}
+
+	var settings OpenAIFastPolicySettings
+	if err := json.Unmarshal([]byte(value), &settings); err != nil {
+		// JSON 损坏时静默 fallback 到默认配置会让策略意外失效（管理员配
+		// 置的 block/filter 规则被忽略）。记录 Warn 让运维能在出现异常
+		// 行为时定位到 settings 表里的脏数据。
+		slog.Warn("failed to unmarshal openai fast policy settings, falling back to defaults",
+			"error", err,
+			"key", SettingKeyOpenAIFastPolicySettings)
+		return DefaultOpenAIFastPolicySettings(), nil
+	}
+
+	return &settings, nil
+}
+
+// SetOpenAIFastPolicySettings 设置 OpenAI fast 策略配置
+func (s *SettingService) SetOpenAIFastPolicySettings(ctx context.Context, settings *OpenAIFastPolicySettings) error {
+	if settings == nil {
+		return fmt.Errorf("settings cannot be nil")
+	}
+
+	validActions := map[string]bool{
+		BetaPolicyActionPass: true, BetaPolicyActionFilter: true, BetaPolicyActionBlock: true,
+	}
+	validScopes := map[string]bool{
+		BetaPolicyScopeAll: true, BetaPolicyScopeOAuth: true, BetaPolicyScopeAPIKey: true, BetaPolicyScopeBedrock: true,
+	}
+	validTiers := map[string]bool{
+		OpenAIFastTierAny: true, OpenAIFastTierPriority: true, OpenAIFastTierFlex: true,
+	}
+
+	for i, rule := range settings.Rules {
+		tier := strings.ToLower(strings.TrimSpace(rule.ServiceTier))
+		if tier == "" {
+			tier = OpenAIFastTierAny
+		}
+		if !validTiers[tier] {
+			return fmt.Errorf("rule[%d]: invalid service_tier %q", i, rule.ServiceTier)
+		}
+		settings.Rules[i].ServiceTier = tier
+		if !validActions[rule.Action] {
+			return fmt.Errorf("rule[%d]: invalid action %q", i, rule.Action)
+		}
+		if !validScopes[rule.Scope] {
+			return fmt.Errorf("rule[%d]: invalid scope %q", i, rule.Scope)
+		}
+		for j, pattern := range rule.ModelWhitelist {
+			trimmed := strings.TrimSpace(pattern)
+			if trimmed == "" {
+				return fmt.Errorf("rule[%d]: model_whitelist[%d] cannot be empty", i, j)
+			}
+			settings.Rules[i].ModelWhitelist[j] = trimmed
+		}
+		if rule.FallbackAction != "" && !validActions[rule.FallbackAction] {
+			return fmt.Errorf("rule[%d]: invalid fallback_action %q", i, rule.FallbackAction)
+		}
+	}
+
+	data, err := json.Marshal(settings)
+	if err != nil {
+		return fmt.Errorf("marshal openai fast policy settings: %w", err)
+	}
+
+	return s.settingRepo.Set(ctx, SettingKeyOpenAIFastPolicySettings, string(data))
 }
 
 // SetStreamTimeoutSettings 设置流超时处理配置

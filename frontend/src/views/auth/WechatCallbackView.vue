@@ -861,18 +861,16 @@ async function handleSubmitInvitation() {
 
   isSubmitting.value = true
   try {
+    const decision = currentAdoptionDecision()
     const completion: PendingWeChatCompletion = legacyPendingOAuthToken.value
       ? (
           await apiClient.post<PendingWeChatCompletion>('/auth/oauth/wechat/complete-registration', {
             pending_oauth_token: legacyPendingOAuthToken.value,
             invitation_code: invitationCode.value.trim(),
-            ...serializeAdoptionDecision(currentAdoptionDecision())
+            ...serializeAdoptionDecision(decision)
           })
         ).data
-      : await completeWeChatOAuthRegistration(
-          invitationCode.value.trim(),
-          currentAdoptionDecision()
-        )
+      : await completeWeChatOAuthRegistration(invitationCode.value.trim(), decision)
     await finalizePendingAccountResponse(completion)
   } catch (e: unknown) {
     const err = e as { message?: string; response?: { data?: { message?: string } } }

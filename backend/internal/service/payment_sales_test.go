@@ -19,7 +19,7 @@ import (
 
 func TestSalesViewsUseCurrentCustomerOwnership(t *testing.T) {
 	ctx := context.Background()
-	client, _ := newPaymentInvoiceSalesTestClient(t)
+	client, _ := newPaymentSalesTestClient(t)
 
 	userRepo := &salesViewUserRepoStub{
 		usersByID: map[int64]*User{},
@@ -128,10 +128,10 @@ func TestSalesViewsUseCurrentCustomerOwnership(t *testing.T) {
 	require.Len(t, oldSalesOrders, 0)
 }
 
-func newPaymentInvoiceSalesTestClient(t *testing.T) (*dbent.Client, *sql.DB) {
+func newPaymentSalesTestClient(t *testing.T) (*dbent.Client, *sql.DB) {
 	t.Helper()
 
-	db, err := sql.Open("sqlite", "file:payment_invoice_sales?mode=memory&cache=shared&_fk=1")
+	db, err := sql.Open("sqlite", "file:payment_sales?mode=memory&cache=shared&_fk=1")
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = db.Close() })
 

@@ -301,34 +301,6 @@ func (_c *PaymentOrderCreate) SetNillableInviteRewardLedgerID(v *int64) *Payment
 	return _c
 }
 
-// SetInvoiceStatus sets the "invoice_status" field.
-func (_c *PaymentOrderCreate) SetInvoiceStatus(v string) *PaymentOrderCreate {
-	_c.mutation.SetInvoiceStatus(v)
-	return _c
-}
-
-// SetNillableInvoiceStatus sets the "invoice_status" field if the given value is not nil.
-func (_c *PaymentOrderCreate) SetNillableInvoiceStatus(v *string) *PaymentOrderCreate {
-	if v != nil {
-		_c.SetInvoiceStatus(*v)
-	}
-	return _c
-}
-
-// SetInvoiceRequestID sets the "invoice_request_id" field.
-func (_c *PaymentOrderCreate) SetInvoiceRequestID(v int64) *PaymentOrderCreate {
-	_c.mutation.SetInvoiceRequestID(v)
-	return _c
-}
-
-// SetNillableInvoiceRequestID sets the "invoice_request_id" field if the given value is not nil.
-func (_c *PaymentOrderCreate) SetNillableInvoiceRequestID(v *int64) *PaymentOrderCreate {
-	if v != nil {
-		_c.SetInvoiceRequestID(*v)
-	}
-	return _c
-}
-
 // SetStatus sets the "status" field.
 func (_c *PaymentOrderCreate) SetStatus(v string) *PaymentOrderCreate {
 	_c.mutation.SetStatus(v)
@@ -613,10 +585,6 @@ func (_c *PaymentOrderCreate) defaults() {
 		v := paymentorder.DefaultInviteRewardStatus
 		_c.mutation.SetInviteRewardStatus(v)
 	}
-	if _, ok := _c.mutation.InvoiceStatus(); !ok {
-		v := paymentorder.DefaultInvoiceStatus
-		_c.mutation.SetInvoiceStatus(v)
-	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := paymentorder.DefaultStatus
 		_c.mutation.SetStatus(v)
@@ -725,14 +693,6 @@ func (_c *PaymentOrderCreate) check() error {
 	if v, ok := _c.mutation.InviteRewardStatus(); ok {
 		if err := paymentorder.InviteRewardStatusValidator(v); err != nil {
 			return &ValidationError{Name: "invite_reward_status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.invite_reward_status": %w`, err)}
-		}
-	}
-	if _, ok := _c.mutation.InvoiceStatus(); !ok {
-		return &ValidationError{Name: "invoice_status", err: errors.New(`ent: missing required field "PaymentOrder.invoice_status"`)}
-	}
-	if v, ok := _c.mutation.InvoiceStatus(); ok {
-		if err := paymentorder.InvoiceStatusValidator(v); err != nil {
-			return &ValidationError{Name: "invoice_status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.invoice_status": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Status(); !ok {
@@ -904,14 +864,6 @@ func (_c *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.InviteRewardLedgerID(); ok {
 		_spec.SetField(paymentorder.FieldInviteRewardLedgerID, field.TypeInt64, value)
 		_node.InviteRewardLedgerID = &value
-	}
-	if value, ok := _c.mutation.InvoiceStatus(); ok {
-		_spec.SetField(paymentorder.FieldInvoiceStatus, field.TypeString, value)
-		_node.InvoiceStatus = value
-	}
-	if value, ok := _c.mutation.InvoiceRequestID(); ok {
-		_spec.SetField(paymentorder.FieldInvoiceRequestID, field.TypeInt64, value)
-		_node.InvoiceRequestID = &value
 	}
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeString, value)
@@ -1483,42 +1435,6 @@ func (u *PaymentOrderUpsert) AddInviteRewardLedgerID(v int64) *PaymentOrderUpser
 // ClearInviteRewardLedgerID clears the value of the "invite_reward_ledger_id" field.
 func (u *PaymentOrderUpsert) ClearInviteRewardLedgerID() *PaymentOrderUpsert {
 	u.SetNull(paymentorder.FieldInviteRewardLedgerID)
-	return u
-}
-
-// SetInvoiceStatus sets the "invoice_status" field.
-func (u *PaymentOrderUpsert) SetInvoiceStatus(v string) *PaymentOrderUpsert {
-	u.Set(paymentorder.FieldInvoiceStatus, v)
-	return u
-}
-
-// UpdateInvoiceStatus sets the "invoice_status" field to the value that was provided on create.
-func (u *PaymentOrderUpsert) UpdateInvoiceStatus() *PaymentOrderUpsert {
-	u.SetExcluded(paymentorder.FieldInvoiceStatus)
-	return u
-}
-
-// SetInvoiceRequestID sets the "invoice_request_id" field.
-func (u *PaymentOrderUpsert) SetInvoiceRequestID(v int64) *PaymentOrderUpsert {
-	u.Set(paymentorder.FieldInvoiceRequestID, v)
-	return u
-}
-
-// UpdateInvoiceRequestID sets the "invoice_request_id" field to the value that was provided on create.
-func (u *PaymentOrderUpsert) UpdateInvoiceRequestID() *PaymentOrderUpsert {
-	u.SetExcluded(paymentorder.FieldInvoiceRequestID)
-	return u
-}
-
-// AddInvoiceRequestID adds v to the "invoice_request_id" field.
-func (u *PaymentOrderUpsert) AddInvoiceRequestID(v int64) *PaymentOrderUpsert {
-	u.Add(paymentorder.FieldInvoiceRequestID, v)
-	return u
-}
-
-// ClearInvoiceRequestID clears the value of the "invoice_request_id" field.
-func (u *PaymentOrderUpsert) ClearInvoiceRequestID() *PaymentOrderUpsert {
-	u.SetNull(paymentorder.FieldInvoiceRequestID)
 	return u
 }
 
@@ -2338,48 +2254,6 @@ func (u *PaymentOrderUpsertOne) UpdateInviteRewardLedgerID() *PaymentOrderUpsert
 func (u *PaymentOrderUpsertOne) ClearInviteRewardLedgerID() *PaymentOrderUpsertOne {
 	return u.Update(func(s *PaymentOrderUpsert) {
 		s.ClearInviteRewardLedgerID()
-	})
-}
-
-// SetInvoiceStatus sets the "invoice_status" field.
-func (u *PaymentOrderUpsertOne) SetInvoiceStatus(v string) *PaymentOrderUpsertOne {
-	return u.Update(func(s *PaymentOrderUpsert) {
-		s.SetInvoiceStatus(v)
-	})
-}
-
-// UpdateInvoiceStatus sets the "invoice_status" field to the value that was provided on create.
-func (u *PaymentOrderUpsertOne) UpdateInvoiceStatus() *PaymentOrderUpsertOne {
-	return u.Update(func(s *PaymentOrderUpsert) {
-		s.UpdateInvoiceStatus()
-	})
-}
-
-// SetInvoiceRequestID sets the "invoice_request_id" field.
-func (u *PaymentOrderUpsertOne) SetInvoiceRequestID(v int64) *PaymentOrderUpsertOne {
-	return u.Update(func(s *PaymentOrderUpsert) {
-		s.SetInvoiceRequestID(v)
-	})
-}
-
-// AddInvoiceRequestID adds v to the "invoice_request_id" field.
-func (u *PaymentOrderUpsertOne) AddInvoiceRequestID(v int64) *PaymentOrderUpsertOne {
-	return u.Update(func(s *PaymentOrderUpsert) {
-		s.AddInvoiceRequestID(v)
-	})
-}
-
-// UpdateInvoiceRequestID sets the "invoice_request_id" field to the value that was provided on create.
-func (u *PaymentOrderUpsertOne) UpdateInvoiceRequestID() *PaymentOrderUpsertOne {
-	return u.Update(func(s *PaymentOrderUpsert) {
-		s.UpdateInvoiceRequestID()
-	})
-}
-
-// ClearInvoiceRequestID clears the value of the "invoice_request_id" field.
-func (u *PaymentOrderUpsertOne) ClearInvoiceRequestID() *PaymentOrderUpsertOne {
-	return u.Update(func(s *PaymentOrderUpsert) {
-		s.ClearInvoiceRequestID()
 	})
 }
 
@@ -3410,48 +3284,6 @@ func (u *PaymentOrderUpsertBulk) UpdateInviteRewardLedgerID() *PaymentOrderUpser
 func (u *PaymentOrderUpsertBulk) ClearInviteRewardLedgerID() *PaymentOrderUpsertBulk {
 	return u.Update(func(s *PaymentOrderUpsert) {
 		s.ClearInviteRewardLedgerID()
-	})
-}
-
-// SetInvoiceStatus sets the "invoice_status" field.
-func (u *PaymentOrderUpsertBulk) SetInvoiceStatus(v string) *PaymentOrderUpsertBulk {
-	return u.Update(func(s *PaymentOrderUpsert) {
-		s.SetInvoiceStatus(v)
-	})
-}
-
-// UpdateInvoiceStatus sets the "invoice_status" field to the value that was provided on create.
-func (u *PaymentOrderUpsertBulk) UpdateInvoiceStatus() *PaymentOrderUpsertBulk {
-	return u.Update(func(s *PaymentOrderUpsert) {
-		s.UpdateInvoiceStatus()
-	})
-}
-
-// SetInvoiceRequestID sets the "invoice_request_id" field.
-func (u *PaymentOrderUpsertBulk) SetInvoiceRequestID(v int64) *PaymentOrderUpsertBulk {
-	return u.Update(func(s *PaymentOrderUpsert) {
-		s.SetInvoiceRequestID(v)
-	})
-}
-
-// AddInvoiceRequestID adds v to the "invoice_request_id" field.
-func (u *PaymentOrderUpsertBulk) AddInvoiceRequestID(v int64) *PaymentOrderUpsertBulk {
-	return u.Update(func(s *PaymentOrderUpsert) {
-		s.AddInvoiceRequestID(v)
-	})
-}
-
-// UpdateInvoiceRequestID sets the "invoice_request_id" field to the value that was provided on create.
-func (u *PaymentOrderUpsertBulk) UpdateInvoiceRequestID() *PaymentOrderUpsertBulk {
-	return u.Update(func(s *PaymentOrderUpsert) {
-		s.UpdateInvoiceRequestID()
-	})
-}
-
-// ClearInvoiceRequestID clears the value of the "invoice_request_id" field.
-func (u *PaymentOrderUpsertBulk) ClearInvoiceRequestID() *PaymentOrderUpsertBulk {
-	return u.Update(func(s *PaymentOrderUpsert) {
-		s.ClearInvoiceRequestID()
 	})
 }
 

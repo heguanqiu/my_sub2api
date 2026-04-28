@@ -350,6 +350,7 @@ export default {
     users: 'Users',
     groups: 'Groups',
     channels: 'Channels',
+    modelMarketplace: 'Model Marketplace',
     availableChannels: 'Available Channels',
     subscriptions: 'Subscriptions',
     accounts: 'Accounts',
@@ -370,7 +371,6 @@ export default {
     docs: 'Docs',
     myOrders: 'Recharge Records',
     referral: 'Referral',
-    invoices: 'Invoices',
     salesDashboard: 'Sales Dashboard',
     salesCustomers: 'Sales Customers',
     salesReferral: 'Referral Links',
@@ -979,6 +979,48 @@ export default {
     }
   },
 
+  modelMarketplace: {
+    title: 'Model Marketplace',
+    description: 'Browse accessible models by vendor and group, with pricing standards',
+    searchPlaceholder: 'Search vendors, groups, platforms, or models...',
+    empty: 'No models available',
+    noModels: 'No models configured',
+    noPricing: 'Pricing not configured',
+    exclusive: 'Exclusive',
+    public: 'Public',
+    effectiveRate: 'Effective rate',
+    groupCount: '{count} groups',
+    columns: {
+      model: 'Model',
+      billingMode: 'Billing',
+      inputOutput: 'Input / Output',
+      cache: 'Cache',
+      extra: 'Extra',
+      tiers: 'Tiers'
+    },
+    short: {
+      input: 'In',
+      output: 'Out',
+      write: 'Write',
+      read: 'Read'
+    },
+    pricing: {
+      billingMode: 'Billing Mode',
+      billingModeToken: 'Per Token',
+      billingModePerRequest: 'Per Request',
+      billingModeImage: 'Per Image',
+      inputPrice: 'Input',
+      outputPrice: 'Output',
+      cacheWritePrice: 'Cache Write',
+      cacheReadPrice: 'Cache Read',
+      imageOutputPrice: 'Image Output',
+      perRequestPrice: 'Per Request',
+      intervals: 'Tiered Pricing',
+      unitPerMillion: '/ 1M tokens',
+      unitPerRequest: '/ request'
+    }
+  },
+
   // Redeem
   redeem: {
     title: 'Redeem Code',
@@ -1215,49 +1257,13 @@ export default {
     }
   },
 
-  invoice: {
-    title: 'Invoices',
-    description: 'Manage invoice profiles and submit invoice requests for completed orders.',
-    profiles: 'Invoice Profiles',
-    records: 'Invoice Records',
-    provider: 'Provider',
-    requestInvoice: 'Request Invoice',
-    requestableOrders: 'Requestable Orders',
-    invoiceStatus: 'Invoice Status',
-    setDefault: 'Set Default',
-    profileTitle: 'Profile Title',
-    profileRequired: 'Create an invoice profile first',
-    taxNo: 'Tax Number',
-    phone: 'Phone',
-    address: 'Address',
-    bankName: 'Bank Name',
-    bankAccount: 'Bank Account',
-    providers: {
-      baiwang: 'Baiwang'
-    },
-    statuses: {
-      not_requested: 'Not Requested',
-      requested: 'Requested',
-      processing: 'Processing',
-      issued: 'Issued',
-      failed: 'Failed',
-      voided: 'Voided'
-    },
-    profileTypes: {
-      personal_electronic: 'Personal E-Invoice',
-      enterprise_electronic: 'Enterprise E-Invoice'
-    }
-  },
-
   sales: {
     totalCustomers: 'Total Customers',
     totalOrders: 'Total Orders',
     completedOrders: 'Completed Orders',
-    totalInvoices: 'Invoices',
     totalOrderAmount: 'Total Recharge Amount',
     completedOrderAmount: 'Completed Amount',
     orders: 'Orders',
-    invoices: 'Invoices',
     referralTitle: 'Sales Referral Registration Link',
     referralDescription: 'Manage the referral registration link assigned to this sales account. Share the backend-generated registration URL directly so customers are automatically attributed to you.',
     exclusiveRegisterLink: 'Exclusive Registration Link',
@@ -5128,25 +5134,6 @@ export default {
         integrationDoc: 'Payment Integration Docs',
         integrationDocHint: 'Covers endpoint specs, idempotency semantics, and code samples'
       },
-      invoice: {
-        sectionTitle: 'Invoice Settings',
-        sectionDescription: 'Configure Baiwang invoice integration. For local validation, set Base URL to `mock`.',
-        invoiceEnabled: 'Enable invoicing',
-        invoiceEnabledHint: 'When enabled, users can submit invoice requests for completed orders.',
-        baiwangEnabled: 'Enable Baiwang submission',
-        baiwangEnabledHint: 'When enabled, Baiwang submission and retry workflows will run.',
-        provider: 'Invoice Provider',
-        baiwangBaseURL: 'Baiwang Base URL',
-        appKey: 'App Key',
-        appSecret: 'App Secret',
-        appSecretPlaceholder: 'Leave blank to keep the current secret',
-        taxpayerID: 'Taxpayer ID',
-        sellerName: 'Seller Name',
-        defaultGoodsName: 'Default Goods Name',
-        retryLimit: 'Retry Limit',
-        autoRetry: 'Auto Retry',
-        autoRetryHint: 'Automatically retry failed invoice jobs.'
-      },
       soraClient: {
         title: 'Sora Client',
         description: 'Control whether to show the Sora client entry in the sidebar',
@@ -5585,6 +5572,38 @@ export default {
         presetOpusOnly: 'Opus only for 1M',
         presetOpusOnlyDesc: 'Pass for Opus, filter others',
         commonPatterns: 'Common patterns'
+      },
+      openaiFastPolicy: {
+        title: 'OpenAI Fast/Flex Policy',
+        description: 'Intercept, filter, or pass OpenAI fast(priority) / flex requests based on the request body service_tier field. Applies to the OpenAI gateway only.',
+        empty: 'No rules configured. Click the button below to add one.',
+        ruleHeader: 'Rule #{index}',
+        removeRule: 'Remove rule',
+        addRule: 'Add rule',
+        saveHint: 'Saved together with system settings (click the global Save button at the bottom of the page).',
+        serviceTier: 'service_tier match',
+        tierAll: 'All tiers',
+        tierPriority: 'priority (fast)',
+        tierFlex: 'flex',
+        action: 'Action',
+        actionPass: 'Pass (keep service_tier)',
+        actionFilter: 'Filter (remove service_tier)',
+        actionBlock: 'Block (reject request)',
+        scope: 'Scope',
+        scopeAll: 'All accounts',
+        scopeOAuth: 'OAuth only',
+        scopeAPIKey: 'API Key only',
+        scopeBedrock: 'Bedrock only',
+        errorMessage: 'Error message',
+        errorMessagePlaceholder: 'Custom error message when blocked',
+        errorMessageHint: 'Leave empty for the default message.',
+        modelWhitelist: 'Model whitelist',
+        modelWhitelistHint: 'Leave empty to apply to all models. Supports exact match and wildcard prefix (e.g., gpt-5.5*).',
+        modelPatternPlaceholder: 'e.g., gpt-5.5 or gpt-5.5*',
+        addModelPattern: 'Add model pattern',
+        fallbackAction: 'Fallback action',
+        fallbackActionHint: 'Action for models not matching the whitelist.',
+        fallbackErrorMessagePlaceholder: 'Custom error message when non-whitelisted models are blocked'
       },
       wechatConnect: {
         title: 'WeChat Connect',

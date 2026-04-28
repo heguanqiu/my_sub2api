@@ -112,6 +112,7 @@ describe('EmailVerifyView', () => {
     apiClientPostMock.mockReset()
     authStoreState.pendingAuthSession = null
     sessionStorage.clear()
+    localStorage.clear()
 
     getPublicSettingsMock.mockResolvedValue({
       turnstile_enabled: false,

@@ -1,14 +1,12 @@
 import { apiClient } from './client'
 import type { BasePaginationResponse, User } from '@/types'
 import type { PaymentOrder } from '@/types/payment'
-import type { InvoiceRequest } from './invoice'
 
 export interface SalesDashboardSummary {
   total_customers: number
   total_orders: number
   completed_orders: number
   total_order_amount: number
-  total_invoice_records: number
 }
 
 export interface SalesCustomerSummary {
@@ -32,8 +30,5 @@ export const salesAPI = {
   },
   getCustomerOrders(id: number, params?: { page?: number; page_size?: number; status?: string }) {
     return apiClient.get<BasePaginationResponse<PaymentOrder>>(`/sales/customers/${id}/orders`, { params })
-  },
-  getCustomerInvoices(id: number, params?: { page?: number; page_size?: number }) {
-    return apiClient.get<BasePaginationResponse<InvoiceRequest>>(`/sales/customers/${id}/invoices`, { params })
   }
 }

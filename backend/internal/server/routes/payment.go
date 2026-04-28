@@ -43,26 +43,6 @@ func RegisterPaymentRoutes(
 		}
 	}
 
-	invoiceProfiles := v1.Group("/invoice-profiles")
-	invoiceProfiles.Use(gin.HandlerFunc(jwtAuth))
-	invoiceProfiles.Use(middleware.BackendModeUserGuard(settingService))
-	{
-		invoiceProfiles.GET("", paymentHandler.ListInvoiceProfiles)
-		invoiceProfiles.POST("", paymentHandler.CreateInvoiceProfile)
-		invoiceProfiles.PUT("/:id", paymentHandler.UpdateInvoiceProfile)
-		invoiceProfiles.DELETE("/:id", paymentHandler.DeleteInvoiceProfile)
-		invoiceProfiles.POST("/:id/set-default", paymentHandler.SetDefaultInvoiceProfile)
-	}
-
-	invoices := v1.Group("/invoices")
-	invoices.Use(gin.HandlerFunc(jwtAuth))
-	invoices.Use(middleware.BackendModeUserGuard(settingService))
-	{
-		invoices.POST("", paymentHandler.CreateInvoice)
-		invoices.GET("/my", paymentHandler.ListMyInvoices)
-		invoices.GET("/:id", paymentHandler.GetMyInvoice)
-	}
-
 	sales := v1.Group("/sales")
 	sales.Use(gin.HandlerFunc(jwtAuth))
 	sales.Use(middleware.BackendModeUserGuard(settingService))
@@ -72,7 +52,6 @@ func RegisterPaymentRoutes(
 		sales.GET("/orders", paymentHandler.GetSalesOrders)
 		sales.GET("/customers/:id", paymentHandler.GetSalesCustomer)
 		sales.GET("/customers/:id/orders", paymentHandler.GetSalesCustomerOrders)
-		sales.GET("/customers/:id/invoices", paymentHandler.GetSalesCustomerInvoices)
 	}
 
 	// --- Public payment endpoints (no auth) ---
@@ -115,13 +94,6 @@ func RegisterPaymentRoutes(
 			adminOrders.POST("/:id/cancel", adminPaymentHandler.CancelOrder)
 			adminOrders.POST("/:id/retry", adminPaymentHandler.RetryFulfillment)
 			adminOrders.POST("/:id/refund", adminPaymentHandler.ProcessRefund)
-		}
-
-		adminInvoices := adminGroup.Group("/invoices")
-		{
-			adminInvoices.GET("", adminPaymentHandler.ListInvoices)
-			adminInvoices.GET("/:id", adminPaymentHandler.GetInvoiceDetail)
-			adminInvoices.POST("/:id/retry", adminPaymentHandler.RetryInvoice)
 		}
 
 		// Subscription Plans

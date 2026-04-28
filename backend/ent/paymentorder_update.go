@@ -512,47 +512,6 @@ func (_u *PaymentOrderUpdate) ClearInviteRewardLedgerID() *PaymentOrderUpdate {
 	return _u
 }
 
-// SetInvoiceStatus sets the "invoice_status" field.
-func (_u *PaymentOrderUpdate) SetInvoiceStatus(v string) *PaymentOrderUpdate {
-	_u.mutation.SetInvoiceStatus(v)
-	return _u
-}
-
-// SetNillableInvoiceStatus sets the "invoice_status" field if the given value is not nil.
-func (_u *PaymentOrderUpdate) SetNillableInvoiceStatus(v *string) *PaymentOrderUpdate {
-	if v != nil {
-		_u.SetInvoiceStatus(*v)
-	}
-	return _u
-}
-
-// SetInvoiceRequestID sets the "invoice_request_id" field.
-func (_u *PaymentOrderUpdate) SetInvoiceRequestID(v int64) *PaymentOrderUpdate {
-	_u.mutation.ResetInvoiceRequestID()
-	_u.mutation.SetInvoiceRequestID(v)
-	return _u
-}
-
-// SetNillableInvoiceRequestID sets the "invoice_request_id" field if the given value is not nil.
-func (_u *PaymentOrderUpdate) SetNillableInvoiceRequestID(v *int64) *PaymentOrderUpdate {
-	if v != nil {
-		_u.SetInvoiceRequestID(*v)
-	}
-	return _u
-}
-
-// AddInvoiceRequestID adds value to the "invoice_request_id" field.
-func (_u *PaymentOrderUpdate) AddInvoiceRequestID(v int64) *PaymentOrderUpdate {
-	_u.mutation.AddInvoiceRequestID(v)
-	return _u
-}
-
-// ClearInvoiceRequestID clears the value of the "invoice_request_id" field.
-func (_u *PaymentOrderUpdate) ClearInvoiceRequestID() *PaymentOrderUpdate {
-	_u.mutation.ClearInvoiceRequestID()
-	return _u
-}
-
 // SetStatus sets the "status" field.
 func (_u *PaymentOrderUpdate) SetStatus(v string) *PaymentOrderUpdate {
 	_u.mutation.SetStatus(v)
@@ -954,11 +913,6 @@ func (_u *PaymentOrderUpdate) check() error {
 			return &ValidationError{Name: "invite_reward_status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.invite_reward_status": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.InvoiceStatus(); ok {
-		if err := paymentorder.InvoiceStatusValidator(v); err != nil {
-			return &ValidationError{Name: "invoice_status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.invoice_status": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Status(); ok {
 		if err := paymentorder.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.status": %w`, err)}
@@ -1134,18 +1088,6 @@ func (_u *PaymentOrderUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if _u.mutation.InviteRewardLedgerIDCleared() {
 		_spec.ClearField(paymentorder.FieldInviteRewardLedgerID, field.TypeInt64)
-	}
-	if value, ok := _u.mutation.InvoiceStatus(); ok {
-		_spec.SetField(paymentorder.FieldInvoiceStatus, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.InvoiceRequestID(); ok {
-		_spec.SetField(paymentorder.FieldInvoiceRequestID, field.TypeInt64, value)
-	}
-	if value, ok := _u.mutation.AddedInvoiceRequestID(); ok {
-		_spec.AddField(paymentorder.FieldInvoiceRequestID, field.TypeInt64, value)
-	}
-	if _u.mutation.InvoiceRequestIDCleared() {
-		_spec.ClearField(paymentorder.FieldInvoiceRequestID, field.TypeInt64)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeString, value)
@@ -1763,47 +1705,6 @@ func (_u *PaymentOrderUpdateOne) ClearInviteRewardLedgerID() *PaymentOrderUpdate
 	return _u
 }
 
-// SetInvoiceStatus sets the "invoice_status" field.
-func (_u *PaymentOrderUpdateOne) SetInvoiceStatus(v string) *PaymentOrderUpdateOne {
-	_u.mutation.SetInvoiceStatus(v)
-	return _u
-}
-
-// SetNillableInvoiceStatus sets the "invoice_status" field if the given value is not nil.
-func (_u *PaymentOrderUpdateOne) SetNillableInvoiceStatus(v *string) *PaymentOrderUpdateOne {
-	if v != nil {
-		_u.SetInvoiceStatus(*v)
-	}
-	return _u
-}
-
-// SetInvoiceRequestID sets the "invoice_request_id" field.
-func (_u *PaymentOrderUpdateOne) SetInvoiceRequestID(v int64) *PaymentOrderUpdateOne {
-	_u.mutation.ResetInvoiceRequestID()
-	_u.mutation.SetInvoiceRequestID(v)
-	return _u
-}
-
-// SetNillableInvoiceRequestID sets the "invoice_request_id" field if the given value is not nil.
-func (_u *PaymentOrderUpdateOne) SetNillableInvoiceRequestID(v *int64) *PaymentOrderUpdateOne {
-	if v != nil {
-		_u.SetInvoiceRequestID(*v)
-	}
-	return _u
-}
-
-// AddInvoiceRequestID adds value to the "invoice_request_id" field.
-func (_u *PaymentOrderUpdateOne) AddInvoiceRequestID(v int64) *PaymentOrderUpdateOne {
-	_u.mutation.AddInvoiceRequestID(v)
-	return _u
-}
-
-// ClearInvoiceRequestID clears the value of the "invoice_request_id" field.
-func (_u *PaymentOrderUpdateOne) ClearInvoiceRequestID() *PaymentOrderUpdateOne {
-	_u.mutation.ClearInvoiceRequestID()
-	return _u
-}
-
 // SetStatus sets the "status" field.
 func (_u *PaymentOrderUpdateOne) SetStatus(v string) *PaymentOrderUpdateOne {
 	_u.mutation.SetStatus(v)
@@ -2218,11 +2119,6 @@ func (_u *PaymentOrderUpdateOne) check() error {
 			return &ValidationError{Name: "invite_reward_status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.invite_reward_status": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.InvoiceStatus(); ok {
-		if err := paymentorder.InvoiceStatusValidator(v); err != nil {
-			return &ValidationError{Name: "invoice_status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.invoice_status": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Status(); ok {
 		if err := paymentorder.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.status": %w`, err)}
@@ -2415,18 +2311,6 @@ func (_u *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentOrd
 	}
 	if _u.mutation.InviteRewardLedgerIDCleared() {
 		_spec.ClearField(paymentorder.FieldInviteRewardLedgerID, field.TypeInt64)
-	}
-	if value, ok := _u.mutation.InvoiceStatus(); ok {
-		_spec.SetField(paymentorder.FieldInvoiceStatus, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.InvoiceRequestID(); ok {
-		_spec.SetField(paymentorder.FieldInvoiceRequestID, field.TypeInt64, value)
-	}
-	if value, ok := _u.mutation.AddedInvoiceRequestID(); ok {
-		_spec.AddField(paymentorder.FieldInvoiceRequestID, field.TypeInt64, value)
-	}
-	if _u.mutation.InvoiceRequestIDCleared() {
-		_spec.ClearField(paymentorder.FieldInvoiceRequestID, field.TypeInt64)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeString, value)
