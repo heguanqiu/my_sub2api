@@ -350,7 +350,6 @@ export default {
     users: 'Users',
     groups: 'Groups',
     channels: 'Channels',
-    modelMarketplace: 'Model Marketplace',
     availableChannels: 'Available Channels',
     subscriptions: 'Subscriptions',
     accounts: 'Accounts',
@@ -961,48 +960,6 @@ export default {
       platform: 'Platform',
       groups: 'Your Accessible Groups',
       supportedModels: 'Supported Models'
-    },
-    pricing: {
-      billingMode: 'Billing Mode',
-      billingModeToken: 'Per Token',
-      billingModePerRequest: 'Per Request',
-      billingModeImage: 'Per Image',
-      inputPrice: 'Input',
-      outputPrice: 'Output',
-      cacheWritePrice: 'Cache Write',
-      cacheReadPrice: 'Cache Read',
-      imageOutputPrice: 'Image Output',
-      perRequestPrice: 'Per Request',
-      intervals: 'Tiered Pricing',
-      unitPerMillion: '/ 1M tokens',
-      unitPerRequest: '/ request'
-    }
-  },
-
-  modelMarketplace: {
-    title: 'Model Marketplace',
-    description: 'Browse accessible models by vendor and group, with pricing standards',
-    searchPlaceholder: 'Search vendors, groups, platforms, or models...',
-    empty: 'No models available',
-    noModels: 'No models configured',
-    noPricing: 'Pricing not configured',
-    exclusive: 'Exclusive',
-    public: 'Public',
-    effectiveRate: 'Effective rate',
-    groupCount: '{count} groups',
-    columns: {
-      model: 'Model',
-      billingMode: 'Billing',
-      inputOutput: 'Input / Output',
-      cache: 'Cache',
-      extra: 'Extra',
-      tiers: 'Tiers'
-    },
-    short: {
-      input: 'In',
-      output: 'Out',
-      write: 'Write',
-      read: 'Read'
     },
     pricing: {
       billingMode: 'Billing Mode',

@@ -72,7 +72,7 @@ describe('oauth adoption auth api', () => {
       adopt_display_name: false,
       adopt_avatar: true
     })
-  })  })
+  })
 
   it('posts oidc invitation completion with adoption decisions', async () => {
     const { completeOIDCOAuthRegistration } = await import('@/api/auth')
@@ -132,7 +132,7 @@ describe('oauth adoption auth api', () => {
       adopt_display_name: false,
       adopt_avatar: false
     })
-  })  })
+  })
 
   it('classifies oauth completion results as login or bind', async () => {
     const { getOAuthCompletionKind } = await import('@/api/auth')

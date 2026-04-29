@@ -350,7 +350,6 @@ export default {
     users: '用户管理',
     groups: '分组管理',
     channels: '渠道管理',
-    modelMarketplace: '模型广场',
     availableChannels: '可用渠道',
     subscriptions: '订阅管理',
     accounts: '账号管理',
@@ -965,48 +964,6 @@ export default {
       platform: '平台',
       groups: '我可访问的分组',
       supportedModels: '支持模型'
-    },
-    pricing: {
-      billingMode: '计费模式',
-      billingModeToken: '按 Token',
-      billingModePerRequest: '按次',
-      billingModeImage: '按图片',
-      inputPrice: '输入',
-      outputPrice: '输出',
-      cacheWritePrice: '缓存写入',
-      cacheReadPrice: '缓存读取',
-      imageOutputPrice: '图片输出',
-      perRequestPrice: '每次请求',
-      intervals: '阶梯定价',
-      unitPerMillion: '/ 1M token',
-      unitPerRequest: '/ 次'
-    }
-  },
-
-  modelMarketplace: {
-    title: '模型广场',
-    description: '按厂商与分组查看可访问模型及收费标准',
-    searchPlaceholder: '搜索厂商、分组、平台或模型...',
-    empty: '暂无可用模型',
-    noModels: '未配置模型',
-    noPricing: '未配置定价',
-    exclusive: '专属',
-    public: '公开',
-    effectiveRate: '实际倍率',
-    groupCount: '{count} 个分组',
-    columns: {
-      model: '模型',
-      billingMode: '计费',
-      inputOutput: '输入 / 输出',
-      cache: '缓存',
-      extra: '额外',
-      tiers: '阶梯'
-    },
-    short: {
-      input: '入',
-      output: '出',
-      write: '写',
-      read: '读'
     },
     pricing: {
       billingMode: '计费模式',
