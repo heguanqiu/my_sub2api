@@ -10,7 +10,9 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"math"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -696,6 +698,38 @@ type BatchHealthCheckResponse struct {
 	FailedCount  int                    `json:"failed_count"`
 }
 
+type IntelligentSchedulingRequest struct {
+	AccountIDs []int64 `json:"account_ids"`
+	ModelID    string  `json:"model_id"`
+}
+
+type IntelligentSchedulingItem struct {
+	AccountID                   int64  `json:"account_id"`
+	Name                        string `json:"name"`
+	Platform                    string `json:"platform"`
+	Type                        string `json:"type"`
+	ModelID                     string `json:"model_id,omitempty"`
+	LatencyMs                   int64  `json:"latency_ms,omitempty"`
+	Status                      string `json:"status"`
+	TestSuccess                 bool   `json:"test_success"`
+	Updated                     bool   `json:"updated"`
+	ErrorMessage                string `json:"error_message,omitempty"`
+	ResponseText                string `json:"response_text,omitempty"`
+	PreviousPriority            int    `json:"previous_priority"`
+	NewPriority                 *int   `json:"new_priority,omitempty"`
+	PreviousLoadFactor          *int   `json:"previous_load_factor,omitempty"`
+	PreviousEffectiveLoadFactor int    `json:"previous_effective_load_factor"`
+	NewLoadFactor               *int   `json:"new_load_factor,omitempty"`
+}
+
+type IntelligentSchedulingResponse struct {
+	Items            []IntelligentSchedulingItem `json:"items"`
+	Total            int                         `json:"total"`
+	TestSuccessCount int                         `json:"test_success_count"`
+	TestFailedCount  int                         `json:"test_failed_count"`
+	AppliedCount     int                         `json:"applied_count"`
+}
+
 type SyncFromCRSRequest struct {
 	BaseURL            string   `json:"base_url" binding:"required"`
 	Username           string   `json:"username" binding:"required"`
@@ -845,6 +879,203 @@ func (h *AccountHandler) BatchHealthCheck(c *gin.Context) {
 	}
 
 	response.Success(c, resp)
+}
+
+// IntelligentScheduling runs test probes for multiple accounts and applies
+// priority/load-factor updates based on latency ranking.
+// POST /api/v1/admin/accounts/intelligent-scheduling
+func (h *AccountHandler) IntelligentScheduling(c *gin.Context) {
+	if h.accountTestService == nil {
+		response.Error(c, http.StatusServiceUnavailable, "Account test service unavailable")
+		return
+	}
+
+	var req IntelligentSchedulingRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+
+	accountIDs := normalizeInt64IDList(req.AccountIDs)
+	if len(accountIDs) == 0 {
+		response.BadRequest(c, "At least one valid account ID is required")
+		return
+	}
+
+	accounts, err := h.adminService.GetAccountsByIDs(c.Request.Context(), accountIDs)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	if len(accounts) == 0 {
+		response.BadRequest(c, "No accounts matched the request")
+		return
+	}
+
+	items := make([]IntelligentSchedulingItem, len(accounts))
+	modelID := strings.TrimSpace(req.ModelID)
+	group, ctx := errgroup.WithContext(c.Request.Context())
+	group.SetLimit(4)
+
+	for idx, account := range accounts {
+		idx := idx
+		account := account
+		group.Go(func() error {
+			if account == nil {
+				items[idx] = IntelligentSchedulingItem{
+					Status:       "test_failed",
+					TestSuccess:  false,
+					Updated:      false,
+					ErrorMessage: "account not found",
+				}
+				return nil
+			}
+
+			item := IntelligentSchedulingItem{
+				AccountID:                   account.ID,
+				Name:                        account.Name,
+				Platform:                    account.Platform,
+				Type:                        account.Type,
+				ModelID:                     modelID,
+				Status:                      "test_failed",
+				TestSuccess:                 false,
+				Updated:                     false,
+				PreviousPriority:            account.Priority,
+				PreviousLoadFactor:          account.LoadFactor,
+				PreviousEffectiveLoadFactor: account.EffectiveLoadFactor(),
+			}
+
+			testResult, testErr := h.accountTestService.RunTestBackground(ctx, account.ID, modelID)
+			if testResult != nil {
+				item.LatencyMs = testResult.LatencyMs
+				item.ResponseText = strings.TrimSpace(testResult.ResponseText)
+				if strings.TrimSpace(testResult.ErrorMessage) != "" {
+					item.ErrorMessage = strings.TrimSpace(testResult.ErrorMessage)
+				}
+				if item.ModelID == "" {
+					item.ModelID = modelID
+				}
+				if testResult.Status == "success" && item.ErrorMessage == "" {
+					item.TestSuccess = true
+					item.Status = "tested"
+				}
+			}
+			if testErr != nil && item.ErrorMessage == "" {
+				item.ErrorMessage = strings.TrimSpace(testErr.Error())
+			}
+			if !item.TestSuccess && item.ErrorMessage == "" {
+				item.ErrorMessage = "test failed"
+			}
+
+			if item.TestSuccess && h.rateLimitService != nil {
+				if _, err := h.rateLimitService.RecoverAccountAfterSuccessfulTest(ctx, account.ID); err != nil {
+					log.Printf("failed to recover account after successful test: account_id=%d err=%v", account.ID, err)
+				}
+			}
+
+			items[idx] = item
+			return nil
+		})
+	}
+
+	if err := group.Wait(); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	type successfulAccount struct {
+		account *service.Account
+		item    *IntelligentSchedulingItem
+	}
+
+	successes := make([]successfulAccount, 0, len(items))
+	for idx := range items {
+		if items[idx].TestSuccess && accounts[idx] != nil {
+			successes = append(successes, successfulAccount{
+				account: accounts[idx],
+				item:    &items[idx],
+			})
+		}
+	}
+
+	sort.SliceStable(successes, func(i, j int) bool {
+		if successes[i].item.LatencyMs != successes[j].item.LatencyMs {
+			return successes[i].item.LatencyMs < successes[j].item.LatencyMs
+		}
+		return successes[i].account.ID < successes[j].account.ID
+	})
+
+	maxLatency := int64(1)
+	for _, entry := range successes {
+		if entry.item.LatencyMs > maxLatency {
+			maxLatency = entry.item.LatencyMs
+		}
+	}
+
+	appliedCount := 0
+	for idx, entry := range successes {
+		newPriority := idx + 1
+		newLoadFactor := intelligentSchedulingLoadFactor(entry.account.EffectiveLoadFactor(), entry.item.LatencyMs, maxLatency)
+
+		if _, err := h.adminService.UpdateAccount(ctx, entry.account.ID, &service.UpdateAccountInput{
+			Priority:   &newPriority,
+			LoadFactor: &newLoadFactor,
+		}); err != nil {
+			entry.item.Status = "update_failed"
+			if entry.item.ErrorMessage == "" {
+				entry.item.ErrorMessage = err.Error()
+			} else {
+				entry.item.ErrorMessage = entry.item.ErrorMessage + "; update failed: " + err.Error()
+			}
+			continue
+		}
+
+		entry.item.NewPriority = &newPriority
+		entry.item.NewLoadFactor = &newLoadFactor
+		entry.item.Updated = true
+		entry.item.Status = "applied"
+		appliedCount++
+	}
+
+	resp := IntelligentSchedulingResponse{
+		Items:            items,
+		Total:            len(items),
+		TestSuccessCount: len(successes),
+		TestFailedCount:  len(items) - len(successes),
+		AppliedCount:     appliedCount,
+	}
+
+	response.Success(c, resp)
+}
+
+func intelligentSchedulingLoadFactor(baseLoadFactor int, latencyMs, maxLatencyMs int64) int {
+	if baseLoadFactor <= 0 {
+		baseLoadFactor = 1
+	}
+
+	if latencyMs <= 0 {
+		latencyMs = 1
+	}
+	if maxLatencyMs <= 0 {
+		maxLatencyMs = latencyMs
+	}
+
+	multiplier := float64(maxLatencyMs) / float64(latencyMs)
+	if multiplier < 1 {
+		multiplier = 1
+	}
+	if multiplier > 4 {
+		multiplier = 4
+	}
+
+	value := int(math.Round(float64(baseLoadFactor) * multiplier))
+	if value < 1 {
+		return 1
+	}
+	if value > 10000 {
+		return 10000
+	}
+	return value
 }
 
 // RecoverState handles unified recovery of recoverable account runtime state.

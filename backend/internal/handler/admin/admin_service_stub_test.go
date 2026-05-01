@@ -23,6 +23,7 @@ type stubAdminService struct {
 	createdProxies       []*service.CreateProxyInput
 	updatedProxyIDs      []int64
 	updatedProxies       []*service.UpdateProxyInput
+	updatedAccounts      map[int64]*service.UpdateAccountInput
 	testedProxyIDs       []int64
 	createAccountErr     error
 	updateAccountErr     error
@@ -126,13 +127,14 @@ func newStubAdminService() *stubAdminService {
 		CreatedAt: now,
 	}
 	return &stubAdminService{
-		users:       []service.User{user},
-		apiKeys:     []service.APIKey{apiKey},
-		groups:      []service.Group{group},
-		accounts:    []service.Account{account},
-		proxies:     []service.Proxy{proxy},
-		proxyCounts: []service.ProxyWithAccountCount{{Proxy: proxy, AccountCount: 1}},
-		redeems:     []service.RedeemCode{redeem},
+		users:           []service.User{user},
+		apiKeys:         []service.APIKey{apiKey},
+		groups:          []service.Group{group},
+		accounts:        []service.Account{account},
+		proxies:         []service.Proxy{proxy},
+		proxyCounts:     []service.ProxyWithAccountCount{{Proxy: proxy, AccountCount: 1}},
+		redeems:         []service.RedeemCode{redeem},
+		updatedAccounts: map[int64]*service.UpdateAccountInput{},
 	}
 }
 
@@ -316,6 +318,18 @@ func (s *stubAdminService) GetAccount(ctx context.Context, id int64) (*service.A
 func (s *stubAdminService) GetAccountsByIDs(ctx context.Context, ids []int64) ([]*service.Account, error) {
 	out := make([]*service.Account, 0, len(ids))
 	for _, id := range ids {
+		var matched *service.Account
+		for i := range s.accounts {
+			if s.accounts[i].ID == id {
+				account := s.accounts[i]
+				matched = &account
+				break
+			}
+		}
+		if matched != nil {
+			out = append(out, matched)
+			continue
+		}
 		account := service.Account{ID: id, Name: "account", Status: service.StatusActive}
 		out = append(out, &account)
 	}
@@ -337,6 +351,21 @@ func (s *stubAdminService) UpdateAccount(ctx context.Context, id int64, input *s
 	if s.updateAccountErr != nil {
 		return nil, s.updateAccountErr
 	}
+	copied := *input
+	if input.Priority != nil {
+		priority := *input.Priority
+		copied.Priority = &priority
+	}
+	if input.LoadFactor != nil {
+		loadFactor := *input.LoadFactor
+		copied.LoadFactor = &loadFactor
+	}
+	s.mu.Lock()
+	if s.updatedAccounts == nil {
+		s.updatedAccounts = map[int64]*service.UpdateAccountInput{}
+	}
+	s.updatedAccounts[id] = &copied
+	s.mu.Unlock()
 	account := service.Account{ID: id, Name: input.Name, Status: service.StatusActive}
 	return &account, nil
 }
