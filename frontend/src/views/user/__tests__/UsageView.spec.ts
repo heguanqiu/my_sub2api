@@ -72,6 +72,14 @@ const TablePageLayoutStub = {
   template: '<div><slot name="actions" /><slot name="filters" /><slot /></div>',
 }
 
+const readBlobText = (blob: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result ?? ''))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsText(blob)
+  })
+
 describe('user UsageView tooltip', () => {
   beforeEach(() => {
     query.mockReset()
@@ -186,6 +194,7 @@ describe('user UsageView tooltip', () => {
   it('exports csv with input and output unit price columns', async () => {
     const exportedLogs = [
       {
+        id: 17,
         request_id: 'req-user-export',
         actual_cost: 0.092883,
         total_cost: 0.092883,
@@ -256,6 +265,7 @@ describe('user UsageView tooltip', () => {
     await setupState.exportToCSV()
 
     expect(exportedBlob).not.toBeNull()
+    const exportedCsv = await readBlobText(exportedBlob!)
     const hasSortedExportQuery = query.mock.calls.some((call) => {
       const params = call[0] as Record<string, unknown> | undefined
       const config = call[1]
@@ -267,6 +277,12 @@ describe('user UsageView tooltip', () => {
       )
     })
     expect(hasSortedExportQuery).toBe(true)
+    const displayedFirstTokenMs = setupState.getDisplayedFirstTokenMs(exportedLogs[0])
+    expect(displayedFirstTokenMs).toBeGreaterThanOrEqual(300)
+    expect(displayedFirstTokenMs).toBeLessThanOrEqual(800)
+    expect(displayedFirstTokenMs).toBe(setupState.getDisplayedFirstTokenMs(exportedLogs[0]))
+    expect(exportedCsv).toContain(`,${displayedFirstTokenMs},345`)
+    expect(exportedCsv).not.toContain(',12,345')
     expect(clickSpy).toHaveBeenCalled()
     expect(showSuccess).toHaveBeenCalled()
 

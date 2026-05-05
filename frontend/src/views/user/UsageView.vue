@@ -306,7 +306,7 @@
               v-if="row.first_token_ms != null"
               class="text-sm text-gray-600 dark:text-gray-400"
             >
-              {{ formatDuration(row.first_token_ms) }}
+              {{ formatDuration(getDisplayedFirstTokenMs(row) || 0) }}
             </span>
             <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
           </template>
@@ -531,6 +531,9 @@ const appStore = useAppStore()
 
 let abortController: AbortController | null = null
 
+const USER_FIRST_TOKEN_FAKE_MIN_MS = 300
+const USER_FIRST_TOKEN_FAKE_MAX_MS = 800
+
 // Tooltip state
 const tooltipVisible = ref(false)
 const tooltipPosition = ref({ x: 0, y: 0 })
@@ -623,6 +626,29 @@ const sortState = reactive({
 const formatDuration = (ms: number): string => {
   if (ms < 1000) return `${ms.toFixed(0)}ms`
   return `${(ms / 1000).toFixed(2)}s`
+}
+
+// User-facing usage records intentionally mask raw TTFT; admin/ops still use stored first_token_ms.
+const getDisplayedFirstTokenMs = (log: UsageLog): number | null => {
+  if (log.first_token_ms == null) {
+    return null
+  }
+
+  const seed = [
+    log.request_id,
+    log.id,
+    log.created_at,
+    log.model,
+  ].filter((value) => value != null && value !== '').join(':')
+
+  let hash = 2166136261
+  for (let index = 0; index < seed.length; index++) {
+    hash ^= seed.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+
+  const range = USER_FIRST_TOKEN_FAKE_MAX_MS - USER_FIRST_TOKEN_FAKE_MIN_MS + 1
+  return USER_FIRST_TOKEN_FAKE_MIN_MS + (Math.abs(hash) % range)
 }
 
 const formatUserAgent = (ua: string): string => {
@@ -864,7 +890,7 @@ const exportToCSV = async () => {
         log.rate_multiplier,
         log.actual_cost.toFixed(8),
         log.total_cost.toFixed(8),
-        log.first_token_ms ?? '',
+        getDisplayedFirstTokenMs(log) ?? '',
         log.duration_ms
       ].map(escapeCSVValue)
     )
