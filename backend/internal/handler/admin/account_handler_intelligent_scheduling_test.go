@@ -41,6 +41,8 @@ func (f *fakeIntelligentSchedulingTester) RunTestBackground(_ context.Context, a
 	return &service.ScheduledTestResult{Status: "failed", ErrorMessage: "missing result"}, errors.New("missing result")
 }
 
+func (f *fakeIntelligentSchedulingTester) ProbeOpenAIAPIKeyResponsesSupport(_ context.Context, _ int64) {}
+
 func setupIntelligentSchedulingRouter(adminSvc service.AdminService, tester accountTester) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()

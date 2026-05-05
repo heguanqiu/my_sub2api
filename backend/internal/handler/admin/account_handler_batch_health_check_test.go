@@ -41,6 +41,8 @@ func (f *fakeBatchAccountTester) RunTestBackground(_ context.Context, accountID 
 	return &service.ScheduledTestResult{Status: "failed", ErrorMessage: "missing result"}, errors.New("missing result")
 }
 
+func (f *fakeBatchAccountTester) ProbeOpenAIAPIKeyResponsesSupport(_ context.Context, _ int64) {}
+
 func setupBatchHealthCheckRouter(adminSvc service.AdminService, tester accountTester) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
