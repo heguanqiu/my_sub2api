@@ -185,6 +185,14 @@ func (s *salesDashboardRangeUserRepoStub) UpdateConcurrency(context.Context, int
 	panic("unexpected UpdateConcurrency call")
 }
 
+func (s *salesDashboardRangeUserRepoStub) BatchSetConcurrency(context.Context, []int64, int) (int, error) {
+	panic("unexpected BatchSetConcurrency call")
+}
+
+func (s *salesDashboardRangeUserRepoStub) BatchAddConcurrency(context.Context, []int64, int) (int, error) {
+	panic("unexpected BatchAddConcurrency call")
+}
+
 func (s *salesDashboardRangeUserRepoStub) ExistsByEmail(context.Context, string) (bool, error) {
 	panic("unexpected ExistsByEmail call")
 }

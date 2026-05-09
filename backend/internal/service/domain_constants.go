@@ -65,10 +65,11 @@ const (
 
 // Redeem type constants
 const (
-	RedeemTypeBalance      = domain.RedeemTypeBalance
-	RedeemTypeConcurrency  = domain.RedeemTypeConcurrency
-	RedeemTypeSubscription = domain.RedeemTypeSubscription
-	RedeemTypeInvitation   = domain.RedeemTypeInvitation
+	RedeemTypeBalance          = domain.RedeemTypeBalance
+	RedeemTypeConcurrency      = domain.RedeemTypeConcurrency
+	RedeemTypeSubscription     = domain.RedeemTypeSubscription
+	RedeemTypeInvitation       = domain.RedeemTypeInvitation
+	RedeemTypeAffiliateBalance = "affiliate_balance"
 )
 
 // PromoCode status constants
@@ -115,6 +116,8 @@ const (
 	SettingKeyPasswordResetEnabled             = "password_reset_enabled"              // 是否启用忘记密码功能（需要先开启邮件验证）
 	SettingKeyFrontendURL                      = "frontend_url"                        // 前端基础URL，用于生成邮件中的重置密码链接
 	SettingKeyInvitationCodeEnabled            = "invitation_code_enabled"             // 是否启用邀请码注册
+	SettingKeyRiskControlEnabled               = "risk_control_enabled"                // 是否启用风控中心入口与审计链路
+	SettingKeyContentModerationConfig          = "content_moderation_config"           // 内容审计配置（JSON）
 
 	// 邮件服务设置
 	SettingKeySMTPHost     = "smtp_host"      // SMTP服务器地址
@@ -181,6 +184,18 @@ const (
 	SettingKeyOIDCConnectUserInfoIDPath       = "oidc_connect_userinfo_id_path"
 	SettingKeyOIDCConnectUserInfoUsernamePath = "oidc_connect_userinfo_username_path"
 
+	// GitHub / Google 邮箱快捷登录设置
+	SettingKeyGitHubOAuthEnabled             = "github_oauth_enabled"
+	SettingKeyGitHubOAuthClientID            = "github_oauth_client_id"
+	SettingKeyGitHubOAuthClientSecret        = "github_oauth_client_secret"
+	SettingKeyGitHubOAuthRedirectURL         = "github_oauth_redirect_url"
+	SettingKeyGitHubOAuthFrontendRedirectURL = "github_oauth_frontend_redirect_url"
+	SettingKeyGoogleOAuthEnabled             = "google_oauth_enabled"
+	SettingKeyGoogleOAuthClientID            = "google_oauth_client_id"
+	SettingKeyGoogleOAuthClientSecret        = "google_oauth_client_secret"
+	SettingKeyGoogleOAuthRedirectURL         = "google_oauth_redirect_url"
+	SettingKeyGoogleOAuthFrontendRedirectURL = "google_oauth_frontend_redirect_url"
+
 	// OEM设置
 	SettingKeySiteName                    = "site_name"                     // 网站名称
 	SettingKeySiteLogo                    = "site_logo"                     // 网站Logo (base64)
@@ -224,6 +239,16 @@ const (
 	SettingKeyAuthSourceDefaultWeChatSubscriptions     = "auth_source_default_wechat_subscriptions"
 	SettingKeyAuthSourceDefaultWeChatGrantOnSignup     = "auth_source_default_wechat_grant_on_signup"
 	SettingKeyAuthSourceDefaultWeChatGrantOnFirstBind  = "auth_source_default_wechat_grant_on_first_bind"
+	SettingKeyAuthSourceDefaultGitHubBalance           = "auth_source_default_github_balance"
+	SettingKeyAuthSourceDefaultGitHubConcurrency       = "auth_source_default_github_concurrency"
+	SettingKeyAuthSourceDefaultGitHubSubscriptions     = "auth_source_default_github_subscriptions"
+	SettingKeyAuthSourceDefaultGitHubGrantOnSignup     = "auth_source_default_github_grant_on_signup"
+	SettingKeyAuthSourceDefaultGitHubGrantOnFirstBind  = "auth_source_default_github_grant_on_first_bind"
+	SettingKeyAuthSourceDefaultGoogleBalance           = "auth_source_default_google_balance"
+	SettingKeyAuthSourceDefaultGoogleConcurrency       = "auth_source_default_google_concurrency"
+	SettingKeyAuthSourceDefaultGoogleSubscriptions     = "auth_source_default_google_subscriptions"
+	SettingKeyAuthSourceDefaultGoogleGrantOnSignup     = "auth_source_default_google_grant_on_signup"
+	SettingKeyAuthSourceDefaultGoogleGrantOnFirstBind  = "auth_source_default_google_grant_on_first_bind"
 	SettingKeyForceEmailOnThirdPartySignup             = "force_email_on_third_party_signup"
 
 	// 管理员 API Key
@@ -294,6 +319,9 @@ const (
 
 	// SettingKeyOverloadCooldownSettings stores JSON config for 529 overload cooldown handling.
 	SettingKeyOverloadCooldownSettings = "overload_cooldown_settings"
+
+	// SettingKeyRateLimit429CooldownSettings stores JSON config for 429 fallback cooldown handling.
+	SettingKeyRateLimit429CooldownSettings = "rate_limit_429_cooldown_settings"
 
 	// =========================
 	// Stream Timeout Handling

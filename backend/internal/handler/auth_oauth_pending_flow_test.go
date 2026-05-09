@@ -2160,7 +2160,6 @@ CREATE TABLE IF NOT EXISTS user_avatars (
 	updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 )`)
 	require.NoError(t, err)
-
 	drv := entsql.OpenDB(dialect.SQLite, db)
 	client := enttest.NewClient(t, enttest.WithOptions(dbent.Driver(drv)))
 
@@ -2177,9 +2176,10 @@ CREATE TABLE IF NOT EXISTS user_avatars (
 		},
 	}
 	settingValues := map[string]string{
-		service.SettingKeyRegistrationEnabled:   "true",
-		service.SettingKeyInvitationCodeEnabled: boolSettingValue(options.invitationEnabled),
-		service.SettingKeyEmailVerifyEnabled:    boolSettingValue(options.emailVerifyEnabled),
+		service.SettingKeyRegistrationEnabled:              "true",
+		service.SettingKeyInvitationCodeEnabled:            boolSettingValue(options.invitationEnabled),
+		service.SettingKeyEmailVerifyEnabled:               boolSettingValue(options.emailVerifyEnabled),
+		service.SettingKeyRegistrationEmailSuffixWhitelist: "[]",
 	}
 	for key, value := range options.settingValues {
 		settingValues[key] = value
@@ -2795,6 +2795,14 @@ func (r *oauthPendingFlowUserRepo) DeductBalance(context.Context, int64, float64
 
 func (r *oauthPendingFlowUserRepo) UpdateConcurrency(context.Context, int64, int) error {
 	panic("unexpected UpdateConcurrency call")
+}
+
+func (r *oauthPendingFlowUserRepo) BatchSetConcurrency(context.Context, []int64, int) (int, error) {
+	panic("unexpected BatchSetConcurrency call")
+}
+
+func (r *oauthPendingFlowUserRepo) BatchAddConcurrency(context.Context, []int64, int) (int, error) {
+	panic("unexpected BatchAddConcurrency call")
 }
 
 func (r *oauthPendingFlowUserRepo) GetLatestUsedAtByUserIDs(context.Context, []int64) (map[int64]*time.Time, error) {
