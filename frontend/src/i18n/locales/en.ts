@@ -5175,6 +5175,13 @@ export default {
           enabled: 'Enable Available Channels',
           enabledHint: 'When off, the sidebar entry is hidden and the endpoint returns an empty list.',
         },
+        riskControl: {
+          title: 'Risk Control',
+          description: 'Enable the content moderation menu and request auditing entry point. Disabled by default.',
+          configureLink: 'Configure content moderation in Risk Control',
+          enabled: 'Enable Risk Control',
+          enabledHint: 'When off, the admin sidebar entry is hidden and gateway content moderation does not run.',
+        },
       },
       emailTabDisabledTitle: 'Email Verification Not Enabled',
       emailTabDisabledHint: 'Enable email verification in the Security tab to configure SMTP settings.',
