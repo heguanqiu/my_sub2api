@@ -15,7 +15,7 @@
       <AppHeader />
 
       <!-- Main Content -->
-      <main class="p-4 md:p-6 lg:p-8">
+      <main :class="contentClass">
         <slot />
       </main>
     </div>
@@ -34,8 +34,17 @@ import AppHeader from './AppHeader.vue'
 
 const appStore = useAppStore()
 const authStore = useAuthStore()
+const props = withDefaults(
+  defineProps<{
+    padded?: boolean
+  }>(),
+  {
+    padded: true
+  }
+)
 const sidebarCollapsed = computed(() => appStore.sidebarCollapsed)
 const isAdmin = computed(() => authStore.user?.role === 'admin')
+const contentClass = computed(() => (props.padded ? 'p-4 md:p-6 lg:p-8' : 'p-0'))
 
 const { replayTour } = useOnboardingTour({
   storageKey: isAdmin.value ? 'admin_guide' : 'user_guide',

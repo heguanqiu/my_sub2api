@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newAdminRoutesTestRouter() *gin.Engine {
+func TestAdminRiskControlRoutesAreRegistered(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	v1 := router.Group("/api/v1")
@@ -26,12 +26,6 @@ func newAdminRoutesTestRouter() *gin.Engine {
 			c.AbortWithStatus(http.StatusTeapot)
 		}),
 	)
-
-	return router
-}
-
-func TestAdminRiskControlRoutesAreRegistered(t *testing.T) {
-	router := newAdminRoutesTestRouter()
 
 	tests := []struct {
 		method string

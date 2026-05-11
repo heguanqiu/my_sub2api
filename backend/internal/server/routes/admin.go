@@ -53,6 +53,9 @@ func RegisterAdminRoutes(
 		// 系统设置
 		registerSettingsRoutes(admin, h)
 
+		// 风控中心
+		registerContentModerationRoutes(admin, h)
+
 		inviteRewards := admin.Group("/invite-rewards")
 		{
 			inviteRewards.GET("", h.Admin.Payment.ListInviteRewards)
@@ -67,9 +70,6 @@ func RegisterAdminRoutes(
 
 		// 运维监控（Ops）
 		registerOpsRoutes(admin, h)
-
-		// 风险控制
-		registerContentModerationRoutes(admin, h)
 
 		// 系统管理
 		registerSystemRoutes(admin, h)

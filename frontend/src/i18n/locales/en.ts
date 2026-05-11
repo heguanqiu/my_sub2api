@@ -344,6 +344,7 @@ export default {
     dashboard: 'Dashboard',
     announcements: 'Announcements',
     apiKeys: 'API Keys',
+    playground: 'Playground',
     usage: 'Usage',
     redeem: 'Redeem',
     profile: 'Profile',
@@ -5177,10 +5178,10 @@ export default {
         },
         riskControl: {
           title: 'Risk Control',
-          description: 'Enable the content moderation menu and request auditing entry point. Disabled by default.',
+          description: 'Controls the risk-control entry and gateway content moderation pipeline. When disabled, the menu is hidden and gateway requests are not moderated.',
           configureLink: 'Configure content moderation in Risk Control',
           enabled: 'Enable Risk Control',
-          enabledHint: 'When off, the admin sidebar entry is hidden and gateway content moderation does not run.',
+          enabledHint: 'When enabled, the Risk Control entry is visible and content moderation settings can apply to gateway requests.',
         },
       },
       emailTabDisabledTitle: 'Email Verification Not Enabled',
@@ -6198,6 +6199,17 @@ export default {
     notFoundDesc: 'This custom page does not exist or has been removed.',
     notConfiguredTitle: 'Page URL not configured',
     notConfiguredDesc: 'The URL for this custom page has not been properly configured.',
+  },
+
+  // Playground Page
+  playground: {
+    title: 'Playground',
+    description: 'Open WebUI',
+    selectApiKey: 'Select API key',
+    openInNewTab: 'Open in new tab',
+    noKeysTitle: 'No available API keys',
+    noKeysDesc: 'Create or enable an API key first.',
+    loadFailed: 'Failed to load API keys',
   },
 
   // Announcements Page

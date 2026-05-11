@@ -344,6 +344,7 @@ export default {
     dashboard: '仪表盘',
     announcements: '公告',
     apiKeys: 'API 密钥',
+    playground: '演武场',
     usage: '使用记录',
     redeem: '兑换',
     profile: '个人资料',
@@ -5340,10 +5341,10 @@ export default {
         },
         riskControl: {
           title: '风控中心',
-          description: '启用内容审计菜单和全端点请求审核入口。默认关闭。',
-          configureLink: '前往 风控中心 配置内容审计',
+          description: '控制风控中心入口与网关内容审计链路。关闭后菜单隐藏，网关不执行内容审计。',
+          configureLink: '前往风控中心配置内容审计策略',
           enabled: '启用风控中心',
-          enabledHint: '关闭后管理员侧边栏入口隐藏，网关内容审计不会执行。',
+          enabledHint: '开启后显示风控中心入口，并允许内容审计配置参与网关请求处理。',
         },
       },
       emailTabDisabledTitle: '邮箱验证未启用',
@@ -6358,6 +6359,17 @@ export default {
     notFoundDesc: '该自定义页面不存在或已被删除。',
     notConfiguredTitle: '页面链接未配置',
     notConfiguredDesc: '该自定义页面的 URL 未正确配置。',
+  },
+
+  // Playground Page
+  playground: {
+    title: '演武场',
+    description: 'Open WebUI',
+    selectApiKey: '选择 API 密钥',
+    openInNewTab: '新窗口打开',
+    noKeysTitle: '暂无可用 API 密钥',
+    noKeysDesc: '请先创建或启用一个 API 密钥。',
+    loadFailed: '加载 API 密钥失败',
   },
 
   // Announcements Page
