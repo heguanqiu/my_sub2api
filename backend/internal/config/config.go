@@ -91,6 +91,7 @@ type Config struct {
 	Gemini                  GeminiConfig                  `mapstructure:"gemini"`
 	Update                  UpdateConfig                  `mapstructure:"update"`
 	Idempotency             IdempotencyConfig             `mapstructure:"idempotency"`
+	Playground              PlaygroundConfig              `mapstructure:"playground"`
 }
 
 type LogConfig struct {
@@ -171,6 +172,11 @@ type IdempotencyConfig struct {
 	CleanupIntervalSeconds int `mapstructure:"cleanup_interval_seconds"`
 	// CleanupBatchSize 每次清理的最大记录数。
 	CleanupBatchSize int `mapstructure:"cleanup_batch_size"`
+}
+
+type PlaygroundConfig struct {
+	EmbedSecret            string `mapstructure:"embed_secret"`
+	EmbedSessionTTLSeconds int    `mapstructure:"embed_session_ttl_seconds"`
 }
 
 type LinuxDoConnectConfig struct {
@@ -1283,6 +1289,13 @@ func load(allowMissingJWTSecret bool) (*Config, error) {
 	}
 	cfg.Server.FrontendURL = strings.TrimSpace(cfg.Server.FrontendURL)
 	cfg.JWT.Secret = strings.TrimSpace(cfg.JWT.Secret)
+	cfg.Playground.EmbedSecret = strings.TrimSpace(cfg.Playground.EmbedSecret)
+	if cfg.Playground.EmbedSecret == "" {
+		cfg.Playground.EmbedSecret = cfg.JWT.Secret
+	}
+	if cfg.Playground.EmbedSessionTTLSeconds <= 0 {
+		cfg.Playground.EmbedSessionTTLSeconds = 300
+	}
 	cfg.LinuxDo.ClientID = strings.TrimSpace(cfg.LinuxDo.ClientID)
 	cfg.LinuxDo.ClientSecret = strings.TrimSpace(cfg.LinuxDo.ClientSecret)
 	cfg.LinuxDo.AuthorizeURL = strings.TrimSpace(cfg.LinuxDo.AuthorizeURL)
@@ -1657,6 +1670,10 @@ func setDefaults() {
 	viper.SetDefault("idempotency.max_stored_response_len", 64*1024)
 	viper.SetDefault("idempotency.cleanup_interval_seconds", 60)
 	viper.SetDefault("idempotency.cleanup_batch_size", 500)
+
+	// Playground iframe integration
+	viper.SetDefault("playground.embed_secret", "")
+	viper.SetDefault("playground.embed_session_ttl_seconds", 300)
 
 	// Gateway
 	viper.SetDefault("gateway.response_header_timeout", 600) // 600秒(10分钟)等待上游响应头，LLM高负载时可能排队较久

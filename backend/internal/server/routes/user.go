@@ -61,6 +61,11 @@ func RegisterUserRoutes(
 			keys.DELETE("/:id", h.APIKey.Delete)
 		}
 
+		playground := authenticated.Group("/playground")
+		{
+			playground.POST("/embed-session", h.Playground.CreateEmbedSession)
+		}
+
 		// 用户可用分组（非管理员接口）
 		groups := authenticated.Group("/groups")
 		{

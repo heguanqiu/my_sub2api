@@ -29,7 +29,7 @@
           </button>
 
           <a
-            v-if="selectedApiKey"
+            v-if="selectedApiKey && embedSession"
             class="btn btn-secondary"
             :href="iframeSrc"
             target="_blank"
@@ -69,10 +69,11 @@
       </div>
 
       <div v-else class="playground-frame-shell">
-        <div v-if="frameLoading" class="playground-frame-loading">
+        <div v-if="frameLoading || loadingEmbedSession" class="playground-frame-loading">
           <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary-500 border-t-transparent"></div>
         </div>
         <iframe
+          v-if="!selectedApiKey || embedSession"
           :key="frameKey"
           :src="iframeSrc"
           class="playground-frame"
@@ -91,6 +92,7 @@ import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
 import keysAPI from '@/api/keys'
+import playgroundAPI, { type PlaygroundEmbedSession } from '@/api/playground'
 import type { ApiKey } from '@/types'
 import { useAppStore } from '@/stores/app'
 import { extractApiErrorMessage } from '@/utils/apiError'
@@ -106,8 +108,10 @@ const appStore = useAppStore()
 const apiKeys = ref<ApiKey[]>([])
 const selectedKeyId = ref('')
 const loadingKeys = ref(false)
+const loadingEmbedSession = ref(false)
 const frameLoading = ref(false)
 const frameNonce = ref(0)
+const embedSession = ref<PlaygroundEmbedSession | null>(null)
 
 const usableApiKeys = computed(() =>
   apiKeys.value.filter((apiKey) => apiKey.status === 'active' && !!apiKey.key),
@@ -124,33 +128,25 @@ const apiBaseUrl = computed(() => {
 })
 
 const iframeSrc = computed(() => {
-  const apiKey = selectedApiKey.value
   const url = new URL(OPEN_WEBUI_URL)
   url.searchParams.set('sub2api_embed', '1')
   url.searchParams.set('theme', detectTheme())
   url.searchParams.set('lang', openWebUILocale.value)
 
-  if (!apiKey) {
+  if (!selectedApiKey.value || !embedSession.value) {
     return url.toString()
   }
 
   const payload = {
-    source: 'sub2api',
-    version: 1,
-    apiBaseUrl: apiBaseUrl.value,
-    selectedKeyId: apiKey.id,
-    selectedKeyName: apiKey.name,
-    directConnections: {
-      OPENAI_API_BASE_URLS: [apiBaseUrl.value],
-      OPENAI_API_KEYS: [apiKey.key],
-      OPENAI_API_CONFIGS: {
-        0: {
-          enable: true,
-          prefix_id: '',
-          model_ids: [],
-        },
-      },
-    },
+    source: embedSession.value.source,
+    version: embedSession.value.version,
+    expires_at: embedSession.value.expires_at,
+    signature: embedSession.value.signature,
+    apiBaseUrl: embedSession.value.api_base_url,
+    selectedKeyId: embedSession.value.selected_key_id,
+    selectedKeyName: embedSession.value.selected_key_name,
+    user: embedSession.value.user,
+    directConnections: embedSession.value.direct_connections,
   }
 
   url.hash = new URLSearchParams({
@@ -161,7 +157,9 @@ const iframeSrc = computed(() => {
 })
 
 const frameKey = computed(() => `${selectedKeyId.value || 'none'}-${frameNonce.value}`)
-const openWebUILocale = computed(() => (String(locale.value || 'zh') === 'zh' ? 'zh-CN' : 'en-US'))
+const openWebUILocale = computed(() =>
+  String(locale.value || 'zh').toLowerCase().startsWith('zh') ? 'zh-CN' : 'en-US',
+)
 
 function ensureV1BaseUrl(value: string): string {
   try {
@@ -218,15 +216,41 @@ async function loadApiKeys() {
   }
 }
 
+async function loadEmbedSession() {
+  const apiKey = selectedApiKey.value
+  embedSession.value = null
+
+  if (!apiKey) {
+    frameLoading.value = false
+    return
+  }
+
+  loadingEmbedSession.value = true
+  frameLoading.value = true
+  try {
+    embedSession.value = await playgroundAPI.createEmbedSession(apiKey.id, apiBaseUrl.value)
+  } catch (err: unknown) {
+    frameLoading.value = false
+    appStore.showError(extractApiErrorMessage(err, t('playground.loadFailed')))
+  } finally {
+    loadingEmbedSession.value = false
+  }
+}
+
 watch(selectedKeyId, (value) => {
   if (value) {
     localStorage.setItem(SELECTED_KEY_STORAGE_KEY, value)
     frameLoading.value = true
+    frameNonce.value += 1
+    loadEmbedSession()
   }
 })
 
-watch(iframeSrc, () => {
-  frameLoading.value = !!selectedApiKey.value
+watch(apiBaseUrl, () => {
+  if (selectedApiKey.value) {
+    frameNonce.value += 1
+    loadEmbedSession()
+  }
 })
 
 onMounted(async () => {
