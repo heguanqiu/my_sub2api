@@ -76,6 +76,7 @@
           v-if="!selectedApiKey || embedSession"
           :key="frameKey"
           :src="iframeSrc"
+          :name="iframeName"
           class="playground-frame"
           allow="clipboard-read; clipboard-write; microphone; fullscreen"
           allowfullscreen
@@ -127,17 +128,12 @@ const apiBaseUrl = computed(() => {
   return ensureV1BaseUrl(configured || window.location.origin)
 })
 
-const iframeSrc = computed(() => {
-  const url = new URL(OPEN_WEBUI_URL)
-  url.searchParams.set('sub2api_embed', '1')
-  url.searchParams.set('theme', detectTheme())
-  url.searchParams.set('lang', openWebUILocale.value)
-
+const embedPayload = computed(() => {
   if (!selectedApiKey.value || !embedSession.value) {
-    return url.toString()
+    return null
   }
 
-  const payload = {
+  return {
     source: embedSession.value.source,
     version: embedSession.value.version,
     expires_at: embedSession.value.expires_at,
@@ -148,13 +144,31 @@ const iframeSrc = computed(() => {
     user: embedSession.value.user,
     directConnections: embedSession.value.direct_connections,
   }
+})
 
-  url.hash = new URLSearchParams({
-    sub2api_direct: base64UrlEncode(JSON.stringify(payload)),
-  }).toString()
+const encodedEmbedPayload = computed(() => {
+  if (!embedPayload.value) return ''
+  return base64UrlEncode(JSON.stringify(embedPayload.value))
+})
+
+const iframeSrc = computed(() => {
+  const url = new URL(OPEN_WEBUI_URL)
+  url.searchParams.set('sub2api_embed', '1')
+  url.searchParams.set('theme', detectTheme())
+  url.searchParams.set('lang', openWebUILocale.value)
+
+  if (encodedEmbedPayload.value) {
+    url.hash = new URLSearchParams({
+      sub2api_direct: encodedEmbedPayload.value,
+    }).toString()
+  }
 
   return url.toString()
 })
+
+const iframeName = computed(() =>
+  encodedEmbedPayload.value ? `sub2api_direct:${encodedEmbedPayload.value}` : 'sub2api_playground',
+)
 
 const frameKey = computed(() => `${selectedKeyId.value || 'none'}-${frameNonce.value}`)
 const openWebUILocale = computed(() =>
