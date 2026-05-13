@@ -71,8 +71,8 @@ Sub2API 是一个 AI API 网关平台，用于分发和管理 AI 产品订阅的
 </tr>
 
 <tr>
-<td width="180"><a href="https://code.silkapi.com/"><img src="assets/partners/logos/silkapi.png" alt="silkapi" width="150"></a></td>
-<td>感谢 丝绸API 赞助了本项目！ <a href="https://code.silkapi.com/">丝绸API</a> 是基于 Sub2API 搭建的中转服务，专注于提供 Codex 高速稳定API中转。</td>
+<td width="180"><a href="https://code.silkapi.com/register?aff=SUB2API"><img src="assets/partners/logos/silkapi.png" alt="silkapi" width="150"></a></td>
+<td>感谢 丝绸API 赞助了本项目！ <a href="https://code.silkapi.com/register?aff=SUB2API">丝绸API</a> 是基于 Sub2API 搭建的中转服务，专注于提供 Codex 高速稳定API中转。</td>
 </tr>
 
 <tr>
@@ -98,6 +98,13 @@ Sub2API 是一个 AI API 网关平台，用于分发和管理 AI 产品订阅的
 <tr>
 <td width="180"><a href="https://bestproxy.com/?keyword=a2e8iuol"><img src="assets/partners/logos/bestproxy.png" alt="bestproxy" width="150"></a></td>
 <td>感谢 Bestproxy 赞助了本项目！<a href="https://bestproxy.com/?keyword=a2e8iuol">Bestproxy</a> 是一家提供高纯度住宅IP，支持一号一IP独享，结合真实家庭网络与指纹隔离，可实现链路环境隔离，降低关联风控概率。</td>
+</tr>
+
+<tr>
+<td width="180"><a href="https://pateway.ai/?ch=1tsfr51"><img src="assets/partners/logos/pateway.png" alt="pateway" width="150"></a></td>
+<td>感谢 PatewayAI 赞助了本项目！PatewayAI 是一家面向重度 AI 开发者、专注官方直连的高品质模型 API 中转服务商。提供 Claude 全系列与 Codex 系列模型，100% 官方源直供，不掺假不注水，欢迎检验。计费透明，Token 级账单可逐笔核验。
+同时支持企业级高并发，并为企业客户提供了专业的管理平台，企业客户可签订正式合同并开具发票，更多详情进入官网获取联系方式。
+现在通过 <a href="https://pateway.ai/?ch=1tsfr51">此链接</a> 注册即送 $3 试用额度，用户充值低至 6 折，邀请好友双向赠送，邀请奖励可达 $150。</td>
 </tr>
 
 </table>
@@ -503,7 +510,7 @@ gateway:
   sora_media_signed_url_ttl_seconds: 900
 ```
 
-> 若未配置签名密钥，`/sora/media-signed` 将返回 503。  
+> 若未配置签名密钥，`/sora/media-signed` 将返回 503。
 > 如需更严格的访问控制，可将 `sora_media_require_api_key` 设为 true，仅允许携带 API Key 的 `/sora/media` 访问。
 
 访问策略说明：
@@ -659,7 +666,7 @@ Antigravity 账户支持可选的**混合调度**功能。开启后，通用端�
 
 
 ### 已知问题
-在 Claude Code 中，无法自动退出Plan Mode。（正常使用原生Claude Api时，Plan 完成后，Claude Code会弹出弹出选项让用户同意或拒绝Plan。） 
+在 Claude Code 中，无法自动退出Plan Mode。（正常使用原生Claude Api时，Plan 完成后，Claude Code会弹出弹出选项让用户同意或拒绝Plan。）
 解决办法：shift + Tab，手动退出Plan mode，然后输入内容 告诉 Claude Code 同意或拒绝 Plan
 ---
 
