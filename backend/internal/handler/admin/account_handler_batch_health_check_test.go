@@ -43,6 +43,10 @@ func (f *fakeBatchAccountTester) RunTestBackground(_ context.Context, accountID 
 
 func (f *fakeBatchAccountTester) ProbeOpenAIAPIKeyResponsesSupport(_ context.Context, _ int64) {}
 
+func (f *fakeBatchAccountTester) FetchUpstreamSupportedModels(_ context.Context, _ *service.Account) ([]string, error) {
+	panic("unexpected FetchUpstreamSupportedModels call")
+}
+
 func setupBatchHealthCheckRouter(adminSvc service.AdminService, tester accountTester) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
