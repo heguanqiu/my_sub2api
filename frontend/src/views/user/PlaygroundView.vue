@@ -100,7 +100,7 @@ import { extractApiErrorMessage } from '@/utils/apiError'
 
 const OPEN_WEBUI_URL =
   (import.meta.env.VITE_OPEN_WEBUI_URL as string | undefined)?.trim() ||
-  'https://chat.jinlongjiangzhuang.click'
+  'https://chat.jlaudeapi.com/'
 const SELECTED_KEY_STORAGE_KEY = 'sub2api.playground.selectedKeyId'
 
 const { t, locale } = useI18n()
