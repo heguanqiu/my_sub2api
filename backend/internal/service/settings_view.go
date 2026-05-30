@@ -142,12 +142,17 @@ type SystemSettings struct {
 	CustomMenuItems             string // JSON array of custom menu items
 	CustomEndpoints             string // JSON array of custom endpoints
 
-	DefaultConcurrency   int
-	DefaultBalance       float64
-	RiskControlEnabled   bool
-	DefaultUserRPMLimit  int
-	DefaultSubscriptions []DefaultSubscriptionSetting
-	DefaultSalesUserID   int64
+	DefaultConcurrency           int
+	DefaultBalance               float64
+	RiskControlEnabled           bool
+	AffiliateEnabled             bool
+	AffiliateRebateRate          float64
+	AffiliateRebateFreezeHours   int
+	AffiliateRebateDurationDays  int
+	AffiliateRebatePerInviteeCap float64
+	DefaultUserRPMLimit          int
+	DefaultSubscriptions         []DefaultSubscriptionSetting
+	DefaultSalesUserID           int64
 
 	// Model fallback configuration
 	EnableModelFallback      bool   `json:"enable_model_fallback"`
@@ -266,6 +271,7 @@ type PublicSettings struct {
 	WeChatOAuthMobileEnabled bool
 	BackendModeEnabled       bool
 	PaymentEnabled           bool
+	AffiliateEnabled         bool
 	RiskControlEnabled       bool
 	OIDCOAuthEnabled         bool
 	OIDCOAuthProviderName    string

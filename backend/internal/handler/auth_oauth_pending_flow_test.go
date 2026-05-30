@@ -2190,6 +2190,7 @@ CREATE TABLE IF NOT EXISTS user_avatars (
 		options: options.userRepoOptions,
 	}
 	redeemRepo := &oauthPendingFlowRedeemCodeRepo{client: client}
+	affiliateService := service.NewAffiliateService(&oauthPendingFlowAffiliateRepo{}, settingSvc, nil, nil)
 	var emailService *service.EmailService
 	if options.emailCache != nil {
 		emailService = service.NewEmailService(&oauthPendingFlowSettingRepoStub{
@@ -2595,6 +2596,76 @@ type oauthPendingFlowUserRepo struct {
 
 type oauthPendingFlowUserRepoOptions struct {
 	rejectDeleteWhileAuthIdentityExists bool
+}
+
+type oauthPendingFlowAffiliateRepo struct{}
+
+func (r *oauthPendingFlowAffiliateRepo) EnsureUserAffiliate(ctx context.Context, userID int64) (*service.AffiliateSummary, error) {
+	return &service.AffiliateSummary{UserID: userID, AffCode: "TESTAFF"}, nil
+}
+
+func (r *oauthPendingFlowAffiliateRepo) GetAffiliateByCode(ctx context.Context, code string) (*service.AffiliateSummary, error) {
+	return nil, service.ErrAffiliateProfileNotFound
+}
+
+func (r *oauthPendingFlowAffiliateRepo) BindInviter(ctx context.Context, userID, inviterID int64) (bool, error) {
+	return false, nil
+}
+
+func (r *oauthPendingFlowAffiliateRepo) AccrueQuota(ctx context.Context, inviterID, inviteeUserID int64, amount float64, freezeHours int, sourceOrderID *int64) (bool, error) {
+	return false, nil
+}
+
+func (r *oauthPendingFlowAffiliateRepo) GetAccruedRebateFromInvitee(ctx context.Context, inviterID, inviteeUserID int64) (float64, error) {
+	return 0, nil
+}
+
+func (r *oauthPendingFlowAffiliateRepo) ThawFrozenQuota(ctx context.Context, userID int64) (float64, error) {
+	return 0, nil
+}
+
+func (r *oauthPendingFlowAffiliateRepo) TransferQuotaToBalance(ctx context.Context, userID int64) (float64, float64, error) {
+	return 0, 0, nil
+}
+
+func (r *oauthPendingFlowAffiliateRepo) ListInvitees(ctx context.Context, inviterID int64, limit int) ([]service.AffiliateInvitee, error) {
+	return nil, nil
+}
+
+func (r *oauthPendingFlowAffiliateRepo) UpdateUserAffCode(ctx context.Context, userID int64, newCode string) error {
+	return nil
+}
+
+func (r *oauthPendingFlowAffiliateRepo) ResetUserAffCode(ctx context.Context, userID int64) (string, error) {
+	return "TESTAFF", nil
+}
+
+func (r *oauthPendingFlowAffiliateRepo) SetUserRebateRate(ctx context.Context, userID int64, ratePercent *float64) error {
+	return nil
+}
+
+func (r *oauthPendingFlowAffiliateRepo) BatchSetUserRebateRate(ctx context.Context, userIDs []int64, ratePercent *float64) error {
+	return nil
+}
+
+func (r *oauthPendingFlowAffiliateRepo) ListUsersWithCustomSettings(ctx context.Context, filter service.AffiliateAdminFilter) ([]service.AffiliateAdminEntry, int64, error) {
+	return nil, 0, nil
+}
+
+func (r *oauthPendingFlowAffiliateRepo) ListAffiliateInviteRecords(ctx context.Context, filter service.AffiliateRecordFilter) ([]service.AffiliateInviteRecord, int64, error) {
+	return nil, 0, nil
+}
+
+func (r *oauthPendingFlowAffiliateRepo) ListAffiliateRebateRecords(ctx context.Context, filter service.AffiliateRecordFilter) ([]service.AffiliateRebateRecord, int64, error) {
+	return nil, 0, nil
+}
+
+func (r *oauthPendingFlowAffiliateRepo) ListAffiliateTransferRecords(ctx context.Context, filter service.AffiliateRecordFilter) ([]service.AffiliateTransferRecord, int64, error) {
+	return nil, 0, nil
+}
+
+func (r *oauthPendingFlowAffiliateRepo) GetAffiliateUserOverview(ctx context.Context, userID int64) (*service.AffiliateUserOverview, error) {
+	return nil, service.ErrAffiliateProfileNotFound
 }
 
 func (r *oauthPendingFlowUserRepo) Create(ctx context.Context, user *service.User) error {

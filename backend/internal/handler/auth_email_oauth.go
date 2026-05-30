@@ -306,6 +306,7 @@ func (h *AuthHandler) createEmailOAuthRegistrationPendingSession(
 type completeEmailOAuthRequest struct {
 	Password       string `json:"password" binding:"required,min=6"`
 	InvitationCode string `json:"invitation_code,omitempty"`
+	AffCode        string `json:"aff_code,omitempty"`
 }
 
 func (h *AuthHandler) completeEmailOAuthRegistration(c *gin.Context, provider string) {
@@ -380,6 +381,7 @@ func (h *AuthHandler) completeEmailOAuthRegistration(c *gin.Context, provider st
 		user,
 		strings.TrimSpace(req.InvitationCode),
 		strings.TrimSpace(session.ProviderType),
+		strings.TrimSpace(req.AffCode),
 	); err != nil {
 		_ = tx.Rollback()
 		_ = h.authService.RollbackOAuthEmailAccountCreation(c.Request.Context(), user.ID, strings.TrimSpace(req.InvitationCode))
