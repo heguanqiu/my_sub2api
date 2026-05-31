@@ -6861,6 +6861,8 @@ const form = reactive<SettingsForm>({
   channel_monitor_default_interval_seconds: 60,
   // Available Channels feature switch
   available_channels_enabled: false,
+  // Affiliate feature switch
+  affiliate_enabled: false,
 });
 
 const authSourceDefaults = reactive<AuthSourceDefaultsState>(
