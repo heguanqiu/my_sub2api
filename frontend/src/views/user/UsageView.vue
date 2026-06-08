@@ -660,13 +660,6 @@ const tooltipVisible = ref(false)
 const tooltipPosition = ref({ x: 0, y: 0 })
 const tooltipData = ref<UsageLog | null>(null)
 
-function imageUnitPrice(row: UsageLog | null): number {
-  if (!row || row.image_count <= 0) return 0
-  const total = row.total_cost ?? 0
-  const price = total / row.image_count
-  return Number.isFinite(price) ? price : 0
-}
-
 // Token tooltip state
 const tokenTooltipVisible = ref(false)
 const tokenTooltipPosition = ref({ x: 0, y: 0 })
@@ -797,17 +790,6 @@ const getDisplayedFirstTokenMs = (log: UsageLog): number | null => {
 
   const range = USER_FIRST_TOKEN_FAKE_MAX_MS - USER_FIRST_TOKEN_FAKE_MIN_MS + 1
   return USER_FIRST_TOKEN_FAKE_MIN_MS + (Math.abs(hash) % range)
-}
-
-const isImageUsage = (row: Pick<UsageLog, 'image_count'> | null | undefined): boolean => {
-  return (row?.image_count ?? 0) > 0
-}
-
-const getDisplayBillingMode = (row: Pick<UsageLog, 'billing_mode' | 'image_count'> | null | undefined): string | null | undefined => {
-  if (isImageUsage(row)) {
-    return BILLING_MODE_IMAGE
-  }
-  return row?.billing_mode
 }
 
 const formatUserAgent = (ua: string): string => {
