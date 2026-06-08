@@ -121,6 +121,10 @@ func (s *salesDashboardRangeUserRepoStub) GetByID(_ context.Context, id int64) (
 	return nil, ErrUserNotFound
 }
 
+func (s *salesDashboardRangeUserRepoStub) GetByIDIncludeDeleted(ctx context.Context, id int64) (*User, error) {
+	return s.GetByID(ctx, id)
+}
+
 func (s *salesDashboardRangeUserRepoStub) Create(context.Context, *User) error {
 	panic("unexpected Create call")
 }

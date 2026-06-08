@@ -144,6 +144,7 @@ type SystemSettings struct {
 
 	DefaultConcurrency   int                          `json:"default_concurrency"`
 	DefaultBalance       float64                      `json:"default_balance"`
+	AffiliateEnabled     bool                         `json:"affiliate_enabled"`
 	RiskControlEnabled   bool                         `json:"risk_control_enabled"`
 	DefaultUserRPMLimit  int                          `json:"default_user_rpm_limit"`
 	DefaultSubscriptions []DefaultSubscriptionSetting `json:"default_subscriptions"`
