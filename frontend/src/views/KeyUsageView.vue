@@ -1,5 +1,5 @@
 <template>
-  <div class="relative flex min-h-screen flex-col bg-gray-50 dark:bg-dark-950">
+  <div class="key-usage-shell relative flex min-h-screen flex-col bg-gray-50 dark:bg-dark-950">
     <!-- Header (same pattern as HomeView) -->
     <header class="relative z-20 px-6 py-4">
       <nav class="mx-auto flex max-w-6xl items-center justify-between">
@@ -21,6 +21,13 @@
           >
             <Icon name="book" size="md" />
           </a>
+          <button
+            @click="toggleUiTheme"
+            class="theme-mode-button rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-dark-400 dark:hover:bg-dark-800 dark:hover:text-white"
+            :title="isMecha ? t('nav.classicTheme') : t('nav.mechaTheme')"
+          >
+            <Icon name="cpu" size="md" />
+          </button>
           <button
             @click="toggleTheme"
             class="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-dark-400 dark:hover:bg-dark-800 dark:hover:text-white"
@@ -422,6 +429,7 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { initUiTheme, setUiTheme, type UiTheme } from '@/utils/uiTheme'
 
 const { t, locale } = useI18n()
 const appStore = useAppStore()
@@ -436,11 +444,19 @@ const githubUrl = 'https://github.com/Wei-Shaw/sub2api'
 // ==================== Theme (same as HomeView) ====================
 
 const isDark = ref(document.documentElement.classList.contains('dark'))
+const uiTheme = ref<UiTheme>(initUiTheme())
+const isMecha = computed(() => uiTheme.value === 'mecha')
 
 function toggleTheme() {
   isDark.value = !isDark.value
   document.documentElement.classList.toggle('dark', isDark.value)
   localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
+}
+
+function toggleUiTheme() {
+  const nextTheme: UiTheme = isMecha.value ? 'classic' : 'mecha'
+  uiTheme.value = nextTheme
+  setUiTheme(nextTheme)
 }
 
 const currentYear = computed(() => new Date().getFullYear())
@@ -524,17 +540,31 @@ function setDailyUsageDays(days: 7 | 30 | 90) {
 // ==================== Ring Animation ====================
 
 const CIRCUMFERENCE = 2 * Math.PI * 68
-const RING_GRADIENTS = [
+const CLASSIC_RING_GRADIENTS = [
   { from: '#14b8a6', to: '#5eead4' },
   { from: '#6366F1', to: '#A5B4FC' },
   { from: '#10B981', to: '#6EE7B7' },
   { from: '#F59E0B', to: '#FCD34D' },
 ]
 
+const MECHA_RING_GRADIENTS = [
+  { from: '#21d6f6', to: '#ffb020' },
+  { from: '#4c8dff', to: '#21d6f6' },
+  { from: '#24d18b', to: '#21d6f6' },
+  { from: '#ffb020', to: '#ff5a67' },
+]
+
+const RING_GRADIENTS = computed(() => isMecha.value ? MECHA_RING_GRADIENTS : CLASSIC_RING_GRADIENTS)
+
 const ringAnimated = ref(false)
 const displayPcts = ref<number[]>([])
 
-const ringTrackColor = computed(() => isDark.value ? '#222222' : '#F0F0EE')
+const ringTrackColor = computed(() => {
+  if (isMecha.value) {
+    return isDark.value ? 'rgba(33, 214, 246, 0.18)' : 'rgba(0, 167, 196, 0.16)'
+  }
+  return isDark.value ? '#222222' : '#F0F0EE'
+})
 
 interface RingItem {
   title: string

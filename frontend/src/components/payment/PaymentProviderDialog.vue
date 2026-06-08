@@ -187,7 +187,7 @@
         </div>
 
         <!-- 服务商 Webhook 提示 -->
-        <div v-if="providerWebhookUrl" class="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800/50 dark:bg-blue-900/20">
+        <div v-if="providerWebhookUrl" class="provider-webhook-panel mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800/50 dark:bg-blue-900/20">
           <p class="text-xs text-blue-700 dark:text-blue-300">
             {{ t(providerWebhookHint) }}
           </p>

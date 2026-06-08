@@ -160,6 +160,18 @@
     <div class="mt-auto border-t border-gray-100 p-3 dark:border-dark-800">
       <!-- Theme Toggle -->
       <button
+        @click="toggleUiTheme"
+        class="sidebar-link mb-2 w-full"
+        :class="{ 'sidebar-link-collapsed': sidebarCollapsed }"
+        :title="sidebarCollapsed ? (isMecha ? t('nav.classicTheme') : t('nav.mechaTheme')) : undefined"
+      >
+        <CpuIcon class="h-5 w-5 flex-shrink-0" :class="isMecha ? 'text-cyan-400' : ''" />
+        <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{
+          isMecha ? t('nav.classicTheme') : t('nav.mechaTheme')
+        }}</span>
+      </button>
+
+      <button
         @click="toggleTheme"
         class="sidebar-link mb-2 w-full"
         :class="{ 'sidebar-link-collapsed': sidebarCollapsed }"
@@ -204,6 +216,7 @@ import { useAdminSettingsStore, useAppStore, useAuthStore, useOnboardingStore } 
 import VersionBadge from '@/components/common/VersionBadge.vue'
 import { sanitizeSvg } from '@/utils/sanitize'
 import { FeatureFlags, makeSidebarFlag } from '@/utils/featureFlags'
+import { initUiTheme, setUiTheme, type UiTheme } from '@/utils/uiTheme'
 
 interface NavItem {
   path: string
@@ -264,6 +277,8 @@ const siteName = computed(() => appStore.siteName)
 const siteLogo = computed(() => appStore.siteLogo)
 const siteVersion = computed(() => appStore.siteVersion)
 const settingsLoaded = computed(() => appStore.publicSettingsLoaded)
+const uiTheme = ref<UiTheme>(initUiTheme())
+const isMecha = computed(() => uiTheme.value === 'mecha')
 
 // SVG Icon Components
 const DashboardIcon = {
@@ -531,6 +546,21 @@ const MoonIcon = {
           'stroke-linecap': 'round',
           'stroke-linejoin': 'round',
           d: 'M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z'
+        })
+      ]
+    )
+}
+
+const CpuIcon = {
+  render: () =>
+    h(
+      'svg',
+      { fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor', 'stroke-width': '1.5' },
+      [
+        h('path', {
+          'stroke-linecap': 'round',
+          'stroke-linejoin': 'round',
+          d: 'M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z'
         })
       ]
     )
@@ -813,6 +843,12 @@ function toggleTheme() {
   isDark.value = !isDark.value
   document.documentElement.classList.toggle('dark', isDark.value)
   localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
+}
+
+function toggleUiTheme() {
+  const nextTheme: UiTheme = isMecha.value ? 'classic' : 'mecha'
+  uiTheme.value = nextTheme
+  setUiTheme(nextTheme)
 }
 
 function closeMobile() {

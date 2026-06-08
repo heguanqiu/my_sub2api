@@ -365,6 +365,8 @@ export default {
     promoCodes: '优惠码',
     settings: '系统设置',
     myAccount: '我的账户',
+    classicTheme: '经典主题',
+    mechaTheme: '机甲主题',
     lightMode: '浅色模式',
     darkMode: '深色模式',
     collapse: '收起',
