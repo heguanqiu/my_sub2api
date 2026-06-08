@@ -683,5 +683,9 @@ func (s *stubAdminService) MigrateSalesOwner(ctx context.Context, userID, target
 	return &service.ReferralMutationResult{RootUserID: userID, TargetSalesUserID: &target, AffectedUserCount: 1, AffectedUserIDs: []int64{userID}}, nil
 }
 
+func (s *stubAdminService) RevertAccountProxyFallback(ctx context.Context, id int64) error {
+	return nil
+}
+
 // Ensure stub implements interface.
 var _ service.AdminService = (*stubAdminService)(nil)
