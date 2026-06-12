@@ -194,82 +194,6 @@ export async function testAccount(id: number): Promise<{
   return data
 }
 
-export interface BatchHealthCheckItem {
-  account_id: number
-  name: string
-  platform: string
-  type: string
-  success: boolean
-  status: 'success' | 'failed'
-  model_id?: string
-  latency_ms?: number
-  response_text?: string
-  error_message?: string
-  recovered?: boolean
-}
-
-export interface BatchHealthCheckResponse {
-  items: BatchHealthCheckItem[]
-  total: number
-  success_count: number
-  failed_count: number
-}
-
-export interface IntelligentSchedulingItem {
-  account_id: number
-  name: string
-  platform: string
-  type: string
-  model_id?: string
-  latency_ms?: number
-  status: 'applied' | 'tested' | 'test_failed' | 'update_failed'
-  test_success: boolean
-  updated: boolean
-  error_message?: string
-  response_text?: string
-  previous_priority: number
-  new_priority?: number
-  previous_load_factor?: number | null
-  previous_effective_load_factor: number
-  new_load_factor?: number | null
-}
-
-export interface IntelligentSchedulingResponse {
-  items: IntelligentSchedulingItem[]
-  total: number
-  test_success_count: number
-  test_failed_count: number
-  applied_count: number
-}
-
-export async function batchHealthCheck(payload: {
-  account_ids: number[]
-  model_id?: string
-}): Promise<BatchHealthCheckResponse> {
-  const { data } = await apiClient.post<BatchHealthCheckResponse>(
-    '/admin/accounts/batch-health-check',
-    payload,
-    {
-      timeout: 300000
-    }
-  )
-  return data
-}
-
-export async function intelligentScheduling(payload: {
-  account_ids: number[]
-  model_id?: string
-}): Promise<IntelligentSchedulingResponse> {
-  const { data } = await apiClient.post<IntelligentSchedulingResponse>(
-    '/admin/accounts/intelligent-scheduling',
-    payload,
-    {
-      timeout: 300000
-    }
-  )
-  return data
-}
-
 /**
  * Refresh account credentials
  * @param id - Account ID
@@ -791,8 +715,6 @@ export const accountsAPI = {
   delete: deleteAccount,
   toggleStatus,
   testAccount,
-  batchHealthCheck,
-  intelligentScheduling,
   refreshCredentials,
   applyOAuthCredentials,
   getStats,

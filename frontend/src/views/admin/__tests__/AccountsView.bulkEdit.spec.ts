@@ -75,18 +75,13 @@ const DataTableStub = {
 
 const AccountBulkActionsBarStub = {
   props: ['selectedIds'],
-  emits: ['edit-filtered', 'intelligent-scheduling'],
-  template: '<div><button data-test="edit-filtered" @click="$emit(\'edit-filtered\')">edit filtered</button><button data-test="intelligent-scheduling" @click="$emit(\'intelligent-scheduling\')">smart schedule</button></div>'
+  emits: ['edit-filtered'],
+  template: '<button data-test="edit-filtered" @click="$emit(\'edit-filtered\')">edit filtered</button>'
 }
 
 const BulkEditAccountModalStub = {
   props: ['show', 'target'],
   template: '<div data-test="bulk-edit-modal" :data-show="String(show)" :data-target-mode="target?.mode ?? \'\'"></div>'
-}
-
-const AccountIntelligentSchedulingDialogStub = {
-  props: ['show'],
-  template: '<div data-test="intelligent-scheduling-modal" :data-show="String(show)"></div>'
 }
 
 describe('admin AccountsView bulk edit scope', () => {
@@ -134,8 +129,6 @@ describe('admin AccountsView bulk edit scope', () => {
           ImportDataModal: true,
           ReAuthAccountModal: true,
           AccountTestModal: true,
-          AccountBatchHealthCheckDialog: true,
-          AccountIntelligentSchedulingDialog: AccountIntelligentSchedulingDialogStub,
           AccountStatsModal: true,
           ScheduledTestsPanel: true,
           SyncFromCrsModal: true,
@@ -162,53 +155,6 @@ describe('admin AccountsView bulk edit scope', () => {
 
     expect(wrapper.get('[data-test="bulk-edit-modal"]').attributes('data-show')).toBe('true')
     expect(wrapper.get('[data-test="bulk-edit-modal"]').attributes('data-target-mode')).toBe('filtered')
-  })
-
-  it('opens intelligent scheduling modal from bulk actions', async () => {
-    const wrapper = mount(AccountsView, {
-      global: {
-        stubs: {
-          AppLayout: { template: '<div><slot /></div>' },
-          TablePageLayout: {
-            template: '<div><slot name="filters" /><slot name="table" /><slot name="pagination" /></div>'
-          },
-          DataTable: DataTableStub,
-          Pagination: true,
-          ConfirmDialog: true,
-          AccountTableActions: { template: '<div><slot name="beforeCreate" /><slot name="after" /></div>' },
-          AccountTableFilters: { template: '<div></div>' },
-          AccountBulkActionsBar: AccountBulkActionsBarStub,
-          AccountActionMenu: true,
-          ImportDataModal: true,
-          ReAuthAccountModal: true,
-          AccountTestModal: true,
-          AccountBatchHealthCheckDialog: true,
-          AccountIntelligentSchedulingDialog: AccountIntelligentSchedulingDialogStub,
-          AccountStatsModal: true,
-          ScheduledTestsPanel: true,
-          SyncFromCrsModal: true,
-          TempUnschedStatusModal: true,
-          ErrorPassthroughRulesModal: true,
-          TLSFingerprintProfilesModal: true,
-          CreateAccountModal: true,
-          EditAccountModal: true,
-          BulkEditAccountModal: BulkEditAccountModalStub,
-          PlatformTypeBadge: true,
-          AccountCapacityCell: true,
-          AccountStatusIndicator: true,
-          AccountTodayStatsCell: true,
-          AccountGroupsCell: true,
-          AccountUsageCell: true,
-          Icon: true
-        }
-      }
-    })
-
-    await flushPromises()
-    await wrapper.get('[data-test="intelligent-scheduling"]').trigger('click')
-    await flushPromises()
-
-    expect(wrapper.get('[data-test="intelligent-scheduling-modal"]').attributes('data-show')).toBe('true')
   })
 
   it('renders the created_at column by default', async () => {
@@ -248,8 +194,6 @@ describe('admin AccountsView bulk edit scope', () => {
           ImportDataModal: true,
           ReAuthAccountModal: true,
           AccountTestModal: true,
-          AccountBatchHealthCheckDialog: true,
-          AccountIntelligentSchedulingDialog: AccountIntelligentSchedulingDialogStub,
           AccountStatsModal: true,
           ScheduledTestsPanel: true,
           SyncFromCrsModal: true,

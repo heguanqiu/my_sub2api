@@ -17,15 +17,6 @@
             @create="showCreate = true"
           >
             <template #after>
-              <button
-                @click="openBatchHealthCheck"
-                class="btn btn-secondary"
-                :disabled="accounts.length === 0 && selIds.length === 0"
-              >
-                <Icon name="play" size="md" class="mr-1.5" />
-                <span class="hidden md:inline">{{ t('admin.accounts.batchHealthCheck') }}</span>
-              </button>
-
               <!-- Auto Refresh Dropdown -->
               <div class="relative" ref="autoRefreshDropdownRef">
                 <button
@@ -186,7 +177,6 @@
           @delete="handleBulkDelete"
           @reset-status="handleBulkResetStatus"
           @refresh-token="handleBulkRefreshToken"
-          @intelligent-scheduling="openIntelligentScheduling"
           @edit-selected="openBulkEditSelected"
           @edit-filtered="openBulkEditFiltered"
           @clear="clearSelection"
@@ -376,20 +366,6 @@
     <EditAccountModal :show="showEdit" :account="edAcc" :proxies="proxies" :groups="groups" @close="showEdit = false" @updated="handleAccountUpdated" />
     <ReAuthAccountModal :show="showReAuth" :account="reAuthAcc" @close="closeReAuthModal" @reauthorized="handleAccountUpdated" />
     <AccountTestModal :show="showTest" :account="testingAcc" @close="closeTestModal" />
-    <AccountBatchHealthCheckDialog
-      :show="showBatchHealthCheck"
-      :visible-accounts="accounts"
-      :selectedAccountIDs="selIds"
-      @close="showBatchHealthCheck = false"
-      @deleted="handleBatchHealthCheckDeleted"
-    />
-    <AccountIntelligentSchedulingDialog
-      :show="showIntelligentScheduling"
-      :visible-accounts="accounts"
-      :selectedAccountIDs="selIds"
-      @close="showIntelligentScheduling = false"
-      @applied="handleIntelligentSchedulingApplied"
-    />
     <AccountStatsModal :show="showStats" :account="statsAcc" @close="closeStatsModal" />
     <ScheduledTestsPanel :show="showSchedulePanel" :account-id="scheduleAcc?.id ?? null" :model-options="scheduleModelOptions" @close="closeSchedulePanel" />
     <AccountActionMenu :show="menu.show" :account="menu.acc" :position="menu.pos" @close="menu.show = false" @test="handleTest" @stats="handleViewStats" @schedule="handleSchedule" @reauth="handleReAuth" @refresh-token="handleRefresh" @recover-state="handleRecoverState" @reset-quota="handleResetQuota" @set-privacy="handleSetPrivacy" />
@@ -443,8 +419,6 @@ import AccountActionMenu from '@/components/admin/account/AccountActionMenu.vue'
 import ImportDataModal from '@/components/admin/account/ImportDataModal.vue'
 import ReAuthAccountModal from '@/components/admin/account/ReAuthAccountModal.vue'
 import AccountTestModal from '@/components/admin/account/AccountTestModal.vue'
-import AccountBatchHealthCheckDialog from '@/components/admin/account/AccountBatchHealthCheckDialog.vue'
-import AccountIntelligentSchedulingDialog from '@/components/admin/account/AccountIntelligentSchedulingDialog.vue'
 import AccountStatsModal from '@/components/admin/account/AccountStatsModal.vue'
 import ScheduledTestsPanel from '@/components/admin/account/ScheduledTestsPanel.vue'
 import type { SelectOption } from '@/components/common/Select.vue'
@@ -521,8 +495,6 @@ const showTempUnsched = ref(false)
 const showDeleteDialog = ref(false)
 const showReAuth = ref(false)
 const showTest = ref(false)
-const showBatchHealthCheck = ref(false)
-const showIntelligentScheduling = ref(false)
 const showStats = ref(false)
 const showErrorPassthrough = ref(false)
 const showTLSFingerprintProfiles = ref(false)
@@ -1583,15 +1555,6 @@ const closeTestModal = () => { showTest.value = false; testingAcc.value = null }
 const closeStatsModal = () => { showStats.value = false; statsAcc.value = null }
 const closeReAuthModal = () => { showReAuth.value = false; reAuthAcc.value = null }
 const handleTest = (a: Account) => { testingAcc.value = a; showTest.value = true }
-const openBatchHealthCheck = () => { showBatchHealthCheck.value = true }
-const openIntelligentScheduling = () => { showIntelligentScheduling.value = true }
-const handleBatchHealthCheckDeleted = async (deletedIDs: number[]) => {
-  removeSelectedAccounts(deletedIDs)
-  await reload()
-}
-const handleIntelligentSchedulingApplied = async (_accountIDs: number[]) => {
-  await reload()
-}
 const handleViewStats = (a: Account) => { statsAcc.value = a; showStats.value = true }
 const handleSchedule = async (a: Account) => {
   scheduleAcc.value = a
