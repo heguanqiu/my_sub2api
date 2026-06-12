@@ -4,9 +4,7 @@ import App from './App.vue'
 import router from './router'
 import i18n, { initI18n } from './i18n'
 import { useAppStore } from '@/stores/app'
-import { initUiTheme } from '@/utils/uiTheme'
 import './style.css'
-import './styles/themes/mecha.css'
 
 function initThemeClass() {
   const savedTheme = localStorage.getItem('theme')
@@ -19,7 +17,6 @@ function initThemeClass() {
 async function bootstrap() {
   // Apply theme class globally before app mount to keep all routes consistent.
   initThemeClass()
-  initUiTheme()
 
   const app = createApp(App)
   const pinia = createPinia()
@@ -31,7 +28,7 @@ async function bootstrap() {
   appStore.initFromInjectedConfig()
 
   // Set document title immediately after config is loaded
-  if (appStore.siteName && appStore.siteName !== 'Sub2API') {
+  if (appStore.siteName && appStore.siteName !== 'Jlaude') {
     document.title = `${appStore.siteName} - AI API Gateway`
   }
 
