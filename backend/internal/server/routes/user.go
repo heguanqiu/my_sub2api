@@ -25,6 +25,8 @@ func RegisterUserRoutes(
 			user.GET("/profile", h.User.GetProfile)
 			user.PUT("/password", h.User.ChangePassword)
 			user.PUT("", h.User.UpdateProfile)
+			user.GET("/aff", h.User.GetAffiliate)
+			user.POST("/aff/transfer", h.User.TransferAffiliateQuota)
 			user.POST("/account-bindings/email/send-code", h.User.SendEmailBindingCode)
 			user.POST("/account-bindings/email", h.User.BindEmailIdentity)
 			user.DELETE("/account-bindings/:provider", h.User.UnbindIdentity)
@@ -81,6 +83,11 @@ func RegisterUserRoutes(
 			channels.GET("/available", h.AvailableChannel.List)
 		}
 
+		models := authenticated.Group("/models")
+		{
+			models.GET("/marketplace", h.AvailableChannel.Marketplace)
+		}
+
 		// 使用记录
 		usage := authenticated.Group("/usage")
 		{
@@ -117,16 +124,6 @@ func RegisterUserRoutes(
 			subscriptions.GET("/active", h.Subscription.GetActive)
 			subscriptions.GET("/progress", h.Subscription.GetProgress)
 			subscriptions.GET("/summary", h.Subscription.GetSummary)
-		}
-
-		referral := authenticated.Group("/referral")
-		{
-			referral.GET("/my-link", h.User.GetMyInviteLink)
-			referral.POST("/my-link/regenerate", h.User.RegenerateMyInviteLink)
-			referral.POST("/my-link/disable", h.User.DisableMyInviteLink)
-			referral.POST("/my-link/revoke", h.User.RevokeMyInviteLink)
-			referral.GET("/my-invitees", h.User.GetMyInvitees)
-			referral.GET("/my-rewards", h.User.GetMyRewards)
 		}
 
 		// 渠道监控（用户只读）

@@ -59,15 +59,6 @@ func RegisterAdminRoutes(
 		// 系统设置
 		registerSettingsRoutes(admin, h)
 
-		// 风控中心
-		registerContentModerationRoutes(admin, h)
-
-		inviteRewards := admin.Group("/invite-rewards")
-		{
-			inviteRewards.GET("", h.Admin.Payment.ListInviteRewards)
-			inviteRewards.GET("/:id", h.Admin.Payment.GetInviteReward)
-		}
-
 		// 数据管理
 		registerDataManagementRoutes(admin, h)
 
@@ -107,6 +98,11 @@ func RegisterAdminRoutes(
 		// 渠道监控
 		registerChannelMonitorRoutes(admin, h)
 
+		// 风控中心
+		registerContentModerationRoutes(admin, h)
+
+		// 邀请返利（专属用户管理）
+		registerAffiliateRoutes(admin, h)
 	}
 }
 
@@ -254,13 +250,11 @@ func registerUserManagementRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		users.DELETE("/:id", h.Admin.User.Delete)
 		users.POST("/:id/balance", h.Admin.User.UpdateBalance)
 		users.GET("/:id/api-keys", h.Admin.User.GetUserAPIKeys)
+		users.POST("/:id/api-notices", h.Admin.UserAPINotice.Create)
+		users.GET("/:id/api-notices", h.Admin.UserAPINotice.ListByUser)
 		users.GET("/:id/usage", h.Admin.User.GetUserUsage)
 		users.GET("/:id/balance-history", h.Admin.User.GetBalanceHistory)
 		users.POST("/:id/replace-group", h.Admin.User.ReplaceGroup)
-		users.POST("/:id/change-inviter", h.Admin.User.ChangeInviter)
-		users.POST("/:id/recompute-sales-owner", h.Admin.User.RecomputeSalesOwner)
-		users.POST("/:id/migrate-sales-owner/preview", h.Admin.User.PreviewSalesOwnerMigration)
-		users.POST("/:id/migrate-sales-owner", h.Admin.User.MigrateSalesOwner)
 		users.GET("/:id/rpm-status", h.Admin.User.GetUserRPMStatus)
 		users.POST("/batch-concurrency", h.Admin.User.BatchUpdateConcurrency)
 		users.GET("/:id/platform-quotas", h.Admin.User.GetUserPlatformQuotas)
@@ -272,10 +266,7 @@ func registerUserManagementRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		users.PUT("/:id/attributes", h.Admin.UserAttribute.UpdateUserAttributes)
 	}
 
-	referrals := admin.Group("/referrals")
-	{
-		referrals.GET("/tree/:user_id", h.Admin.User.GetReferralTree)
-	}
+	admin.PUT("/user-api-notices/:id/cancel", h.Admin.UserAPINotice.Cancel)
 }
 
 func registerGroupRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
@@ -314,8 +305,6 @@ func registerAccountRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		accounts.PUT("/:id", h.Admin.Account.Update)
 		accounts.DELETE("/:id", h.Admin.Account.Delete)
 		accounts.POST("/:id/test", h.Admin.Account.Test)
-		accounts.POST("/batch-health-check", h.Admin.Account.BatchHealthCheck)
-		accounts.POST("/intelligent-scheduling", h.Admin.Account.IntelligentScheduling)
 		accounts.POST("/:id/recover-state", h.Admin.Account.RecoverState)
 		accounts.POST("/:id/refresh", h.Admin.Account.Refresh)
 		accounts.POST("/:id/apply-oauth-credentials", h.Admin.Account.ApplyOAuthCredentials)
@@ -656,5 +645,25 @@ func registerChannelMonitorRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		templates.DELETE("/:id", h.Admin.ChannelMonitorTemplate.Delete)
 		templates.GET("/:id/monitors", h.Admin.ChannelMonitorTemplate.AssociatedMonitors)
 		templates.POST("/:id/apply", h.Admin.ChannelMonitorTemplate.Apply)
+	}
+}
+
+// registerAffiliateRoutes 注册邀请返利的管理端路由（专属用户配置）
+func registerAffiliateRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	affiliates := admin.Group("/affiliates")
+	{
+		affiliates.GET("/invites", h.Admin.Affiliate.ListInviteRecords)
+		affiliates.GET("/rebates", h.Admin.Affiliate.ListRebateRecords)
+		affiliates.GET("/transfers", h.Admin.Affiliate.ListTransferRecords)
+
+		users := affiliates.Group("/users")
+		{
+			users.GET("", h.Admin.Affiliate.ListUsers)
+			users.GET("/lookup", h.Admin.Affiliate.LookupUsers)
+			users.POST("/batch-rate", h.Admin.Affiliate.BatchSetRate)
+			users.GET("/:user_id/overview", h.Admin.Affiliate.GetUserOverview)
+			users.PUT("/:user_id", h.Admin.Affiliate.UpdateUserSettings)
+			users.DELETE("/:user_id", h.Admin.Affiliate.ClearUserSettings)
+		}
 	}
 }
