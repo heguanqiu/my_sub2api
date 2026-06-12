@@ -674,6 +674,14 @@
                 {{ t('admin.users.groups') }}
               </button>
 
+              <button
+                @click="handleApiNotice(user); closeActionMenu()"
+                class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+              >
+                <Icon name="bell" size="sm" class="text-gray-400" :stroke-width="2" />
+                API 请求提醒
+              </button>
+
               <div class="my-1 border-t border-gray-100 dark:border-dark-700"></div>
 
               <!-- Deposit -->
@@ -758,6 +766,7 @@
       @close="closePlatformQuotaModal"
       @success="loadUsers"
     />
+    <UserAPINoticeModal :show="showAPINoticeModal" :user="apiNoticeUser" @close="closeAPINoticeModal" />
     <UserApiKeysModal :show="showApiKeysModal" :user="viewingUser" @close="closeApiKeysModal" />
     <UserAllowedGroupsModal :show="showAllowedGroupsModal" :user="allowedGroupsUser" @close="closeAllowedGroupsModal" @success="loadUsers" />
     <UserBalanceModal :show="showBalanceModal" :user="balanceUser" :operation="balanceOperation" @close="closeBalanceModal" @success="loadUsers" />
@@ -946,6 +955,7 @@ import UserPlatformQuotaCell from '@/components/user/UserPlatformQuotaCell.vue'
 import UserCreateModal from '@/components/admin/user/UserCreateModal.vue'
 import UserEditModal from '@/components/admin/user/UserEditModal.vue'
 import UserPlatformQuotaModal from '@/components/admin/user/UserPlatformQuotaModal.vue'
+import UserAPINoticeModal from '@/components/admin/user/UserAPINoticeModal.vue'
 import UserApiKeysModal from '@/components/admin/user/UserApiKeysModal.vue'
 import UserAllowedGroupsModal from '@/components/admin/user/UserAllowedGroupsModal.vue'
 import UserBalanceModal from '@/components/admin/user/UserBalanceModal.vue'
@@ -1442,10 +1452,12 @@ const showDeleteDialog = ref(false)
 const showApiKeysModal = ref(false)
 const showAttributesModal = ref(false)
 const showPlatformQuotaModal = ref(false)
+const showAPINoticeModal = ref(false)
 const editingUser = ref<AdminUser | null>(null)
 const deletingUser = ref<AdminUser | null>(null)
 const viewingUser = ref<AdminUser | null>(null)
 const platformQuotaUser = ref<AdminUser | null>(null)
+const apiNoticeUser = ref<AdminUser | null>(null)
 
 const handlePlatformQuota = (user: AdminUser) => {
   platformQuotaUser.value = user
@@ -1455,6 +1467,16 @@ const handlePlatformQuota = (user: AdminUser) => {
 const closePlatformQuotaModal = () => {
   showPlatformQuotaModal.value = false
   platformQuotaUser.value = null
+}
+
+const handleApiNotice = (user: AdminUser) => {
+  apiNoticeUser.value = user
+  showAPINoticeModal.value = true
+}
+
+const closeAPINoticeModal = () => {
+  showAPINoticeModal.value = false
+  apiNoticeUser.value = null
 }
 let abortController: AbortController | null = null
 let secondaryDataSeq = 0

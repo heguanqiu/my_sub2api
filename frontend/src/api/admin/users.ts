@@ -52,6 +52,28 @@ export interface ReferralMutationResult {
   new_invited_by_user_id?: number | null
 }
 
+export type UserAPINoticeStatus = 'pending' | 'consumed' | 'cancelled'
+
+export interface UserAPINotice {
+  id: number
+  user_id: number
+  message: string
+  status: UserAPINoticeStatus
+  created_by_user_id?: number | null
+  created_at: string
+  updated_at: string
+  expires_at?: string | null
+  consumed_at?: string | null
+  consumed_request_id?: string | null
+  cancelled_at?: string | null
+  cancelled_by_user_id?: number | null
+}
+
+export interface CreateUserAPINoticeRequest {
+  message: string
+  expires_at?: number | null
+}
+
 /**
  * List all users with pagination
  * @param page - Page number (default: 1)
@@ -238,6 +260,34 @@ export async function getUserApiKeys(id: number): Promise<PaginatedResponse<ApiK
   return data
 }
 
+export async function createApiNotice(
+  id: number,
+  payload: CreateUserAPINoticeRequest
+): Promise<UserAPINotice> {
+  const { data } = await apiClient.post<UserAPINotice>(`/admin/users/${id}/api-notices`, payload)
+  return data
+}
+
+export async function listApiNotices(
+  id: number,
+  page: number = 1,
+  pageSize: number = 20,
+  status?: UserAPINoticeStatus | ''
+): Promise<PaginatedResponse<UserAPINotice>> {
+  const params: Record<string, any> = { page, page_size: pageSize }
+  if (status) params.status = status
+  const { data } = await apiClient.get<PaginatedResponse<UserAPINotice>>(
+    `/admin/users/${id}/api-notices`,
+    { params }
+  )
+  return data
+}
+
+export async function cancelApiNotice(id: number): Promise<UserAPINotice> {
+  const { data } = await apiClient.put<UserAPINotice>(`/admin/user-api-notices/${id}/cancel`)
+  return data
+}
+
 /**
  * Get user's usage statistics
  * @param id - User ID
@@ -421,6 +471,9 @@ export const usersAPI = {
   updateConcurrency,
   toggleStatus,
   getUserApiKeys,
+  createApiNotice,
+  listApiNotices,
+  cancelApiNotice,
   getUserUsageStats,
   getUserBalanceHistory,
   changeInviter,
