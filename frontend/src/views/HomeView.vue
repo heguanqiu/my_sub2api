@@ -1,661 +1,906 @@
 <template>
-  <!-- Custom Home Content: Full Page Mode -->
   <div v-if="homeContent" class="home-custom-shell min-h-screen">
-    <!-- iframe mode -->
     <iframe
       v-if="isHomeContentUrl"
       :src="homeContent.trim()"
       class="home-custom-frame h-screen w-full border-0"
       allowfullscreen
     ></iframe>
-    <!-- HTML mode - SECURITY: homeContent is admin-only setting, XSS risk is acceptable -->
     <div v-else class="home-custom-content" v-html="homeContent"></div>
   </div>
 
-  <!-- Default Home Page -->
-  <div
-    v-else
-    class="home-shell relative flex min-h-screen flex-col overflow-hidden bg-gradient-to-br from-gray-50 via-primary-50/30 to-gray-100 dark:from-dark-950 dark:via-dark-900 dark:to-dark-950"
-  >
-    <!-- Background Decorations -->
-    <div class="theme-decorations pointer-events-none absolute inset-0 overflow-hidden">
-      <div
-        class="theme-orb absolute -right-40 -top-40 h-96 w-96 rounded-full bg-primary-400/20 blur-3xl"
-      ></div>
-      <div
-        class="theme-orb absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-primary-500/15 blur-3xl"
-      ></div>
-      <div
-        class="theme-orb absolute left-1/3 top-1/4 h-72 w-72 rounded-full bg-primary-300/10 blur-3xl"
-      ></div>
-      <div
-        class="theme-orb absolute bottom-1/4 right-1/4 h-64 w-64 rounded-full bg-primary-400/10 blur-3xl"
-      ></div>
-      <div
-        class="theme-grid absolute inset-0 bg-[linear-gradient(rgba(20,184,166,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(20,184,166,0.03)_1px,transparent_1px)] bg-[size:64px_64px]"
-      ></div>
-    </div>
+  <div v-else class="landing-shell min-h-screen bg-[#030711] text-white">
+    <header
+      class="fixed inset-x-0 top-0 z-40 border-b transition-all duration-300"
+      :class="isScrolled
+        ? 'border-white/10 bg-[#030711]/86 shadow-2xl shadow-black/30 backdrop-blur-2xl'
+        : 'border-white/[0.07] bg-[#030711]/38 backdrop-blur-md'"
+    >
+      <nav class="mx-auto flex h-18 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <router-link to="/home" class="flex min-w-0 items-center gap-3">
+          <span class="brand-mark flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg">
+            <img
+              v-if="siteLogo"
+              :src="siteLogo"
+              :alt="`${brandName} logo`"
+              class="h-full w-full object-contain"
+            />
+            <span v-else class="text-base font-black text-white">J</span>
+          </span>
+          <span class="min-w-0">
+            <span class="block text-base font-black tracking-normal text-white">{{ brandName }}</span>
+            <span class="hidden text-xs text-slate-400 sm:block">AI API Gateway</span>
+          </span>
+        </router-link>
 
-    <!-- Header -->
-    <header class="relative z-20 px-6 py-4">
-      <nav class="mx-auto flex max-w-6xl items-center justify-between">
-        <!-- Logo -->
-        <div class="flex items-center">
-          <div class="h-10 w-10 overflow-hidden rounded-xl shadow-md">
-            <img :src="siteLogo || '/logo.png'" alt="Logo" class="h-full w-full object-contain" />
-          </div>
-        </div>
-
-        <!-- Nav Actions -->
-        <div class="flex items-center gap-3">
-          <!-- Language Switcher -->
-          <LocaleSwitcher />
-
-          <!-- Doc Link -->
+        <div class="hidden flex-1 items-center justify-center gap-1 lg:flex">
+          <button
+            v-for="item in navItems"
+            :key="item.id"
+            type="button"
+            class="rounded-lg px-3 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
+            @click="scrollToSection(item.id)"
+          >
+            {{ item.label }}
+          </button>
           <a
-            v-if="docUrl"
             :href="docUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-dark-400 dark:hover:bg-dark-800 dark:hover:text-white"
-            :title="t('home.viewDocs')"
+            class="rounded-lg px-3 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
           >
-            <Icon name="book" size="md" />
+            文档
           </a>
+        </div>
 
-          <!-- Theme Toggle -->
-          <button
-            @click="toggleUiTheme"
-            class="theme-mode-button rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-dark-400 dark:hover:bg-dark-800 dark:hover:text-white"
-            :title="isMecha ? t('nav.classicTheme') : t('nav.mechaTheme')"
-          >
-            <Icon name="cpu" size="md" />
-          </button>
-
-          <button
-            @click="toggleTheme"
-            class="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-dark-400 dark:hover:bg-dark-800 dark:hover:text-white"
-            :title="isDark ? t('home.switchToLight') : t('home.switchToDark')"
-          >
-            <Icon v-if="isDark" name="sun" size="md" />
-            <Icon v-else name="moon" size="md" />
-          </button>
-
-          <!-- Login / Dashboard Button -->
+        <div class="flex justify-end gap-2">
           <router-link
-            v-if="isAuthenticated"
-            :to="dashboardPath"
-            class="inline-flex items-center gap-1.5 rounded-full bg-gray-900 py-1 pl-1 pr-2.5 transition-colors hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700"
+            :to="isAuthenticated ? dashboardPath : '/login'"
+            class="hidden items-center justify-center gap-2 rounded-lg bg-[#1478ff] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-blue-500/25 transition hover:-translate-y-0.5 hover:bg-[#2c8cff] sm:inline-flex"
           >
-            <span
-              class="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-primary-400 to-primary-600 text-[10px] font-semibold text-white"
-            >
-              {{ userInitial }}
-            </span>
-            <span class="text-xs font-medium text-white">{{ t('home.dashboard') }}</span>
-            <svg
-              class="h-3 w-3 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25"
-              />
-            </svg>
+            {{ isAuthenticated ? '进入控制台' : '登入' }}
+            <Icon name="arrowRight" size="sm" />
           </router-link>
-          <router-link
-            v-else
-            to="/login"
-            class="inline-flex items-center rounded-full bg-gray-900 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700"
+          <button
+            type="button"
+            class="inline-flex rounded-lg p-2 text-slate-200 transition hover:bg-white/10 hover:text-white lg:hidden"
+            @click="mobileMenuOpen = !mobileMenuOpen"
           >
-            {{ t('home.login') }}
-          </router-link>
+            <Icon v-if="mobileMenuOpen" name="x" size="md" />
+            <Icon v-else name="menu" size="md" />
+          </button>
         </div>
       </nav>
+
+      <div
+        v-if="mobileMenuOpen"
+        class="border-t border-white/10 bg-[#030711]/95 px-4 py-4 backdrop-blur-2xl lg:hidden"
+      >
+        <div class="mx-auto grid max-w-7xl gap-2">
+          <button
+            v-for="item in navItems"
+            :key="item.id"
+            type="button"
+            class="rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-200 hover:bg-white/10"
+            @click="scrollToSection(item.id)"
+          >
+            {{ item.label }}
+          </button>
+          <a
+            :href="docUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="rounded-lg px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10"
+          >
+            文档
+          </a>
+          <button
+            type="button"
+            class="rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-200 hover:bg-white/10"
+            @click="openContact"
+          >
+            联系支持
+          </button>
+          <router-link
+            :to="isAuthenticated ? dashboardPath : '/login'"
+            class="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-[#1478ff] px-4 py-2.5 text-sm font-bold text-white"
+          >
+            {{ isAuthenticated ? '进入控制台' : '登入' }}
+            <Icon name="arrowRight" size="sm" />
+          </router-link>
+        </div>
+      </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="relative z-10 flex-1 px-6 py-16">
-      <div class="mx-auto max-w-6xl">
-        <!-- Hero Section - Left/Right Layout -->
-        <div class="mb-12 flex flex-col items-center justify-between gap-12 lg:flex-row lg:gap-16">
-          <!-- Left: Text Content -->
-          <div class="flex-1 text-center lg:text-left">
-            <h1
-              class="mb-4 text-4xl font-bold text-gray-900 dark:text-white md:text-5xl lg:text-6xl"
-            >
-              {{ siteName }}
+    <main>
+      <section class="hero-stage relative min-h-screen overflow-hidden pt-28">
+        <img
+          src="/landing/api-theater-hero.png"
+          alt=""
+          class="hero-asset pointer-events-none absolute inset-y-0 right-0 h-full w-full object-cover"
+          aria-hidden="true"
+        />
+        <div class="hero-vignette absolute inset-0"></div>
+        <div class="hero-blueprint absolute inset-0"></div>
+
+        <div class="relative mx-auto flex min-h-[calc(100vh-7rem)] max-w-7xl flex-col justify-center px-4 pb-10 sm:px-6 lg:px-8">
+          <div class="max-w-3xl">
+            <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-300/25 bg-blue-500/10 px-3 py-1.5 text-sm font-semibold text-blue-100 shadow-lg shadow-blue-500/10 backdrop-blur-xl">
+              <span class="h-2 w-2 rounded-full bg-[#35f0ff] shadow-[0_0_18px_rgba(53,240,255,0.95)]"></span>
+              Claude Code / Codex / OpenAI 统一接入
+            </div>
+
+            <h1 class="max-w-4xl text-[clamp(3rem,7vw,6.8rem)] font-black leading-[0.95] tracking-normal text-white">
+              把 Claude Code 与 Codex
+              <span class="hero-title-gradient block">接入一条稳定高速的线路</span>
             </h1>
-            <p class="mb-8 text-lg text-gray-600 dark:text-dark-300 md:text-xl">
-              {{ siteSubtitle }}
+
+            <p class="mt-7 max-w-2xl text-lg leading-8 text-slate-300 sm:text-xl">
+              Jlaude 是面向开发者工作流的 AI API 网关，用一个 Base URL 连接主流模型、编码工具与团队交付流程。
             </p>
 
-            <!-- CTA Button -->
-            <div>
+            <div class="mt-8 flex flex-col gap-3 sm:flex-row">
               <router-link
                 :to="isAuthenticated ? dashboardPath : '/login'"
-                class="btn btn-primary px-8 py-3 text-base shadow-lg shadow-primary-500/30"
+                class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1478ff] px-6 py-3 text-base font-black text-white shadow-2xl shadow-blue-500/30 transition hover:-translate-y-0.5 hover:bg-[#2c8cff]"
               >
-                {{ isAuthenticated ? t('home.goToDashboard') : t('home.getStarted') }}
-                <Icon name="arrowRight" size="md" class="ml-2" :stroke-width="2" />
+                {{ isAuthenticated ? '进入控制台' : '开始接入' }}
+                <Icon name="arrowRight" size="md" />
               </router-link>
+              <a
+                :href="docUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/[0.06] px-6 py-3 text-base font-bold text-white backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-white/10"
+              >
+                查看文档
+                <Icon name="book" size="md" />
+              </a>
             </div>
+
+            <button
+              type="button"
+              class="base-url-bar mt-8 flex w-full max-w-xl items-center justify-between gap-4 rounded-lg border border-white/12 bg-[#07111f]/72 px-4 py-4 text-left shadow-2xl shadow-blue-950/30 backdrop-blur-2xl transition hover:border-blue-300/45 hover:bg-[#09182d]/82"
+              @click="copyBaseUrl"
+            >
+              <span class="min-w-0">
+                <span class="block text-xs font-bold uppercase tracking-normal text-slate-500">API Base URL</span>
+                <span class="mt-1 block truncate font-mono text-base text-[#48c8ff]">{{ apiBaseUrl }}</span>
+              </span>
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06] text-slate-200">
+                <Icon name="copy" size="md" />
+              </span>
+            </button>
           </div>
 
-          <!-- Right: Terminal Animation -->
-          <div class="flex flex-1 justify-center lg:justify-end">
-            <div class="terminal-container">
-              <div class="terminal-window">
-                <!-- Window header -->
-                <div class="terminal-header">
-                  <div class="terminal-buttons">
-                    <span class="btn-close"></span>
-                    <span class="btn-minimize"></span>
-                    <span class="btn-maximize"></span>
-                  </div>
-                  <span class="terminal-title">terminal</span>
-                </div>
-                <!-- Terminal content -->
-                <div class="terminal-body">
-                  <div class="code-line line-1">
-                    <span class="code-prompt">$</span>
-                    <span class="code-cmd">curl</span>
-                    <span class="code-flag">-X POST</span>
-                    <span class="code-url">/v1/messages</span>
-                  </div>
-                  <div class="code-line line-2">
-                    <span class="code-comment"># Routing to upstream...</span>
-                  </div>
-                  <div class="code-line line-3">
-                    <span class="code-success">200 OK</span>
-                    <span class="code-response">{ "content": "Hello!" }</span>
-                  </div>
-                  <div class="code-line line-4">
-                    <span class="code-prompt">$</span>
-                    <span class="cursor"></span>
-                  </div>
+          <div class="mt-12 grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div
+              v-for="stat in heroStats"
+              :key="stat.label"
+              class="metric-tile rounded-lg border border-white/10 bg-white/[0.055] p-5 backdrop-blur-2xl"
+            >
+              <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 text-[#35b8ff]">
+                  <Icon :name="stat.icon" size="md" />
+                </span>
+                <div>
+                  <p class="text-2xl font-black text-white">{{ stat.value }}</p>
+                  <p class="mt-1 text-xs font-semibold text-slate-400">{{ stat.label }}</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
+      </section>
 
-        <!-- Feature Tags - Centered -->
-        <div class="mb-12 flex flex-wrap items-center justify-center gap-4 md:gap-6">
-          <div
-            class="inline-flex items-center gap-2.5 rounded-full border border-gray-200/50 bg-white/80 px-5 py-2.5 shadow-sm backdrop-blur-sm dark:border-dark-700/50 dark:bg-dark-800/80"
-          >
-            <Icon name="swap" size="sm" class="text-primary-500" />
-            <span class="text-sm font-medium text-gray-700 dark:text-dark-200">{{
-              t('home.tags.subscriptionToApi')
-            }}</span>
-          </div>
-          <div
-            class="inline-flex items-center gap-2.5 rounded-full border border-gray-200/50 bg-white/80 px-5 py-2.5 shadow-sm backdrop-blur-sm dark:border-dark-700/50 dark:bg-dark-800/80"
-          >
-            <Icon name="shield" size="sm" class="text-primary-500" />
-            <span class="text-sm font-medium text-gray-700 dark:text-dark-200">{{
-              t('home.tags.stickySession')
-            }}</span>
-          </div>
-          <div
-            class="inline-flex items-center gap-2.5 rounded-full border border-gray-200/50 bg-white/80 px-5 py-2.5 shadow-sm backdrop-blur-sm dark:border-dark-700/50 dark:bg-dark-800/80"
-          >
-            <Icon name="chart" size="sm" class="text-primary-500" />
-            <span class="text-sm font-medium text-gray-700 dark:text-dark-200">{{
-              t('home.tags.realtimeBilling')
-            }}</span>
+      <section id="workflow" class="border-y border-white/10 bg-[#050b16] py-10">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <p class="text-center text-sm font-semibold text-slate-500">支持的开发者工作流</p>
+          <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+            <div
+              v-for="tool in workflowBadges"
+              :key="tool.name"
+              class="flex h-16 items-center justify-center gap-3 rounded-lg border border-white/10 bg-white/[0.045] px-4 text-sm font-bold text-slate-100 transition hover:border-blue-300/35 hover:bg-blue-500/10"
+            >
+              <Icon :name="tool.icon" size="sm" class="text-[#35b8ff]" />
+              {{ tool.name }}
+            </div>
           </div>
         </div>
+      </section>
 
-        <!-- Features Grid -->
-        <div class="mb-12 grid gap-6 md:grid-cols-3">
-          <!-- Feature 1: Unified Gateway -->
-          <div
-            class="group rounded-2xl border border-gray-200/50 bg-white/60 p-6 backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:shadow-primary-500/10 dark:border-dark-700/50 dark:bg-dark-800/60"
-          >
-            <div
-              class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/30 transition-transform group-hover:scale-110"
-            >
-              <Icon name="server" size="lg" class="text-white" />
+      <section id="routing" class="relative overflow-hidden bg-[#030711] py-24">
+        <div class="section-glow section-glow-left"></div>
+        <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div class="grid gap-12 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
+            <div>
+              <p class="section-eyebrow">Routing Engine</p>
+              <h2 class="mt-4 text-3xl font-black leading-tight text-white sm:text-5xl">
+                自动选择更稳的模型线路
+              </h2>
+              <p class="mt-5 text-base leading-8 text-slate-400">
+                Jlaude 把 API 接入、模型路由、用量计费和故障切换收敛到一个入口。开发者只需要维护一套配置，后面的稳定性由网关持续处理。
+              </p>
             </div>
-            <h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
-              {{ t('home.features.unifiedGateway') }}
-            </h3>
-            <p class="text-sm leading-relaxed text-gray-600 dark:text-dark-400">
-              {{ t('home.features.unifiedGatewayDesc') }}
-            </p>
-          </div>
 
-          <!-- Feature 2: Account Pool -->
-          <div
-            class="group rounded-2xl border border-gray-200/50 bg-white/60 p-6 backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:shadow-primary-500/10 dark:border-dark-700/50 dark:bg-dark-800/60"
-          >
-            <div
-              class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg shadow-primary-500/30 transition-transform group-hover:scale-110"
-            >
-              <svg
-                class="h-6 w-6 text-white"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="1.5"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"
-                />
-              </svg>
+            <div class="routing-board rounded-lg border border-white/10 bg-white/[0.045] p-4 shadow-2xl shadow-blue-950/20 backdrop-blur-xl sm:p-6">
+              <div class="grid gap-3 md:grid-cols-5">
+                <article
+                  v-for="(step, index) in routingSteps"
+                  :key="step.title"
+                  class="routing-step relative rounded-lg border border-white/10 bg-[#07111f]/82 p-4"
+                >
+                  <span class="text-xs font-black text-blue-300">0{{ index + 1 }}</span>
+                  <div class="mt-4 flex h-11 w-11 items-center justify-center rounded-lg bg-blue-500/10 text-[#39c9ff]">
+                    <Icon :name="step.icon" size="md" />
+                  </div>
+                  <h3 class="mt-5 text-sm font-black text-white">{{ step.title }}</h3>
+                  <p class="mt-2 text-xs leading-6 text-slate-400">{{ step.description }}</p>
+                </article>
+              </div>
             </div>
-            <h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
-              {{ t('home.features.multiAccount') }}
-            </h3>
-            <p class="text-sm leading-relaxed text-gray-600 dark:text-dark-400">
-              {{ t('home.features.multiAccountDesc') }}
-            </p>
-          </div>
-
-          <!-- Feature 3: Billing & Quota -->
-          <div
-            class="group rounded-2xl border border-gray-200/50 bg-white/60 p-6 backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:shadow-primary-500/10 dark:border-dark-700/50 dark:bg-dark-800/60"
-          >
-            <div
-              class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg shadow-purple-500/30 transition-transform group-hover:scale-110"
-            >
-              <svg
-                class="h-6 w-6 text-white"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="1.5"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"
-                />
-              </svg>
-            </div>
-            <h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
-              {{ t('home.features.balanceQuota') }}
-            </h3>
-            <p class="text-sm leading-relaxed text-gray-600 dark:text-dark-400">
-              {{ t('home.features.balanceQuotaDesc') }}
-            </p>
           </div>
         </div>
+      </section>
 
-        <!-- Supported Providers -->
-        <div class="mb-8 text-center">
-          <h2 class="mb-3 text-2xl font-bold text-gray-900 dark:text-white">
-            {{ t('home.providers.title') }}
-          </h2>
-          <p class="text-sm text-gray-600 dark:text-dark-400">
-            {{ t('home.providers.description') }}
+      <section id="guarantees" class="bg-[#06101d] py-24">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div class="grid gap-12 lg:grid-cols-[1fr_0.9fr] lg:items-start">
+            <div>
+              <p class="section-eyebrow">Service Layer</p>
+              <h2 class="mt-4 max-w-3xl text-3xl font-black leading-tight text-white sm:text-5xl">
+                为高频 AI 编码请求准备的服务层
+              </h2>
+            </div>
+            <p class="text-base leading-8 text-slate-400">
+              首页不需要解释所有细节，但用户要一眼看懂：Jlaude 不是普通转发地址，而是围绕研发链路稳定性做的一层 API 基础设施。
+            </p>
+          </div>
+
+          <div class="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <article
+              v-for="item in assuranceItems"
+              :key="item.title"
+              class="assurance-card rounded-lg border border-white/10 bg-white/[0.045] p-6 transition hover:-translate-y-1 hover:border-blue-300/35 hover:bg-blue-500/[0.08]"
+            >
+              <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-500/10 text-[#35b8ff]">
+                <Icon :name="item.icon" size="md" />
+              </div>
+              <h3 class="mt-5 text-lg font-black text-white">{{ item.title }}</h3>
+              <p class="mt-3 text-sm leading-7 text-slate-400">{{ item.description }}</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="signals" class="relative overflow-hidden bg-[#030711] py-24">
+        <div class="section-glow section-glow-right"></div>
+        <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div class="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+            <div>
+              <p class="section-eyebrow">Live Signals</p>
+              <h2 class="mt-4 text-3xl font-black leading-tight text-white sm:text-5xl">
+                速度、状态、消耗都应该清楚
+              </h2>
+              <p class="mt-5 text-base leading-8 text-slate-400">
+                控制台负责更完整的管理，首页只传达一件事：这是一条可以持续依赖的 AI API 线路。
+              </p>
+            </div>
+
+            <div class="signal-panel rounded-lg border border-white/10 bg-[#07111f]/82 p-5 shadow-2xl shadow-blue-950/20">
+              <div class="flex items-center justify-between border-b border-white/10 pb-4">
+                <div>
+                  <p class="text-sm font-black text-white">jlaude-gateway</p>
+                  <p class="mt-1 text-xs text-slate-500">Realtime request ledger</p>
+                </div>
+                <span class="rounded-full border border-emerald-300/25 bg-emerald-400/10 px-3 py-1 text-xs font-bold text-emerald-200">
+                  online
+                </span>
+              </div>
+
+              <div class="mt-4 grid gap-3">
+                <div
+                  v-for="signal in liveSignals"
+                  :key="signal.model"
+                  class="grid grid-cols-[1fr_auto] gap-3 rounded-lg bg-white/[0.045] px-4 py-3 sm:grid-cols-[1fr_auto_auto]"
+                >
+                  <div class="min-w-0">
+                    <p class="truncate font-mono text-sm text-slate-100">{{ signal.model }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ signal.route }}</p>
+                  </div>
+                  <span class="self-center text-sm font-black text-[#35b8ff]">{{ signal.latency }}</span>
+                  <span class="hidden self-center rounded-full bg-white/[0.06] px-3 py-1 text-xs font-semibold text-slate-300 sm:inline-flex">
+                    {{ signal.status }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="testimonials" class="border-y border-white/10 bg-[#050b16] py-24">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <p class="section-eyebrow mx-auto">Testimonials</p>
+            <h2 class="mt-4 text-3xl font-black text-white sm:text-5xl">
+              他们关心的是少中断、少折腾
+            </h2>
+          </div>
+
+          <div class="mt-12 grid gap-4 md:grid-cols-3">
+            <article
+              v-for="item in testimonials"
+              :key="item.name"
+              class="rounded-lg border border-white/10 bg-white/[0.045] p-6"
+            >
+              <div class="flex items-center gap-4">
+                <img
+                  :src="item.avatar"
+                  :alt="`${item.name} avatar`"
+                  class="h-12 w-12 rounded-lg object-cover"
+                  loading="lazy"
+                />
+                <div>
+                  <h3 class="font-black text-white">{{ item.name }}</h3>
+                  <p class="text-sm text-slate-500">{{ item.role }}</p>
+                </div>
+              </div>
+              <p class="mt-5 text-sm leading-7 text-slate-300">"{{ item.quote }}"</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="faq" class="bg-[#030711] py-24">
+        <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          <div class="text-center">
+            <p class="section-eyebrow mx-auto">FAQ</p>
+            <h2 class="mt-4 text-3xl font-black text-white sm:text-5xl">
+              常见问题
+            </h2>
+          </div>
+
+          <div class="mt-10 divide-y divide-white/10 rounded-lg border border-white/10 bg-white/[0.045]">
+            <article v-for="(item, index) in faqs" :key="item.question">
+              <button
+                type="button"
+                class="flex w-full items-center justify-between gap-4 px-5 py-5 text-left"
+                @click="activeFaq = activeFaq === index ? -1 : index"
+              >
+                <span class="text-base font-black text-white">{{ item.question }}</span>
+                <Icon
+                  name="chevronDown"
+                  size="sm"
+                  class="shrink-0 text-slate-500 transition"
+                  :class="activeFaq === index ? 'rotate-180' : ''"
+                />
+              </button>
+              <div v-if="activeFaq === index" class="px-5 pb-5 text-sm leading-7 text-slate-400">
+                {{ item.answer }}
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="bg-[#050b16] pb-24">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div class="final-cta overflow-hidden rounded-lg border border-blue-300/20 bg-[#07111f] px-6 py-12 shadow-2xl shadow-blue-950/30 sm:px-10 lg:px-14">
+            <div class="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
+              <div>
+                <p class="section-eyebrow">Start</p>
+                <h2 class="mt-4 text-3xl font-black text-white sm:text-5xl">
+                  用一条线路接住你的 AI 开发工作流
+                </h2>
+                <p class="mt-4 max-w-2xl text-base leading-8 text-slate-400">
+                  个人开发、团队协作、企业交付，都从统一 Base URL 开始。
+                </p>
+              </div>
+              <div class="flex flex-col gap-3 sm:flex-row">
+                <router-link
+                  :to="isAuthenticated ? dashboardPath : '/login'"
+                  class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1478ff] px-6 py-3 text-sm font-black text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#2c8cff]"
+                >
+                  {{ isAuthenticated ? '进入控制台' : '开始接入' }}
+                  <Icon name="arrowRight" size="sm" />
+                </router-link>
+                <button
+                  type="button"
+                  class="inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+                  @click="openContact"
+                >
+                  联系支持
+                  <Icon name="chat" size="sm" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="border-t border-white/10 bg-[#030711] py-12">
+      <div class="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:px-8">
+        <div>
+          <div class="flex items-center gap-3">
+            <span class="brand-mark flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg">
+              <img
+                v-if="siteLogo"
+                :src="siteLogo"
+                :alt="`${brandName} logo`"
+                class="h-full w-full object-contain"
+              />
+              <span v-else class="font-black text-white">J</span>
+            </span>
+            <span class="text-lg font-black text-white">{{ brandName }}</span>
+          </div>
+          <p class="mt-5 max-w-xl text-sm leading-7 text-slate-500">
+            面向开发者与团队的 AI API 网关，连接 Claude Code、Codex、OpenAI 兼容接口与常见 AI 客户端。
+          </p>
+          <p class="mt-6 text-sm text-slate-600">
+            © {{ currentYear }} {{ brandName }}. 保留所有权利。
           </p>
         </div>
 
-        <div class="mb-16 flex flex-wrap items-center justify-center gap-4">
-          <!-- Claude - Supported -->
-          <div
-            class="flex items-center gap-2 rounded-xl border border-primary-200 bg-white/60 px-5 py-3 ring-1 ring-primary-500/20 backdrop-blur-sm dark:border-primary-800 dark:bg-dark-800/60"
-          >
-            <div
-              class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-400 to-orange-500"
-            >
-              <span class="text-xs font-bold text-white">C</span>
+        <div class="grid gap-8 sm:grid-cols-3">
+          <div>
+            <h3 class="text-sm font-black text-white">产品</h3>
+            <div class="mt-4 grid gap-3 text-sm text-slate-500">
+              <button type="button" class="text-left hover:text-white" @click="scrollToSection('routing')">智能路由</button>
+              <button type="button" class="text-left hover:text-white" @click="scrollToSection('guarantees')">服务保障</button>
+              <button type="button" class="text-left hover:text-white" @click="scrollToSection('faq')">常见问题</button>
             </div>
-            <span class="text-sm font-medium text-gray-700 dark:text-dark-200">{{ t('home.providers.claude') }}</span>
-            <span
-              class="rounded bg-primary-100 px-1.5 py-0.5 text-[10px] font-medium text-primary-600 dark:bg-primary-900/30 dark:text-primary-400"
-              >{{ t('home.providers.supported') }}</span
-            >
           </div>
-          <!-- GPT - Supported -->
-          <div
-            class="flex items-center gap-2 rounded-xl border border-primary-200 bg-white/60 px-5 py-3 ring-1 ring-primary-500/20 backdrop-blur-sm dark:border-primary-800 dark:bg-dark-800/60"
-          >
-            <div
-              class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-green-600"
-            >
-              <span class="text-xs font-bold text-white">G</span>
+          <div>
+            <h3 class="text-sm font-black text-white">资源</h3>
+            <div class="mt-4 grid gap-3 text-sm text-slate-500">
+              <a :href="docUrl" target="_blank" rel="noopener noreferrer" class="hover:text-white">使用文档</a>
+              <router-link to="/legal/privacy" class="hover:text-white">隐私政策</router-link>
+              <router-link to="/legal/terms" class="hover:text-white">用户协议</router-link>
             </div>
-            <span class="text-sm font-medium text-gray-700 dark:text-dark-200">GPT</span>
-            <span
-              class="rounded bg-primary-100 px-1.5 py-0.5 text-[10px] font-medium text-primary-600 dark:bg-primary-900/30 dark:text-primary-400"
-              >{{ t('home.providers.supported') }}</span
-            >
           </div>
-          <!-- Gemini - Supported -->
-          <div
-            class="flex items-center gap-2 rounded-xl border border-primary-200 bg-white/60 px-5 py-3 ring-1 ring-primary-500/20 backdrop-blur-sm dark:border-primary-800 dark:bg-dark-800/60"
-          >
-            <div
-              class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600"
-            >
-              <span class="text-xs font-bold text-white">G</span>
+          <div>
+            <h3 class="text-sm font-black text-white">服务</h3>
+            <div class="mt-4 grid gap-3 text-sm text-slate-500">
+              <router-link :to="dashboardPath" class="hover:text-white">控制台</router-link>
+              <button type="button" class="text-left hover:text-white" @click="openContact">联系支持</button>
+              <button type="button" class="text-left hover:text-white" @click="copyBaseUrl">复制 Base URL</button>
             </div>
-            <span class="text-sm font-medium text-gray-700 dark:text-dark-200">{{ t('home.providers.gemini') }}</span>
-            <span
-              class="rounded bg-primary-100 px-1.5 py-0.5 text-[10px] font-medium text-primary-600 dark:bg-primary-900/30 dark:text-primary-400"
-              >{{ t('home.providers.supported') }}</span
-            >
           </div>
-          <!-- Antigravity - Supported -->
-          <div
-            class="flex items-center gap-2 rounded-xl border border-primary-200 bg-white/60 px-5 py-3 ring-1 ring-primary-500/20 backdrop-blur-sm dark:border-primary-800 dark:bg-dark-800/60"
-          >
-            <div
-              class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-rose-500 to-pink-600"
-            >
-              <span class="text-xs font-bold text-white">A</span>
-            </div>
-            <span class="text-sm font-medium text-gray-700 dark:text-dark-200">{{ t('home.providers.antigravity') }}</span>
-            <span
-              class="rounded bg-primary-100 px-1.5 py-0.5 text-[10px] font-medium text-primary-600 dark:bg-primary-900/30 dark:text-primary-400"
-              >{{ t('home.providers.supported') }}</span
-            >
-          </div>
-          <!-- More - Coming Soon -->
-          <div
-            class="flex items-center gap-2 rounded-xl border border-gray-200/50 bg-white/40 px-5 py-3 opacity-60 backdrop-blur-sm dark:border-dark-700/50 dark:bg-dark-800/40"
-          >
-            <div
-              class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-gray-500 to-gray-600"
-            >
-              <span class="text-xs font-bold text-white">+</span>
-            </div>
-            <span class="text-sm font-medium text-gray-700 dark:text-dark-200">{{ t('home.providers.more') }}</span>
-            <span
-              class="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-dark-700 dark:text-dark-400"
-              >{{ t('home.providers.soon') }}</span
-            >
-          </div>
-        </div>
-      </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="relative z-10 border-t border-gray-200/50 px-6 py-8 dark:border-dark-800/50">
-      <div
-        class="mx-auto flex max-w-6xl flex-col items-center justify-center gap-4 text-center sm:flex-row sm:text-left"
-      >
-        <p class="text-sm text-gray-500 dark:text-dark-400">
-          &copy; {{ currentYear }} {{ siteName }}. {{ t('home.footer.allRightsReserved') }}
-        </p>
-        <div class="flex items-center gap-4">
-          <a
-            v-if="docUrl"
-            :href="docUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-dark-400 dark:hover:text-white"
-          >
-            {{ t('home.docs') }}
-          </a>
-          <a
-            :href="githubUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-dark-400 dark:hover:text-white"
-          >
-            GitHub
-          </a>
         </div>
       </div>
     </footer>
+
+    <div
+      v-if="contactModalOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
+      @click.self="contactModalOpen = false"
+    >
+      <div class="w-full max-w-md rounded-lg border border-white/10 bg-[#07111f] p-6 shadow-2xl shadow-blue-950/40">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-black text-white">联系 Jlaude</h2>
+            <p class="mt-2 text-sm leading-6 text-slate-400">
+              咨询额度、团队接入或企业合作。
+            </p>
+          </div>
+          <button
+            type="button"
+            class="rounded-lg p-2 text-slate-400 hover:bg-white/10 hover:text-white"
+            @click="contactModalOpen = false"
+          >
+            <Icon name="x" size="md" />
+          </button>
+        </div>
+
+        <div v-if="contactImageUrl" class="mt-6 flex justify-center">
+          <img
+            :src="contactImageUrl"
+            alt="Jlaude 客服二维码"
+            class="max-h-72 rounded-lg border border-white/10 object-contain"
+          />
+        </div>
+
+        <div class="mt-6 whitespace-pre-wrap rounded-lg border border-white/10 bg-white/[0.045] p-4 text-sm leading-7 text-slate-300">
+          {{ contactInfo || '加入用户群或咨询企业方案，请联系 Jlaude 客服。管理员可以在后台配置 QQ 群、入群说明或客服二维码。' }}
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useAuthStore, useAppStore } from '@/stores'
-import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useAppStore, useAuthStore } from '@/stores'
 import Icon from '@/components/icons/Icon.vue'
-import { initUiTheme, setUiTheme, type UiTheme } from '@/utils/uiTheme'
 
-const { t } = useI18n()
+type IconName =
+  | 'arrowRight'
+  | 'book'
+  | 'chart'
+  | 'chat'
+  | 'checkCircle'
+  | 'chevronDown'
+  | 'clock'
+  | 'copy'
+  | 'cpu'
+  | 'database'
+  | 'globe'
+  | 'key'
+  | 'lock'
+  | 'server'
+  | 'shield'
+  | 'sparkles'
+  | 'sync'
+  | 'terminal'
+  | 'users'
+  | 'x'
+
+interface IconTextItem {
+  icon: IconName
+  title: string
+  description: string
+}
+
+interface MetricItem {
+  icon: IconName
+  value: string
+  label: string
+}
+
+interface WorkflowBadge {
+  icon: IconName
+  name: string
+}
 
 const authStore = useAuthStore()
 const appStore = useAppStore()
 
-// Site settings - directly from appStore (already initialized from injected config)
-const siteName = computed(() => appStore.cachedPublicSettings?.site_name || appStore.siteName || 'Sub2API')
-const siteLogo = computed(() => appStore.cachedPublicSettings?.site_logo || appStore.siteLogo || '')
-const siteSubtitle = computed(() => appStore.cachedPublicSettings?.site_subtitle || 'AI API Gateway Platform')
-const docUrl = computed(() => appStore.cachedPublicSettings?.doc_url || appStore.docUrl || '')
-const homeContent = computed(() => appStore.cachedPublicSettings?.home_content || '')
+const brandName = 'Jlaude'
+const apiBaseUrl = 'https://jlaudeapi.com'
 
-// Check if homeContent is a URL (for iframe display)
+const siteLogo = computed(() => appStore.cachedPublicSettings?.site_logo || appStore.siteLogo || '')
+const docUrl = computed(() => appStore.cachedPublicSettings?.doc_url || appStore.docUrl || 'https://docs.jlaudeapi.com')
+const contactInfo = computed(() => appStore.cachedPublicSettings?.contact_info || appStore.contactInfo || '')
+const contactImageUrl = computed(() => appStore.cachedPublicSettings?.contact_image_url || appStore.contactImageUrl || '')
+const homeContent = computed(() => appStore.cachedPublicSettings?.home_content || '')
 const isHomeContentUrl = computed(() => {
   const content = homeContent.value.trim()
   return content.startsWith('http://') || content.startsWith('https://')
 })
 
-// Theme
-const isDark = ref(document.documentElement.classList.contains('dark'))
-const uiTheme = ref<UiTheme>(initUiTheme())
-const isMecha = computed(() => uiTheme.value === 'mecha')
+const isScrolled = ref(false)
+const mobileMenuOpen = ref(false)
+const contactModalOpen = ref(false)
+const activeFaq = ref(0)
 
-// GitHub URL
-const githubUrl = 'https://github.com/Wei-Shaw/sub2api'
-
-// Auth state
 const isAuthenticated = computed(() => authStore.isAuthenticated)
-const isAdmin = computed(() => authStore.isAdmin)
-const dashboardPath = computed(() => isAdmin.value ? '/admin/dashboard' : authStore.isSales ? '/sales/dashboard' : '/dashboard')
-const userInitial = computed(() => {
-  const user = authStore.user
-  if (!user || !user.email) return ''
-  return user.email.charAt(0).toUpperCase()
+const dashboardPath = computed(() => {
+  if (authStore.isAdmin) return '/admin/dashboard'
+  if (authStore.isSales) return '/sales/dashboard'
+  return '/dashboard'
 })
-
-// Current year for footer
 const currentYear = computed(() => new Date().getFullYear())
 
-// Toggle theme
-function toggleTheme() {
-  isDark.value = !isDark.value
-  document.documentElement.classList.toggle('dark', isDark.value)
-  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
+const navItems = [
+  { id: 'workflow', label: '工作流' },
+  { id: 'routing', label: '路由' },
+  { id: 'guarantees', label: '保障' },
+  { id: 'faq', label: 'FAQ' }
+]
+
+const heroStats: MetricItem[] = [
+  { icon: 'checkCircle', value: '99.9%', label: '服务可用率' },
+  { icon: 'clock', value: '500ms', label: '平均延迟' },
+  { icon: 'globe', value: '20+', label: '全球节点' },
+  { icon: 'server', value: '10M+', label: '日均请求' }
+]
+
+const workflowBadges: WorkflowBadge[] = [
+  { icon: 'terminal', name: 'Claude Code' },
+  { icon: 'cpu', name: 'Codex' },
+  { icon: 'sparkles', name: 'Open code' },
+  { icon: 'database', name: 'Open claw' },
+  { icon: 'sync', name: 'Hermes' },
+  { icon: 'server', name: 'Cursor' }
+]
+
+const routingSteps: IconTextItem[] = [
+  {
+    icon: 'terminal',
+    title: '客户端请求',
+    description: 'Claude Code、Codex 与 OpenAI 兼容工具使用统一入口。'
+  },
+  {
+    icon: 'key',
+    title: '权限校验',
+    description: '统一识别用户、密钥、额度、分组与访问策略。'
+  },
+  {
+    icon: 'sync',
+    title: '模型路由',
+    description: '根据模型、线路状态与策略选择更合适的上游。'
+  },
+  {
+    icon: 'shield',
+    title: '故障切换',
+    description: '异常线路自动降级，减少开发流程被打断的概率。'
+  },
+  {
+    icon: 'chart',
+    title: '透明回执',
+    description: '请求状态、消耗、延迟与扣费明细回到控制台。'
+  }
+]
+
+const assuranceItems: IconTextItem[] = [
+  {
+    icon: 'server',
+    title: '多源冗余',
+    description: '接入多路可用资源，围绕高频 AI 编码请求做连续性保障。'
+  },
+  {
+    icon: 'globe',
+    title: '低延迟线路',
+    description: '面向国内开发环境优化访问体验，减少工具等待和上下文中断。'
+  },
+  {
+    icon: 'lock',
+    title: '最小化留存',
+    description: '平台聚焦认证、路由与计费，默认不把请求内容作为产品数据沉淀。'
+  },
+  {
+    icon: 'chart',
+    title: '用量可追踪',
+    description: '按模型、用户、分组和请求维度查看消耗，团队成本更容易复盘。'
+  },
+  {
+    icon: 'users',
+    title: '团队协作',
+    description: '支持多人接入、额度分配和权限管理，避免团队各自维护零散配置。'
+  },
+  {
+    icon: 'chat',
+    title: '人工支持',
+    description: '遇到链路、模型、扣费或接入问题，可通过后台配置的客服渠道联系。'
+  }
+]
+
+const liveSignals = [
+  { model: 'claude-opus-4-8', route: 'claude-code / stream', latency: '286ms', status: '200 OK' },
+  { model: 'gpt-5.5', route: 'codex / responses', latency: '312ms', status: '200 OK' },
+  { model: 'gpt-image-2', route: 'image-generation / stream', latency: 'ready', status: 'queued' },
+  { model: 'claude-fable-5', route: 'fallback / low-latency', latency: '198ms', status: '200 OK' }
+]
+
+const testimonials = [
+  {
+    name: '刘工',
+    role: '独立开发者',
+    avatar: '/landing/avatars/1.png',
+    quote: '我最在意的是 Claude Code 能不能持续跑起来。Jlaude 把接入和线路问题收敛掉之后，开发节奏明显稳定了。'
+  },
+  {
+    name: '周颖',
+    role: '创业团队 CTO',
+    avatar: '/landing/avatars/2.png',
+    quote: '团队用 AI 编码工具以后，统一入口和用量管理比单次体验更重要。现在成员接入、排障、核算都更清楚。'
+  },
+  {
+    name: '陈越',
+    role: '全栈开发者',
+    avatar: '/landing/avatars/3.png',
+    quote: '以前我经常在模型、Base URL 和异常上来回试。现在把这些放到一个网关里，日常开发少了很多打断。'
+  }
+]
+
+const faqs = [
+  {
+    question: 'Jlaude 是什么？',
+    answer: 'Jlaude 是面向开发者与团队的 AI API 网关，提供统一 Base URL、API Key 管理、模型路由、用量计费和常见 AI 编程工具接入支持。'
+  },
+  {
+    question: 'Claude Code 和 OpenAI 兼容客户端怎么配置？',
+    answer: 'Claude Code 等 Anthropic 兼容工具通常使用 https://jlaudeapi.com；OpenAI 兼容客户端通常使用 https://jlaudeapi.com/v1。具体以工具要求的协议类型为准。'
+  },
+  {
+    question: '是否支持团队使用？',
+    answer: '支持。团队可以通过控制台统一管理用户、额度、分组、密钥和调用记录，降低多人协作时的配置和成本管理压力。'
+  },
+  {
+    question: '首页为什么没有价格方案？',
+    answer: 'Jlaude 当前把价格、模型和分组倍率放在控制台与模型广场中展示，首页只负责说明产品定位和接入入口。'
+  }
+]
+
+function onScroll() {
+  isScrolled.value = window.scrollY > 12
 }
 
-function toggleUiTheme() {
-  const nextTheme: UiTheme = isMecha.value ? 'classic' : 'mecha'
-  uiTheme.value = nextTheme
-  setUiTheme(nextTheme)
+function scrollToSection(id: string) {
+  mobileMenuOpen.value = false
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-// Initialize theme
-function initTheme() {
-  const savedTheme = localStorage.getItem('theme')
-  if (
-    savedTheme === 'dark' ||
-    (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)
-  ) {
-    isDark.value = true
-    document.documentElement.classList.add('dark')
+function openContact() {
+  mobileMenuOpen.value = false
+  contactModalOpen.value = true
+}
+
+async function copyBaseUrl() {
+  try {
+    await navigator.clipboard.writeText(apiBaseUrl)
+    appStore.showSuccess('已复制 Base URL')
+  } catch {
+    appStore.showError('复制失败')
   }
 }
 
+function setLandingMeta() {
+  document.title = 'Jlaude - 高速稳定的 AI API 网关'
+  setMeta('theme-color', '#1478ff')
+  setMeta('description', 'Jlaude 是面向开发者与团队的 AI API 网关，支持 Claude Code、Codex、OpenAI 兼容接口等常见 AI 工具接入，提供统一 Base URL、透明计费与持续服务支持。')
+  setMeta('keywords', 'AI API网关,AI中转站,Claude Code中转站,Codex API,OpenAI API中转,Jlaude')
+}
+
+function setMeta(name: string, content: string) {
+  let meta = document.head.querySelector(`meta[name="${name}"]`)
+  if (!meta) {
+    meta = document.createElement('meta')
+    meta.setAttribute('name', name)
+    document.head.appendChild(meta)
+  }
+  meta.setAttribute('content', content)
+}
+
 onMounted(() => {
-  initTheme()
-
-  // Check auth state
+  onScroll()
+  setLandingMeta()
+  window.addEventListener('scroll', onScroll, { passive: true })
   authStore.checkAuth()
-
-  // Ensure public settings are loaded (will use cache if already loaded from injected config)
   if (!appStore.publicSettingsLoaded) {
     appStore.fetchPublicSettings()
   }
 })
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', onScroll)
+})
 </script>
 
 <style scoped>
-/* Terminal Container */
-.terminal-container {
-  position: relative;
-  display: inline-block;
+.h-18 {
+  height: 4.5rem;
 }
 
-/* Terminal Window */
-.terminal-window {
-  width: 420px;
-  background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
-  border-radius: 14px;
-  box-shadow:
-    0 25px 50px -12px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(255, 255, 255, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  overflow: hidden;
-  transform: perspective(1000px) rotateX(2deg) rotateY(-2deg);
-  transition: transform 0.3s ease;
+.landing-shell {
+  font-feature-settings: "rlig" 1, "calt" 1;
 }
 
-.terminal-window:hover {
-  transform: perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(-4px);
+.brand-mark {
+  background:
+    linear-gradient(145deg, rgba(36, 155, 255, 0.95), rgba(8, 40, 118, 0.95)),
+    #1478ff;
+  box-shadow: 0 0 28px rgba(20, 120, 255, 0.35);
 }
 
-/* Terminal Header */
-.terminal-header {
-  display: flex;
+.hero-stage {
+  background:
+    linear-gradient(180deg, #030711 0%, #050b16 70%, #030711 100%);
+}
+
+.hero-asset {
+  object-position: 66% 50%;
+  opacity: 0.95;
+}
+
+.hero-vignette {
+  background:
+    linear-gradient(90deg, rgba(3, 7, 17, 0.98) 0%, rgba(3, 7, 17, 0.86) 30%, rgba(3, 7, 17, 0.32) 61%, rgba(3, 7, 17, 0.84) 100%),
+    linear-gradient(180deg, rgba(3, 7, 17, 0.28) 0%, rgba(3, 7, 17, 0.08) 46%, rgba(3, 7, 17, 0.98) 100%);
+}
+
+.hero-blueprint {
+  background-image:
+    linear-gradient(rgba(54, 177, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(54, 177, 255, 0.055) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 72%, transparent 100%);
+}
+
+.hero-title-gradient {
+  background: linear-gradient(92deg, #53d8ff 0%, #1478ff 42%, #8bbdff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 34px rgba(20, 120, 255, 0.28);
+}
+
+.base-url-bar {
+  min-height: 5rem;
+}
+
+.metric-tile {
+  min-height: 5.875rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.section-eyebrow {
+  display: inline-flex;
   align-items: center;
-  padding: 12px 16px;
-  background: rgba(30, 41, 59, 0.8);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  width: fit-content;
+  border: 1px solid rgba(75, 184, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(20, 120, 255, 0.12);
+  padding: 0.375rem 0.75rem;
+  color: #7bd7ff;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
-.terminal-buttons {
-  display: flex;
-  gap: 8px;
+.section-glow {
+  pointer-events: none;
+  position: absolute;
+  height: 28rem;
+  width: 28rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(20, 120, 255, 0.2), transparent 67%);
+  filter: blur(18px);
 }
 
-.terminal-buttons span {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+.section-glow-left {
+  left: -10rem;
+  top: 8rem;
 }
 
-.btn-close {
-  background: #ef4444;
-}
-.btn-minimize {
-  background: #eab308;
-}
-.btn-maximize {
-  background: #22c55e;
+.section-glow-right {
+  right: -12rem;
+  top: 7rem;
 }
 
-.terminal-title {
-  flex: 1;
-  text-align: center;
-  font-size: 12px;
-  font-family: ui-monospace, monospace;
-  color: #64748b;
-  margin-right: 52px;
-}
-
-/* Terminal Body */
-.terminal-body {
-  padding: 20px 24px;
-  font-family: ui-monospace, 'Fira Code', monospace;
-  font-size: 14px;
-  line-height: 2;
-}
-
-.code-line {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  opacity: 0;
-  animation: line-appear 0.5s ease forwards;
-}
-
-.line-1 {
-  animation-delay: 0.3s;
-}
-.line-2 {
-  animation-delay: 1s;
-}
-.line-3 {
-  animation-delay: 1.8s;
-}
-.line-4 {
-  animation-delay: 2.5s;
-}
-
-@keyframes line-appear {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.code-prompt {
-  color: #22c55e;
-  font-weight: bold;
-}
-.code-cmd {
-  color: #38bdf8;
-}
-.code-flag {
-  color: #a78bfa;
-}
-.code-url {
-  color: #14b8a6;
-}
-.code-comment {
-  color: #64748b;
-  font-style: italic;
-}
-.code-success {
-  color: #22c55e;
-  background: rgba(34, 197, 94, 0.15);
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-weight: 600;
-}
-.code-response {
-  color: #fbbf24;
-}
-
-/* Blinking Cursor */
-.cursor {
-  display: inline-block;
-  width: 8px;
-  height: 16px;
-  background: #22c55e;
-  animation: blink 1s step-end infinite;
-}
-
-@keyframes blink {
-  0%,
-  50% {
-    opacity: 1;
-  }
-  51%,
-  100% {
-    opacity: 0;
-  }
-}
-
-/* Dark mode adjustments */
-:deep(.dark) .terminal-window {
+.routing-board,
+.signal-panel,
+.assurance-card,
+.final-cta {
   box-shadow:
-    0 25px 50px -12px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(20, 184, 166, 0.2),
-    0 0 40px rgba(20, 184, 166, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 24px 80px rgba(0, 0, 0, 0.26);
+}
+
+.routing-step {
+  min-height: 14.5rem;
+}
+
+.final-cta {
+  background:
+    linear-gradient(120deg, rgba(20, 120, 255, 0.2), transparent 48%),
+    #07111f;
+}
+
+@media (max-width: 1023px) {
+  .hero-asset {
+    object-position: 72% 50%;
+    opacity: 0.54;
+  }
+
+  .hero-vignette {
+    background:
+      linear-gradient(90deg, rgba(3, 7, 17, 0.98) 0%, rgba(3, 7, 17, 0.78) 58%, rgba(3, 7, 17, 0.9) 100%),
+      linear-gradient(180deg, rgba(3, 7, 17, 0.18) 0%, rgba(3, 7, 17, 0.98) 100%);
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-asset {
+    object-position: 78% 50%;
+    opacity: 0.38;
+  }
+
+  .base-url-bar {
+    min-height: 4.5rem;
+  }
 }
 </style>
