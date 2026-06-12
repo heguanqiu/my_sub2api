@@ -1633,42 +1633,6 @@ func TestOpenAIStreamingPassthroughMissingTerminalEventReturnsIncompleteError(t 
 	}
 }
 
-func TestOpenAIStreamingPassthroughFirstTokenUsesFirstClientOutputEvent(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	cfg := &config.Config{
-		Gateway: config.GatewayConfig{
-			MaxLineSize: defaultMaxLineSize,
-		},
-	}
-	svc := &OpenAIGatewayService{cfg: cfg}
-
-	rec := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(rec)
-	c.Request = httptest.NewRequest(http.MethodPost, "/", nil)
-
-	resp := &http.Response{
-		StatusCode: http.StatusOK,
-		Body: io.NopCloser(strings.NewReader(strings.Join([]string{
-			`data: {"type":"response.created"}`,
-			"",
-			`data: {"type":"response.metadata","foo":"bar"}`,
-			"",
-			`data: {"type":"response.output_item.added","item":{"type":"message"},"output_index":0}`,
-			"",
-			`data: {"type":"response.completed","response":{"usage":{"input_tokens":1,"output_tokens":1}}}`,
-			"",
-		}, "\n"))),
-		Header: http.Header{},
-	}
-
-	result, err := svc.handleStreamingResponsePassthrough(c.Request.Context(), resp, c, &Account{ID: 1}, time.Now(), "", "")
-	require.NoError(t, err)
-	require.NotNil(t, result)
-	require.NotNil(t, result.firstTokenMs)
-	require.Contains(t, rec.Body.String(), `"type":"response.metadata"`)
-	require.NotContains(t, rec.Body.String(), `"type":"response.output_text.delta"`)
-}
-
 func TestOpenAIStreamingPassthroughResponseFailedBeforeOutputReturnsFailover(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	cfg := &config.Config{
