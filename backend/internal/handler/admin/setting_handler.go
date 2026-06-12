@@ -216,6 +216,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		SiteSubtitle:                           settings.SiteSubtitle,
 		APIBaseURL:                             settings.APIBaseURL,
 		ContactInfo:                            settings.ContactInfo,
+		ContactImageURL:                        settings.ContactImageURL,
 		DocURL:                                 settings.DocURL,
 		HomeContent:                            settings.HomeContent,
 		HideCcsImportButton:                    settings.HideCcsImportButton,
@@ -228,9 +229,12 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		DefaultConcurrency:                     settings.DefaultConcurrency,
 		DefaultBalance:                         settings.DefaultBalance,
 		RiskControlEnabled:                     settings.RiskControlEnabled,
+		AffiliateRebateRate:                    settings.AffiliateRebateRate,
+		AffiliateRebateFreezeHours:             settings.AffiliateRebateFreezeHours,
+		AffiliateRebateDurationDays:            settings.AffiliateRebateDurationDays,
+		AffiliateRebatePerInviteeCap:           settings.AffiliateRebatePerInviteeCap,
 		DefaultUserRPMLimit:                    settings.DefaultUserRPMLimit,
 		DefaultSubscriptions:                   defaultSubscriptions,
-		DefaultSalesUserID:                     settings.DefaultSalesUserID,
 		EnableModelFallback:                    settings.EnableModelFallback,
 		FallbackModelAnthropic:                 settings.FallbackModelAnthropic,
 		FallbackModelOpenAI:                    settings.FallbackModelOpenAI,
@@ -281,9 +285,6 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		PaymentProductNameSuffix:               paymentCfg.ProductNameSuffix,
 		PaymentHelpImageURL:                    paymentCfg.HelpImageURL,
 		PaymentHelpText:                        paymentCfg.HelpText,
-		PaymentInviteRewardEnabled:             paymentCfg.InviteRewardEnabled,
-		PaymentInviteRewardRate:                paymentCfg.InviteRewardRate,
-		PaymentInviteRewardTriggerMode:         paymentCfg.InviteRewardTriggerMode,
 		PaymentCancelRateLimitEnabled:          paymentCfg.CancelRateLimitEnabled,
 		PaymentCancelRateLimitMax:              paymentCfg.CancelRateLimitMax,
 		PaymentCancelRateLimitWindow:           paymentCfg.CancelRateLimitWindow,
@@ -497,6 +498,7 @@ type UpdateSettingsRequest struct {
 	SiteSubtitle                string                `json:"site_subtitle"`
 	APIBaseURL                  string                `json:"api_base_url"`
 	ContactInfo                 string                `json:"contact_info"`
+	ContactImageURL             string                `json:"contact_image_url"`
 	DocURL                      string                `json:"doc_url"`
 	HomeContent                 string                `json:"home_content"`
 	HideCcsImportButton         bool                  `json:"hide_ccs_import_button"`
@@ -510,9 +512,12 @@ type UpdateSettingsRequest struct {
 	// 默认配置
 	DefaultConcurrency                        int                               `json:"default_concurrency"`
 	DefaultBalance                            float64                           `json:"default_balance"`
+	AffiliateRebateRate                       *float64                          `json:"affiliate_rebate_rate"`
+	AffiliateRebateFreezeHours                *int                              `json:"affiliate_rebate_freeze_hours"`
+	AffiliateRebateDurationDays               *int                              `json:"affiliate_rebate_duration_days"`
+	AffiliateRebatePerInviteeCap              *float64                          `json:"affiliate_rebate_per_invitee_cap"`
 	DefaultUserRPMLimit                       int                               `json:"default_user_rpm_limit"`
 	DefaultSubscriptions                      []dto.DefaultSubscriptionSetting  `json:"default_subscriptions"`
-	DefaultSalesUserID                        int64                             `json:"default_sales_user_id"`
 	AuthSourceDefaultEmailBalance             *float64                          `json:"auth_source_default_email_balance"`
 	AuthSourceDefaultEmailConcurrency         *int                              `json:"auth_source_default_email_concurrency"`
 	AuthSourceDefaultEmailSubscriptions       *[]dto.DefaultSubscriptionSetting `json:"auth_source_default_email_subscriptions"`
@@ -619,9 +624,6 @@ type UpdateSettingsRequest struct {
 	PaymentProductNameSuffix         *string  `json:"payment_product_name_suffix"`
 	PaymentHelpImageURL              *string  `json:"payment_help_image_url"`
 	PaymentHelpText                  *string  `json:"payment_help_text"`
-	PaymentInviteRewardEnabled       *bool    `json:"payment_invite_reward_enabled"`
-	PaymentInviteRewardRate          *float64 `json:"payment_invite_reward_rate"`
-	PaymentInviteRewardTriggerMode   *string  `json:"payment_invite_reward_trigger_mode"`
 
 	// Cancel rate limit
 	PaymentCancelRateLimitEnabled *bool   `json:"payment_cancel_rate_limit_enabled"`
@@ -640,7 +642,10 @@ type UpdateSettingsRequest struct {
 	// Available Channels feature switch (user-facing)
 	AvailableChannelsEnabled *bool `json:"available_channels_enabled"`
 
-	// Risk control feature switch
+	// Affiliate (邀请返利) feature switch
+	AffiliateEnabled *bool `json:"affiliate_enabled"`
+
+	// 风控中心功能开关
 	RiskControlEnabled *bool `json:"risk_control_enabled"`
 
 	// OpenAI fast/flex policy (optional, only updated when provided)
@@ -687,6 +692,43 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 	}
 	if req.DefaultBalance < 0 {
 		req.DefaultBalance = 0
+	}
+	affiliateRebateRate := previousSettings.AffiliateRebateRate
+	if req.AffiliateRebateRate != nil {
+		affiliateRebateRate = *req.AffiliateRebateRate
+	}
+	if affiliateRebateRate < service.AffiliateRebateRateMin {
+		affiliateRebateRate = service.AffiliateRebateRateMin
+	}
+	if affiliateRebateRate > service.AffiliateRebateRateMax {
+		affiliateRebateRate = service.AffiliateRebateRateMax
+	}
+	affiliateRebateFreezeHours := previousSettings.AffiliateRebateFreezeHours
+	if req.AffiliateRebateFreezeHours != nil {
+		affiliateRebateFreezeHours = *req.AffiliateRebateFreezeHours
+	}
+	if affiliateRebateFreezeHours < 0 {
+		affiliateRebateFreezeHours = service.AffiliateRebateFreezeHoursDefault
+	}
+	if affiliateRebateFreezeHours > service.AffiliateRebateFreezeHoursMax {
+		affiliateRebateFreezeHours = service.AffiliateRebateFreezeHoursMax
+	}
+	affiliateRebateDurationDays := previousSettings.AffiliateRebateDurationDays
+	if req.AffiliateRebateDurationDays != nil {
+		affiliateRebateDurationDays = *req.AffiliateRebateDurationDays
+	}
+	if affiliateRebateDurationDays < 0 {
+		affiliateRebateDurationDays = service.AffiliateRebateDurationDaysDefault
+	}
+	if affiliateRebateDurationDays > service.AffiliateRebateDurationDaysMax {
+		affiliateRebateDurationDays = service.AffiliateRebateDurationDaysMax
+	}
+	affiliateRebatePerInviteeCap := previousSettings.AffiliateRebatePerInviteeCap
+	if req.AffiliateRebatePerInviteeCap != nil {
+		affiliateRebatePerInviteeCap = *req.AffiliateRebatePerInviteeCap
+	}
+	if affiliateRebatePerInviteeCap < 0 {
+		affiliateRebatePerInviteeCap = service.AffiliateRebatePerInviteeCapDefault
 	}
 	// 通用表格配置：兼容旧客户端未传字段时保留当前值。
 	if req.TableDefaultPageSize <= 0 {
@@ -1527,6 +1569,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		SiteSubtitle:                           req.SiteSubtitle,
 		APIBaseURL:                             req.APIBaseURL,
 		ContactInfo:                            req.ContactInfo,
+		ContactImageURL:                        req.ContactImageURL,
 		DocURL:                                 req.DocURL,
 		HomeContent:                            req.HomeContent,
 		HideCcsImportButton:                    req.HideCcsImportButton,
@@ -1538,9 +1581,12 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		CustomEndpoints:                        customEndpointsJSON,
 		DefaultConcurrency:                     req.DefaultConcurrency,
 		DefaultBalance:                         req.DefaultBalance,
+		AffiliateRebateRate:                    affiliateRebateRate,
+		AffiliateRebateFreezeHours:             affiliateRebateFreezeHours,
+		AffiliateRebateDurationDays:            affiliateRebateDurationDays,
+		AffiliateRebatePerInviteeCap:           affiliateRebatePerInviteeCap,
 		DefaultUserRPMLimit:                    req.DefaultUserRPMLimit,
 		DefaultSubscriptions:                   defaultSubscriptions,
-		DefaultSalesUserID:                     req.DefaultSalesUserID,
 		EnableModelFallback:                    req.EnableModelFallback,
 		FallbackModelAnthropic:                 req.FallbackModelAnthropic,
 		FallbackModelOpenAI:                    req.FallbackModelOpenAI,
@@ -1714,6 +1760,12 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			}
 			return previousSettings.AvailableChannelsEnabled
 		}(),
+		AffiliateEnabled: func() bool {
+			if req.AffiliateEnabled != nil {
+				return *req.AffiliateEnabled
+			}
+			return previousSettings.AffiliateEnabled
+		}(),
 		RiskControlEnabled: func() bool {
 			if req.RiskControlEnabled != nil {
 				return *req.RiskControlEnabled
@@ -1815,9 +1867,6 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			ProductNameSuffix:         req.PaymentProductNameSuffix,
 			HelpImageURL:              req.PaymentHelpImageURL,
 			HelpText:                  req.PaymentHelpText,
-			InviteRewardEnabled:       req.PaymentInviteRewardEnabled,
-			InviteRewardRate:          req.PaymentInviteRewardRate,
-			InviteRewardTriggerMode:   req.PaymentInviteRewardTriggerMode,
 			CancelRateLimitEnabled:    req.PaymentCancelRateLimitEnabled,
 			CancelRateLimitMax:        req.PaymentCancelRateLimitMax,
 			CancelRateLimitWindow:     req.PaymentCancelRateLimitWindow,
@@ -1964,6 +2013,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		SiteSubtitle:                           updatedSettings.SiteSubtitle,
 		APIBaseURL:                             updatedSettings.APIBaseURL,
 		ContactInfo:                            updatedSettings.ContactInfo,
+		ContactImageURL:                        updatedSettings.ContactImageURL,
 		DocURL:                                 updatedSettings.DocURL,
 		HomeContent:                            updatedSettings.HomeContent,
 		HideCcsImportButton:                    updatedSettings.HideCcsImportButton,
@@ -1975,9 +2025,12 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		CustomEndpoints:                        dto.ParseCustomEndpoints(updatedSettings.CustomEndpoints),
 		DefaultConcurrency:                     updatedSettings.DefaultConcurrency,
 		DefaultBalance:                         updatedSettings.DefaultBalance,
+		AffiliateRebateRate:                    updatedSettings.AffiliateRebateRate,
+		AffiliateRebateFreezeHours:             updatedSettings.AffiliateRebateFreezeHours,
+		AffiliateRebateDurationDays:            updatedSettings.AffiliateRebateDurationDays,
+		AffiliateRebatePerInviteeCap:           updatedSettings.AffiliateRebatePerInviteeCap,
 		DefaultUserRPMLimit:                    updatedSettings.DefaultUserRPMLimit,
 		DefaultSubscriptions:                   updatedDefaultSubscriptions,
-		DefaultSalesUserID:                     updatedSettings.DefaultSalesUserID,
 		EnableModelFallback:                    updatedSettings.EnableModelFallback,
 		FallbackModelAnthropic:                 updatedSettings.FallbackModelAnthropic,
 		FallbackModelOpenAI:                    updatedSettings.FallbackModelOpenAI,
@@ -2027,9 +2080,6 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		PaymentProductNameSuffix:               updatedPaymentCfg.ProductNameSuffix,
 		PaymentHelpImageURL:                    updatedPaymentCfg.HelpImageURL,
 		PaymentHelpText:                        updatedPaymentCfg.HelpText,
-		PaymentInviteRewardEnabled:             updatedPaymentCfg.InviteRewardEnabled,
-		PaymentInviteRewardRate:                updatedPaymentCfg.InviteRewardRate,
-		PaymentInviteRewardTriggerMode:         updatedPaymentCfg.InviteRewardTriggerMode,
 		PaymentCancelRateLimitEnabled:          updatedPaymentCfg.CancelRateLimitEnabled,
 		PaymentCancelRateLimitMax:              updatedPaymentCfg.CancelRateLimitMax,
 		PaymentCancelRateLimitWindow:           updatedPaymentCfg.CancelRateLimitWindow,
@@ -2083,8 +2133,6 @@ func hasPaymentFields(req UpdateSettingsRequest) bool {
 		req.PaymentBalanceRechargeMultiplier != nil || req.PaymentRechargeFeeRate != nil ||
 		req.PaymentLoadBalanceStrat != nil || req.PaymentProductNamePrefix != nil ||
 		req.PaymentProductNameSuffix != nil || req.PaymentHelpImageURL != nil ||
-		req.PaymentInviteRewardEnabled != nil || req.PaymentInviteRewardRate != nil ||
-		req.PaymentInviteRewardTriggerMode != nil ||
 		req.PaymentHelpText != nil || req.PaymentCancelRateLimitEnabled != nil ||
 		req.PaymentCancelRateLimitMax != nil || req.PaymentCancelRateLimitWindow != nil ||
 		req.PaymentCancelRateLimitUnit != nil || req.PaymentCancelRateLimitMode != nil ||
@@ -2362,6 +2410,9 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	if before.ContactInfo != after.ContactInfo {
 		changed = append(changed, "contact_info")
 	}
+	if before.ContactImageURL != after.ContactImageURL {
+		changed = append(changed, "contact_image_url")
+	}
 	if before.DocURL != after.DocURL {
 		changed = append(changed, "doc_url")
 	}
@@ -2376,6 +2427,18 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	}
 	if before.DefaultBalance != after.DefaultBalance {
 		changed = append(changed, "default_balance")
+	}
+	if before.AffiliateRebateRate != after.AffiliateRebateRate {
+		changed = append(changed, "affiliate_rebate_rate")
+	}
+	if before.AffiliateRebateFreezeHours != after.AffiliateRebateFreezeHours {
+		changed = append(changed, "affiliate_rebate_freeze_hours")
+	}
+	if before.AffiliateRebateDurationDays != after.AffiliateRebateDurationDays {
+		changed = append(changed, "affiliate_rebate_duration_days")
+	}
+	if before.AffiliateRebatePerInviteeCap != after.AffiliateRebatePerInviteeCap {
+		changed = append(changed, "affiliate_rebate_per_invitee_cap")
 	}
 	if !equalDefaultSubscriptions(before.DefaultSubscriptions, after.DefaultSubscriptions) {
 		changed = append(changed, "default_subscriptions")
@@ -2509,6 +2572,9 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	}
 	if before.AvailableChannelsEnabled != after.AvailableChannelsEnabled {
 		changed = append(changed, "available_channels_enabled")
+	}
+	if before.AffiliateEnabled != after.AffiliateEnabled {
+		changed = append(changed, "affiliate_enabled")
 	}
 	if before.RiskControlEnabled != after.RiskControlEnabled {
 		changed = append(changed, "risk_control_enabled")

@@ -715,6 +715,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeySiteSubtitle,
 		SettingKeyAPIBaseURL,
 		SettingKeyContactInfo,
+		SettingKeyContactImageURL,
 		SettingKeyDocURL,
 		SettingKeyHomeContent,
 		SettingKeyHideCcsImportButton,
@@ -840,6 +841,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
 		APIBaseURL:                       settings[SettingKeyAPIBaseURL],
 		ContactInfo:                      settings[SettingKeyContactInfo],
+		ContactImageURL:                  strings.TrimSpace(settings[SettingKeyContactImageURL]),
 		DocURL:                           settings[SettingKeyDocURL],
 		HomeContent:                      settings[SettingKeyHomeContent],
 		HideCcsImportButton:              settings[SettingKeyHideCcsImportButton] == "true",
@@ -857,8 +859,6 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		WeChatOAuthMobileEnabled:         weChatMobileEnabled,
 		BackendModeEnabled:               settings[SettingKeyBackendModeEnabled] == "true",
 		PaymentEnabled:                   settings[SettingPaymentEnabled] == "true",
-		AffiliateEnabled:                 settings[SettingKeyAffiliateEnabled] == "true",
-		RiskControlEnabled:               settings[SettingKeyRiskControlEnabled] == "true",
 		OIDCOAuthEnabled:                 oidcEnabled,
 		OIDCOAuthProviderName:            oidcProviderName,
 		GitHubOAuthEnabled:               gitHubEnabled,
@@ -872,6 +872,10 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		ChannelMonitorDefaultIntervalSeconds: parseChannelMonitorInterval(settings[SettingKeyChannelMonitorDefaultIntervalSeconds]),
 
 		AvailableChannelsEnabled: settings[SettingKeyAvailableChannelsEnabled] == "true",
+
+		AffiliateEnabled: settings[SettingKeyAffiliateEnabled] == "true",
+
+		RiskControlEnabled: settings[SettingKeyRiskControlEnabled] == "true",
 
 		AllowUserViewErrorRequests: settings[SettingKeyAllowUserViewErrorRequests] == "true",
 	}, nil
@@ -1152,6 +1156,7 @@ type PublicSettingsInjectionPayload struct {
 	SiteSubtitle                     string                   `json:"site_subtitle"`
 	APIBaseURL                       string                   `json:"api_base_url"`
 	ContactInfo                      string                   `json:"contact_info"`
+	ContactImageURL                  string                   `json:"contact_image_url"`
 	DocURL                           string                   `json:"doc_url"`
 	HomeContent                      string                   `json:"home_content"`
 	HideCcsImportButton              bool                     `json:"hide_ccs_import_button"`
@@ -1173,8 +1178,6 @@ type PublicSettingsInjectionPayload struct {
 	GoogleOAuthEnabled               bool                     `json:"google_oauth_enabled"`
 	BackendModeEnabled               bool                     `json:"backend_mode_enabled"`
 	PaymentEnabled                   bool                     `json:"payment_enabled"`
-	AffiliateEnabled                 bool                     `json:"affiliate_enabled"`
-	RiskControlEnabled               bool                     `json:"risk_control_enabled"`
 	Version                          string                   `json:"version"`
 	BalanceLowNotifyEnabled          bool                     `json:"balance_low_notify_enabled"`
 	AccountQuotaNotifyEnabled        bool                     `json:"account_quota_notify_enabled"`
@@ -1187,6 +1190,8 @@ type PublicSettingsInjectionPayload struct {
 	ChannelMonitorEnabled                bool `json:"channel_monitor_enabled"`
 	ChannelMonitorDefaultIntervalSeconds int  `json:"channel_monitor_default_interval_seconds"`
 	AvailableChannelsEnabled             bool `json:"available_channels_enabled"`
+	AffiliateEnabled                     bool `json:"affiliate_enabled"`
+	RiskControlEnabled                   bool `json:"risk_control_enabled"`
 	AllowUserViewErrorRequests           bool `json:"allow_user_view_error_requests"`
 }
 
@@ -1218,6 +1223,7 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		SiteSubtitle:                     settings.SiteSubtitle,
 		APIBaseURL:                       settings.APIBaseURL,
 		ContactInfo:                      settings.ContactInfo,
+		ContactImageURL:                  settings.ContactImageURL,
 		DocURL:                           settings.DocURL,
 		HomeContent:                      settings.HomeContent,
 		HideCcsImportButton:              settings.HideCcsImportButton,
@@ -1239,8 +1245,6 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		GoogleOAuthEnabled:               settings.GoogleOAuthEnabled,
 		BackendModeEnabled:               settings.BackendModeEnabled,
 		PaymentEnabled:                   settings.PaymentEnabled,
-		AffiliateEnabled:                 settings.AffiliateEnabled,
-		RiskControlEnabled:               settings.RiskControlEnabled,
 		Version:                          s.version,
 		BalanceLowNotifyEnabled:          settings.BalanceLowNotifyEnabled,
 		AccountQuotaNotifyEnabled:        settings.AccountQuotaNotifyEnabled,
@@ -1250,6 +1254,8 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		ChannelMonitorEnabled:                settings.ChannelMonitorEnabled,
 		ChannelMonitorDefaultIntervalSeconds: settings.ChannelMonitorDefaultIntervalSeconds,
 		AvailableChannelsEnabled:             settings.AvailableChannelsEnabled,
+		AffiliateEnabled:                     settings.AffiliateEnabled,
+		RiskControlEnabled:                   settings.RiskControlEnabled,
 		AllowUserViewErrorRequests:           settings.AllowUserViewErrorRequests,
 	}, nil
 }
@@ -1811,6 +1817,7 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeySiteSubtitle] = settings.SiteSubtitle
 	updates[SettingKeyAPIBaseURL] = settings.APIBaseURL
 	updates[SettingKeyContactInfo] = settings.ContactInfo
+	updates[SettingKeyContactImageURL] = strings.TrimSpace(settings.ContactImageURL)
 	updates[SettingKeyDocURL] = settings.DocURL
 	updates[SettingKeyHomeContent] = settings.HomeContent
 	updates[SettingKeyHideCcsImportButton] = strconv.FormatBool(settings.HideCcsImportButton)
@@ -1852,11 +1859,6 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 		settings.AffiliateRebatePerInviteeCap = AffiliateRebatePerInviteeCapDefault
 	}
 	updates[SettingKeyAffiliateRebatePerInviteeCap] = strconv.FormatFloat(settings.AffiliateRebatePerInviteeCap, 'f', 8, 64)
-	if settings.DefaultSalesUserID > 0 {
-		updates[SettingKeyDefaultSalesUserID] = strconv.FormatInt(settings.DefaultSalesUserID, 10)
-	} else {
-		updates[SettingKeyDefaultSalesUserID] = ""
-	}
 	updates[SettingKeyDefaultUserRPMLimit] = strconv.Itoa(settings.DefaultUserRPMLimit)
 	defaultSubsJSON, err := json.Marshal(settings.DefaultSubscriptions)
 	if err != nil {
@@ -1895,7 +1897,7 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	// Affiliate (邀请返利) feature switch
 	updates[SettingKeyAffiliateEnabled] = strconv.FormatBool(settings.AffiliateEnabled)
 
-	// Risk control feature switch
+	// 风控中心功能开关
 	updates[SettingKeyRiskControlEnabled] = strconv.FormatBool(settings.RiskControlEnabled)
 
 	// Claude Code version check
@@ -2391,6 +2393,78 @@ func (s *SettingService) GetCustomMenuItemsRaw(ctx context.Context) string {
 	return value
 }
 
+// IsAffiliateEnabled 检查是否启用邀请返利功能（总开关）
+func (s *SettingService) IsAffiliateEnabled(ctx context.Context) bool {
+	value, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateEnabled)
+	if err != nil {
+		return false // 默认关闭
+	}
+	return value == "true"
+}
+
+// GetAffiliateRebateRatePercent 读取并 clamp 全局返利比例。
+// 解析失败、缺失或越界都回退到 AffiliateRebateRateDefault — 该比例从不抛错，
+// 调用方只关心一个可用的数值。
+func (s *SettingService) GetAffiliateRebateRatePercent(ctx context.Context) float64 {
+	raw, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateRebateRate)
+	if err != nil {
+		return AffiliateRebateRateDefault
+	}
+	rate, err := strconv.ParseFloat(strings.TrimSpace(raw), 64)
+	if err != nil || math.IsNaN(rate) || math.IsInf(rate, 0) {
+		return AffiliateRebateRateDefault
+	}
+	return clampAffiliateRebateRate(rate)
+}
+
+// GetAffiliateRebateFreezeHours 返回返利冻结期（小时）。
+// 返回 0 表示不冻结（向后兼容）。
+func (s *SettingService) GetAffiliateRebateFreezeHours(ctx context.Context) int {
+	raw, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateRebateFreezeHours)
+	if err != nil {
+		return AffiliateRebateFreezeHoursDefault
+	}
+	hours, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || hours < 0 {
+		return AffiliateRebateFreezeHoursDefault
+	}
+	if hours > AffiliateRebateFreezeHoursMax {
+		return AffiliateRebateFreezeHoursMax
+	}
+	return hours
+}
+
+// GetAffiliateRebateDurationDays 返回返利有效期（天）。
+// 返回 0 表示永久有效。
+func (s *SettingService) GetAffiliateRebateDurationDays(ctx context.Context) int {
+	raw, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateRebateDurationDays)
+	if err != nil {
+		return AffiliateRebateDurationDaysDefault
+	}
+	days, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || days < 0 {
+		return AffiliateRebateDurationDaysDefault
+	}
+	if days > AffiliateRebateDurationDaysMax {
+		return AffiliateRebateDurationDaysMax
+	}
+	return days
+}
+
+// GetAffiliateRebatePerInviteeCap 返回单人返利上限。
+// 返回 0 表示无上限。
+func (s *SettingService) GetAffiliateRebatePerInviteeCap(ctx context.Context) float64 {
+	raw, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateRebatePerInviteeCap)
+	if err != nil {
+		return AffiliateRebatePerInviteeCapDefault
+	}
+	cap, err := strconv.ParseFloat(strings.TrimSpace(raw), 64)
+	if err != nil || cap < 0 || math.IsNaN(cap) || math.IsInf(cap, 0) {
+		return AffiliateRebatePerInviteeCapDefault
+	}
+	return cap
+}
+
 // IsPasswordResetEnabled 检查是否启用密码重置功能
 // 要求：必须同时开启邮件验证
 func (s *SettingService) IsPasswordResetEnabled(ctx context.Context) bool {
@@ -2451,77 +2525,6 @@ func (s *SettingService) GetDefaultBalance(ctx context.Context) float64 {
 		return v
 	}
 	return s.cfg.Default.UserBalance
-}
-
-// IsAffiliateEnabled checks whether affiliate rebates are enabled.
-func (s *SettingService) IsAffiliateEnabled(ctx context.Context) bool {
-	value, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateEnabled)
-	if err != nil {
-		return AffiliateEnabledDefault
-	}
-	return value == "true"
-}
-
-// GetAffiliateRebateRatePercent 读取并 clamp 全局返利比例。
-// 解析失败、缺失或越界都回退到 AffiliateRebateRateDefault，避免支付链路被异常设置阻断。
-func (s *SettingService) GetAffiliateRebateRatePercent(ctx context.Context) float64 {
-	raw, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateRebateRate)
-	if err != nil {
-		return AffiliateRebateRateDefault
-	}
-	rate, err := strconv.ParseFloat(raw, 64)
-	if err != nil {
-		return AffiliateRebateRateDefault
-	}
-	return clampAffiliateRebateRate(rate)
-}
-
-// GetAffiliateRebateFreezeHours 返回返利冻结期（小时）。
-// 解析失败或缺失时使用默认值；越界值被限制到安全范围内。
-func (s *SettingService) GetAffiliateRebateFreezeHours(ctx context.Context) int {
-	raw, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateRebateFreezeHours)
-	if err != nil {
-		return AffiliateRebateFreezeHoursDefault
-	}
-	hours, err := strconv.Atoi(raw)
-	if err != nil || hours < 0 {
-		return AffiliateRebateFreezeHoursDefault
-	}
-	if hours > AffiliateRebateFreezeHoursMax {
-		return AffiliateRebateFreezeHoursMax
-	}
-	return hours
-}
-
-// GetAffiliateRebateDurationDays 返回返利有效期（天）。
-// 0 表示永久有效。
-func (s *SettingService) GetAffiliateRebateDurationDays(ctx context.Context) int {
-	raw, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateRebateDurationDays)
-	if err != nil {
-		return AffiliateRebateDurationDaysDefault
-	}
-	days, err := strconv.Atoi(raw)
-	if err != nil || days < 0 {
-		return AffiliateRebateDurationDaysDefault
-	}
-	if days > AffiliateRebateDurationDaysMax {
-		return AffiliateRebateDurationDaysMax
-	}
-	return days
-}
-
-// GetAffiliateRebatePerInviteeCap 返回单人返利上限。
-// 0 表示无上限。
-func (s *SettingService) GetAffiliateRebatePerInviteeCap(ctx context.Context) float64 {
-	raw, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateRebatePerInviteeCap)
-	if err != nil {
-		return AffiliateRebatePerInviteeCapDefault
-	}
-	capAmount, err := strconv.ParseFloat(raw, 64)
-	if err != nil || capAmount < 0 {
-		return AffiliateRebatePerInviteeCapDefault
-	}
-	return capAmount
 }
 
 // GetDefaultUserRPMLimit 获取新用户默认 RPM 限制（0 = 不限制）。未配置则返回 0。
@@ -2748,7 +2751,6 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyOIDCConnectUserInfoUsernamePath:           "",
 		SettingKeyDefaultConcurrency:                        strconv.Itoa(s.cfg.Default.UserConcurrency),
 		SettingKeyDefaultBalance:                            strconv.FormatFloat(s.cfg.Default.UserBalance, 'f', 8, 64),
-		SettingKeyAffiliateEnabled:                          strconv.FormatBool(AffiliateEnabledDefault),
 		SettingKeyAffiliateRebateRate:                       strconv.FormatFloat(AffiliateRebateRateDefault, 'f', 8, 64),
 		SettingKeyAffiliateRebateFreezeHours:                strconv.Itoa(AffiliateRebateFreezeHoursDefault),
 		SettingKeyAffiliateRebateDurationDays:               strconv.Itoa(AffiliateRebateDurationDaysDefault),
@@ -2816,7 +2818,10 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		// Available channels feature (default disabled; opt-in)
 		SettingKeyAvailableChannelsEnabled: "false",
 
-		// Risk control feature (default disabled; opt-in)
+		// Affiliate (邀请返利) feature (default disabled; opt-in)
+		SettingKeyAffiliateEnabled: "false",
+
+		// 风控中心功能（默认关闭，显式启用）
 		SettingKeyRiskControlEnabled: "false",
 
 		// Claude Code version check (default: empty = disabled)
@@ -2883,6 +2888,7 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
 		APIBaseURL:                       settings[SettingKeyAPIBaseURL],
 		ContactInfo:                      settings[SettingKeyContactInfo],
+		ContactImageURL:                  strings.TrimSpace(settings[SettingKeyContactImageURL]),
 		DocURL:                           settings[SettingKeyDocURL],
 		HomeContent:                      settings[SettingKeyHomeContent],
 		HideCcsImportButton:              settings[SettingKeyHideCcsImportButton] == "true",
@@ -2939,9 +2945,6 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	}
 	if perInviteeCap, err := strconv.ParseFloat(settings[SettingKeyAffiliateRebatePerInviteeCap], 64); err == nil && perInviteeCap >= 0 {
 		result.AffiliateRebatePerInviteeCap = perInviteeCap
-	}
-	if defaultSalesUserID, err := strconv.ParseInt(strings.TrimSpace(settings[SettingKeyDefaultSalesUserID]), 10, 64); err == nil && defaultSalesUserID > 0 {
-		result.DefaultSalesUserID = defaultSalesUserID
 	}
 	result.DefaultSubscriptions = parseDefaultSubscriptions(settings[SettingKeyDefaultSubscriptions])
 
@@ -3325,10 +3328,10 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	// Available channels feature (default: disabled; strict true)
 	result.AvailableChannelsEnabled = settings[SettingKeyAvailableChannelsEnabled] == "true"
 
-	// Affiliate (邀请返利) feature switch (default: disabled; strict true)
+	// Affiliate (邀请返利) feature (default: disabled; strict true)
 	result.AffiliateEnabled = settings[SettingKeyAffiliateEnabled] == "true"
 
-	// Risk control feature (default: disabled; strict true)
+	// 风控中心功能（默认关闭，严格 true 才启用）
 	result.RiskControlEnabled = settings[SettingKeyRiskControlEnabled] == "true"
 
 	// Claude Code version check
@@ -3401,15 +3404,6 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	return result
 }
 
-func isFalseSettingValue(value string) bool {
-	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "false", "0", "off", "disabled":
-		return true
-	default:
-		return false
-	}
-}
-
 func clampAffiliateRebateRate(value float64) float64 {
 	if math.IsNaN(value) || math.IsInf(value, 0) {
 		return AffiliateRebateRateDefault
@@ -3421,6 +3415,15 @@ func clampAffiliateRebateRate(value float64) float64 {
 		return AffiliateRebateRateMax
 	}
 	return value
+}
+
+func isFalseSettingValue(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "false", "0", "off", "disabled":
+		return true
+	default:
+		return false
+	}
 }
 
 func normalizeVisibleMethodSettingSource(method, source string, enabled bool) (string, error) {

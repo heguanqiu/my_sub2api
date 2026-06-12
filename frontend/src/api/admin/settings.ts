@@ -379,7 +379,6 @@ export interface SystemSettings {
   default_concurrency: number;
   default_user_rpm_limit: number;
   default_subscriptions: DefaultSubscriptionSetting[];
-  default_sales_user_id: number;
   auth_source_default_email_balance?: number;
   auth_source_default_email_concurrency?: number;
   auth_source_default_email_subscriptions?: DefaultSubscriptionSetting[];
@@ -431,6 +430,7 @@ export interface SystemSettings {
   site_subtitle: string;
   api_base_url: string;
   contact_info: string;
+  contact_image_url: string;
   doc_url: string;
   home_content: string;
   hide_ccs_import_button: boolean;
@@ -581,9 +581,6 @@ export interface SystemSettings {
   payment_product_name_suffix: string;
   payment_help_image_url: string;
   payment_help_text: string;
-  payment_invite_reward_enabled: boolean;
-  payment_invite_reward_rate: number;
-  payment_invite_reward_trigger_mode: string;
   payment_cancel_rate_limit_enabled: boolean;
   payment_cancel_rate_limit_max: number;
   payment_cancel_rate_limit_window: number;
@@ -642,7 +639,6 @@ export interface UpdateSettingsRequest {
   default_concurrency?: number;
   default_user_rpm_limit?: number;
   default_subscriptions?: DefaultSubscriptionSetting[];
-  default_sales_user_id?: number;
   auth_source_default_email_balance?: number;
   auth_source_default_email_concurrency?: number;
   auth_source_default_email_subscriptions?: DefaultSubscriptionSetting[];
@@ -693,6 +689,7 @@ export interface UpdateSettingsRequest {
   site_subtitle?: string;
   api_base_url?: string;
   contact_info?: string;
+  contact_image_url?: string;
   doc_url?: string;
   home_content?: string;
   hide_ccs_import_button?: boolean;
@@ -819,9 +816,6 @@ export interface UpdateSettingsRequest {
   payment_product_name_suffix?: string;
   payment_help_image_url?: string;
   payment_help_text?: string;
-  payment_invite_reward_enabled?: boolean;
-  payment_invite_reward_rate?: number;
-  payment_invite_reward_trigger_mode?: string;
   payment_cancel_rate_limit_enabled?: boolean;
   payment_cancel_rate_limit_max?: number;
   payment_cancel_rate_limit_window?: number;

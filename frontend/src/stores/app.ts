@@ -25,10 +25,11 @@ export const useAppStore = defineStore('app', () => {
   // Public settings cache state
   const publicSettingsLoaded = ref<boolean>(false)
   const publicSettingsLoading = ref<boolean>(false)
-  const siteName = ref<string>('Sub2API')
+  const siteName = ref<string>('Jlaude')
   const siteLogo = ref<string>('')
   const siteVersion = ref<string>('')
   const contactInfo = ref<string>('')
+  const contactImageUrl = ref<string>('')
   const apiBaseUrl = ref<string>('')
   const docUrl = ref<string>('')
   const cachedPublicSettings = ref<PublicSettings | null>(null)
@@ -292,10 +293,11 @@ export const useAppStore = defineStore('app', () => {
       window.__APP_CONFIG__ = { ...config }
     }
     cachedPublicSettings.value = config
-    siteName.value = config.site_name || 'Sub2API'
+    siteName.value = config.site_name || 'Jlaude'
     siteLogo.value = config.site_logo || ''
     siteVersion.value = config.version || ''
     contactInfo.value = config.contact_info || ''
+    contactImageUrl.value = config.contact_image_url || ''
     apiBaseUrl.value = config.api_base_url || ''
     docUrl.value = config.doc_url || ''
     publicSettingsLoaded.value = true
@@ -332,6 +334,7 @@ export const useAppStore = defineStore('app', () => {
         site_subtitle: '',
         api_base_url: apiBaseUrl.value,
         contact_info: contactInfo.value,
+        contact_image_url: contactImageUrl.value,
         doc_url: docUrl.value,
         home_content: '',
         hide_ccs_import_button: false,
@@ -418,6 +421,7 @@ export const useAppStore = defineStore('app', () => {
     siteLogo,
     siteVersion,
     contactInfo,
+    contactImageUrl,
     apiBaseUrl,
     docUrl,
     cachedPublicSettings,

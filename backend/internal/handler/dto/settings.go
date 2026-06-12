@@ -132,6 +132,7 @@ type SystemSettings struct {
 	SiteSubtitle                string           `json:"site_subtitle"`
 	APIBaseURL                  string           `json:"api_base_url"`
 	ContactInfo                 string           `json:"contact_info"`
+	ContactImageURL             string           `json:"contact_image_url"`
 	DocURL                      string           `json:"doc_url"`
 	HomeContent                 string           `json:"home_content"`
 	HideCcsImportButton         bool             `json:"hide_ccs_import_button"`
@@ -142,13 +143,17 @@ type SystemSettings struct {
 	CustomMenuItems             []CustomMenuItem `json:"custom_menu_items"`
 	CustomEndpoints             []CustomEndpoint `json:"custom_endpoints"`
 
-	DefaultConcurrency   int                          `json:"default_concurrency"`
-	DefaultBalance       float64                      `json:"default_balance"`
-	AffiliateEnabled     bool                         `json:"affiliate_enabled"`
-	RiskControlEnabled   bool                         `json:"risk_control_enabled"`
-	DefaultUserRPMLimit  int                          `json:"default_user_rpm_limit"`
-	DefaultSubscriptions []DefaultSubscriptionSetting `json:"default_subscriptions"`
-	DefaultSalesUserID   int64                        `json:"default_sales_user_id"`
+	DefaultConcurrency           int                          `json:"default_concurrency"`
+	DefaultBalance               float64                      `json:"default_balance"`
+	AffiliateEnabled             bool                         `json:"affiliate_enabled"`
+	AffiliateRebateRate          float64                      `json:"affiliate_rebate_rate"`
+	AffiliateRebateFreezeHours   int                          `json:"affiliate_rebate_freeze_hours"`
+	AffiliateRebateDurationDays  int                          `json:"affiliate_rebate_duration_days"`
+	AffiliateRebatePerInviteeCap float64                      `json:"affiliate_rebate_per_invitee_cap"`
+	RiskControlEnabled           bool                         `json:"risk_control_enabled"`
+	DefaultUserRPMLimit          int                          `json:"default_user_rpm_limit"`
+	DefaultSubscriptions         []DefaultSubscriptionSetting `json:"default_subscriptions"`
+	DefaultSalesUserID           int64                        `json:"default_sales_user_id"`
 
 	// Model fallback configuration
 	EnableModelFallback      bool   `json:"enable_model_fallback"`
@@ -279,6 +284,7 @@ type PublicSettings struct {
 	SiteSubtitle                     string                   `json:"site_subtitle"`
 	APIBaseURL                       string                   `json:"api_base_url"`
 	ContactInfo                      string                   `json:"contact_info"`
+	ContactImageURL                  string                   `json:"contact_image_url"`
 	DocURL                           string                   `json:"doc_url"`
 	HomeContent                      string                   `json:"home_content"`
 	HideCcsImportButton              bool                     `json:"hide_ccs_import_button"`
