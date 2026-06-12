@@ -194,6 +194,44 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	response.Success(c, profileResp)
 }
 
+// GetAffiliate returns the current user's affiliate details.
+// GET /api/v1/user/aff
+func (h *UserHandler) GetAffiliate(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+
+	detail, err := h.affiliateService.GetAffiliateDetail(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, detail)
+}
+
+// TransferAffiliateQuota transfers all available affiliate quota into current balance.
+// POST /api/v1/user/aff/transfer
+func (h *UserHandler) TransferAffiliateQuota(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+
+	transferred, balance, err := h.affiliateService.TransferAffiliateQuota(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, gin.H{
+		"transferred_quota": transferred,
+		"balance":           balance,
+	})
+}
+
 type StartIdentityBindingRequest struct {
 	Provider   string `json:"provider" binding:"required"`
 	RedirectTo string `json:"redirect_to"`

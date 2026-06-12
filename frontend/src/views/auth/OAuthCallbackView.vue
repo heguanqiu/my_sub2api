@@ -157,6 +157,11 @@ import {
   persistOAuthTokenContext,
   type OAuthTokenResponse
 } from '@/api/auth'
+import {
+  clearAllAffiliateReferralCodes,
+  loadOAuthAffiliateCode,
+  oauthAffiliatePayload
+} from '@/utils/oauthAffiliate'
 
 const route = useRoute()
 const router = useRouter()
@@ -273,6 +278,7 @@ async function finalizeTokenResponse(tokenResponse: OAuthTokenResponse, redirect
   if (typeof window !== 'undefined') {
     window.sessionStorage.removeItem(EMAIL_OAUTH_PENDING_PROVIDER_KEY)
   }
+  clearAllAffiliateReferralCodes()
   appStore.showSuccess(t('auth.loginSuccess'))
   await router.replace(sanitizeRedirectPath(redirect))
 }
@@ -337,8 +343,9 @@ async function handleSubmitRegistration() {
 
   isSubmitting.value = true
   try {
-    const payload: { password: string; invitation_code?: string } = {
-      password: password.value
+    const payload: { password: string; invitation_code?: string; aff_code?: string } = {
+      password: password.value,
+      ...oauthAffiliatePayload(loadOAuthAffiliateCode())
     }
     if (invitationRequired.value) {
       payload.invitation_code = code

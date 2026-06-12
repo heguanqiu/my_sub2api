@@ -7,7 +7,7 @@ const routeState = vi.hoisted(() => ({
 }))
 
 const locationState = vi.hoisted(() => ({
-  current: { href: 'http://localhost/register' } as { href: string },
+  current: { href: 'http://localhost/register?aff=AFF123' } as { href: string },
 }))
 
 vi.mock('vue-router', () => ({
@@ -27,8 +27,8 @@ vi.mock('vue-i18n', () => ({
 
 describe('EmailOAuthButtons', () => {
   beforeEach(() => {
-    routeState.query = { redirect: '/billing?plan=pro' }
-    locationState.current = { href: 'http://localhost/register' }
+    routeState.query = { redirect: '/billing?plan=pro', aff: 'AFF123' }
+    locationState.current = { href: 'http://localhost/register?aff=AFF123' }
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: locationState.current,
@@ -37,7 +37,7 @@ describe('EmailOAuthButtons', () => {
     window.sessionStorage.clear()
   })
 
-  it('starts the email oauth flow with the current redirect', async () => {
+  it('passes the affiliate code to the email oauth start URL', async () => {
     const wrapper = mount(EmailOAuthButtons, {
       props: {
         githubEnabled: true,
@@ -54,8 +54,9 @@ describe('EmailOAuthButtons', () => {
     await wrapper.get('button').trigger('click')
 
     expect(locationState.current.href).toBe(
-      '/api/v1/auth/oauth/github/start?redirect=%2Fbilling%3Fplan%3Dpro'
+      '/api/v1/auth/oauth/github/start?redirect=%2Fbilling%3Fplan%3Dpro&aff_code=AFF123'
     )
+    expect(window.sessionStorage.getItem('oauth_aff_code')).toBe('AFF123')
     expect(window.sessionStorage.getItem('email_oauth_pending_provider')).toBe('github')
   })
 

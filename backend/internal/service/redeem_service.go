@@ -11,6 +11,7 @@ import (
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
 )
 
@@ -28,6 +29,15 @@ const (
 	redeemRateLimitDuration = time.Hour
 	redeemLockDuration      = 10 * time.Second // 锁超时时间，防止死锁
 )
+
+type ctxKeySkipRedeemAffiliate struct{}
+
+// ContextSkipRedeemAffiliate returns a context that suppresses the redeem-level
+// affiliate rebate. Payment fulfillment handles rebate separately with order
+// audit-log deduplication.
+func ContextSkipRedeemAffiliate(ctx context.Context) context.Context {
+	return context.WithValue(ctx, ctxKeySkipRedeemAffiliate{}, true)
+}
 
 // RedeemCache defines cache operations for redeem service
 type RedeemCache interface {
@@ -130,6 +140,7 @@ type RedeemService struct {
 	billingCacheService  *BillingCacheService
 	entClient            *dbent.Client
 	authCacheInvalidator APIKeyAuthCacheInvalidator
+	affiliateService     *AffiliateService
 }
 
 // NewRedeemService 创建兑换码服务实例
@@ -141,7 +152,12 @@ func NewRedeemService(
 	billingCacheService *BillingCacheService,
 	entClient *dbent.Client,
 	authCacheInvalidator APIKeyAuthCacheInvalidator,
+	affiliateServices ...*AffiliateService,
 ) *RedeemService {
+	var affiliateService *AffiliateService
+	if len(affiliateServices) > 0 {
+		affiliateService = affiliateServices[0]
+	}
 	return &RedeemService{
 		redeemRepo:           redeemRepo,
 		userRepo:             userRepo,
@@ -150,6 +166,7 @@ func NewRedeemService(
 		billingCacheService:  billingCacheService,
 		entClient:            entClient,
 		authCacheInvalidator: authCacheInvalidator,
+		affiliateService:     affiliateService,
 	}
 }
 
@@ -481,6 +498,11 @@ func (s *RedeemService) Redeem(ctx context.Context, userID int64, code string) (
 	// 事务提交成功后失效缓存
 	s.invalidateRedeemCaches(ctx, userID, redeemCode)
 
+	// 余额类正数兑换码触发邀请返利（best-effort，失败不影响兑换结果）
+	if redeemCode.Type == RedeemTypeBalance && redeemCode.Value > 0 {
+		s.tryAccrueAffiliateRebateForRedeem(ctx, userID, redeemCode.Value)
+	}
+
 	// 重新获取更新后的兑换码
 	redeemCode, err = s.redeemRepo.GetByID(ctx, redeemCode.ID)
 	if err != nil {
@@ -527,6 +549,26 @@ func (s *RedeemService) invalidateRedeemCaches(ctx context.Context, userID int64
 				_ = s.billingCacheService.InvalidateSubscription(cacheCtx, userID, groupID)
 			}()
 		}
+	}
+}
+
+func (s *RedeemService) tryAccrueAffiliateRebateForRedeem(ctx context.Context, userID int64, amount float64) {
+	if ctx.Value(ctxKeySkipRedeemAffiliate{}) != nil {
+		return
+	}
+	if s.affiliateService == nil {
+		return
+	}
+	if !s.affiliateService.IsEnabled(ctx) {
+		return
+	}
+	rebate, err := s.affiliateService.AccrueInviteRebate(ctx, userID, amount)
+	if err != nil {
+		logger.LegacyPrintf("service.redeem", "[Redeem] affiliate rebate failed for user %d amount %.2f: %v", userID, amount, err)
+		return
+	}
+	if rebate > 0 {
+		logger.LegacyPrintf("service.redeem", "[Redeem] affiliate rebate accrued %.8f for inviter of user %d", rebate, userID)
 	}
 }
 

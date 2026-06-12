@@ -133,6 +133,8 @@ func TestValidateInvitationCode_AllowsInviteLinksWhenInvitationCodeSignupDisable
 		nil,
 		nil,
 		nil,
+		nil,
+		nil,
 	)
 
 	handler := &AuthHandler{
