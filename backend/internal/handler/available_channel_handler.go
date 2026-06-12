@@ -1,7 +1,10 @@
 package handler
 
 import (
+	"math"
 	"sort"
+	"strings"
+	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
@@ -111,6 +114,55 @@ type userAvailableChannel struct {
 	Platforms   []userChannelPlatformSection `json:"platforms"`
 }
 
+type userMarketplacePricing struct {
+	BillingMode      string                              `json:"billing_mode"`
+	InputPrice       *float64                            `json:"input_price"`
+	OutputPrice      *float64                            `json:"output_price"`
+	CacheWritePrice  *float64                            `json:"cache_write_price"`
+	CacheReadPrice   *float64                            `json:"cache_read_price"`
+	ImageOutputPrice *float64                            `json:"image_output_price"`
+	PerRequestPrice  *float64                            `json:"per_request_price"`
+	Intervals        []userMarketplacePricingIntervalDTO `json:"intervals"`
+}
+
+type userMarketplacePricingIntervalDTO struct {
+	MinTokens       int      `json:"min_tokens"`
+	MaxTokens       *int     `json:"max_tokens"`
+	TierLabel       string   `json:"tier_label,omitempty"`
+	InputPrice      *float64 `json:"input_price"`
+	OutputPrice     *float64 `json:"output_price"`
+	CacheWritePrice *float64 `json:"cache_write_price"`
+	CacheReadPrice  *float64 `json:"cache_read_price"`
+	PerRequestPrice *float64 `json:"per_request_price"`
+}
+
+type userMarketplaceAccess struct {
+	GroupID          int64                   `json:"group_id"`
+	GroupName        string                  `json:"group_name"`
+	Platform         string                  `json:"platform"`
+	SubscriptionType string                  `json:"subscription_type"`
+	RateMultiplier   float64                 `json:"rate_multiplier"`
+	IsExclusive      bool                    `json:"is_exclusive"`
+	ChannelNames     []string                `json:"channel_names"`
+	BasePricing      *userMarketplacePricing `json:"base_pricing"`
+	EffectivePricing *userMarketplacePricing `json:"effective_pricing"`
+}
+
+type userMarketplaceModel struct {
+	ID           string                  `json:"id"`
+	Name         string                  `json:"name"`
+	Platform     string                  `json:"platform"`
+	Vendor       string                  `json:"vendor"`
+	Status       string                  `json:"status"`
+	ChannelNames []string                `json:"channel_names"`
+	Accesses     []userMarketplaceAccess `json:"accesses"`
+}
+
+type userMarketplaceResponse struct {
+	Models    []userMarketplaceModel `json:"models"`
+	UpdatedAt time.Time              `json:"updated_at"`
+}
+
 // List 列出当前用户可见的「可用渠道」。
 // GET /api/v1/channels/available
 func (h *AvailableChannelHandler) List(c *gin.Context) {
@@ -164,6 +216,162 @@ func (h *AvailableChannelHandler) List(c *gin.Context) {
 	}
 
 	response.Success(c, out)
+}
+
+// Marketplace 返回当前用户可见的模型广场聚合视图。
+// GET /api/v1/models/marketplace
+func (h *AvailableChannelHandler) Marketplace(c *gin.Context) {
+	subject, ok := middleware.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+
+	if !h.featureEnabled(c) {
+		response.Success(c, userMarketplaceResponse{Models: []userMarketplaceModel{}, UpdatedAt: time.Now().UTC()})
+		return
+	}
+
+	userGroups, err := h.apiKeyService.GetAvailableGroups(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	allowedGroupIDs := make(map[int64]struct{}, len(userGroups))
+	for i := range userGroups {
+		allowedGroupIDs[userGroups[i].ID] = struct{}{}
+	}
+
+	userGroupRates, err := h.apiKeyService.GetUserGroupRates(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	channels, err := h.channelService.ListAvailable(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	models := buildMarketplaceModels(channels, allowedGroupIDs, userGroupRates)
+	response.Success(c, userMarketplaceResponse{
+		Models:    models,
+		UpdatedAt: time.Now().UTC(),
+	})
+}
+
+func buildMarketplaceModels(
+	channels []service.AvailableChannel,
+	allowedGroupIDs map[int64]struct{},
+	userGroupRates map[int64]float64,
+) []userMarketplaceModel {
+	type modelBucket struct {
+		name         string
+		platform     string
+		channelNames map[string]struct{}
+		accesses     map[int64]*userMarketplaceAccess
+	}
+
+	buckets := make(map[string]*modelBucket)
+	for _, ch := range channels {
+		if ch.Status != service.StatusActive {
+			continue
+		}
+		visibleGroups := filterUserVisibleGroups(ch.Groups, allowedGroupIDs)
+		if len(visibleGroups) == 0 {
+			continue
+		}
+		for _, group := range visibleGroups {
+			if group.Platform == "" {
+				continue
+			}
+			for _, model := range ch.SupportedModels {
+				if model.Platform != group.Platform {
+					continue
+				}
+				modelName := strings.TrimSpace(model.Name)
+				if modelName == "" {
+					continue
+				}
+				key := strings.ToLower(model.Platform) + "::" + strings.ToLower(modelName)
+				bucket := buckets[key]
+				if bucket == nil {
+					bucket = &modelBucket{
+						name:         modelName,
+						platform:     model.Platform,
+						channelNames: make(map[string]struct{}),
+						accesses:     make(map[int64]*userMarketplaceAccess),
+					}
+					buckets[key] = bucket
+				}
+				if ch.Name != "" {
+					bucket.channelNames[ch.Name] = struct{}{}
+				}
+
+				multiplier := group.RateMultiplier
+				if override, ok := userGroupRates[group.ID]; ok {
+					multiplier = override
+				}
+				access := bucket.accesses[group.ID]
+				if access == nil {
+					basePricing := toMarketplacePricing(model.Pricing)
+					access = &userMarketplaceAccess{
+						GroupID:          group.ID,
+						GroupName:        group.Name,
+						Platform:         group.Platform,
+						SubscriptionType: group.SubscriptionType,
+						RateMultiplier:   multiplier,
+						IsExclusive:      group.IsExclusive,
+						ChannelNames:     nil,
+						BasePricing:      basePricing,
+						EffectivePricing: scaleMarketplacePricing(basePricing, multiplier),
+					}
+					bucket.accesses[group.ID] = access
+				} else if marketplacePricingScore(model.Pricing, multiplier) < marketplacePricingScoreFromDTO(access.BasePricing, access.RateMultiplier) {
+					basePricing := toMarketplacePricing(model.Pricing)
+					access.RateMultiplier = multiplier
+					access.BasePricing = basePricing
+					access.EffectivePricing = scaleMarketplacePricing(basePricing, multiplier)
+				}
+				if ch.Name != "" && !marketplaceContainsString(access.ChannelNames, ch.Name) {
+					access.ChannelNames = append(access.ChannelNames, ch.Name)
+					sort.Strings(access.ChannelNames)
+				}
+			}
+		}
+	}
+
+	out := make([]userMarketplaceModel, 0, len(buckets))
+	for _, bucket := range buckets {
+		accesses := make([]userMarketplaceAccess, 0, len(bucket.accesses))
+		for _, access := range bucket.accesses {
+			accesses = append(accesses, *access)
+		}
+		sort.SliceStable(accesses, func(i, j int) bool {
+			return strings.ToLower(accesses[i].GroupName) < strings.ToLower(accesses[j].GroupName)
+		})
+		if len(accesses) == 0 {
+			continue
+		}
+		out = append(out, userMarketplaceModel{
+			ID:           strings.ToLower(bucket.platform) + "::" + strings.ToLower(bucket.name),
+			Name:         bucket.name,
+			Platform:     bucket.platform,
+			Vendor:       vendorLabel(bucket.platform),
+			Status:       "available",
+			ChannelNames: sortedStringKeys(bucket.channelNames),
+			Accesses:     accesses,
+		})
+	}
+
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].Platform != out[j].Platform {
+			return strings.ToLower(out[i].Platform) < strings.ToLower(out[j].Platform)
+		}
+		return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name)
+	})
+	return out
 }
 
 // buildPlatformSections 把一个渠道按 visibleGroups 的平台集合拆成有序的 section 列表：
@@ -279,5 +487,156 @@ func toUserPricing(p *service.ChannelModelPricing) *userSupportedModelPricing {
 		ImageOutputPrice: p.ImageOutputPrice,
 		PerRequestPrice:  p.PerRequestPrice,
 		Intervals:        intervals,
+	}
+}
+
+func toMarketplacePricing(p *service.ChannelModelPricing) *userMarketplacePricing {
+	if p == nil {
+		return nil
+	}
+	intervals := make([]userMarketplacePricingIntervalDTO, 0, len(p.Intervals))
+	for _, iv := range p.Intervals {
+		intervals = append(intervals, userMarketplacePricingIntervalDTO{
+			MinTokens:       iv.MinTokens,
+			MaxTokens:       iv.MaxTokens,
+			TierLabel:       iv.TierLabel,
+			InputPrice:      iv.InputPrice,
+			OutputPrice:     iv.OutputPrice,
+			CacheWritePrice: iv.CacheWritePrice,
+			CacheReadPrice:  iv.CacheReadPrice,
+			PerRequestPrice: iv.PerRequestPrice,
+		})
+	}
+	billingMode := string(p.BillingMode)
+	if billingMode == "" {
+		billingMode = string(service.BillingModeToken)
+	}
+	return &userMarketplacePricing{
+		BillingMode:      billingMode,
+		InputPrice:       p.InputPrice,
+		OutputPrice:      p.OutputPrice,
+		CacheWritePrice:  p.CacheWritePrice,
+		CacheReadPrice:   p.CacheReadPrice,
+		ImageOutputPrice: p.ImageOutputPrice,
+		PerRequestPrice:  p.PerRequestPrice,
+		Intervals:        intervals,
+	}
+}
+
+func scaleMarketplacePricing(p *userMarketplacePricing, multiplier float64) *userMarketplacePricing {
+	if p == nil {
+		return nil
+	}
+	scaled := &userMarketplacePricing{
+		BillingMode:      p.BillingMode,
+		InputPrice:       scaleFloatPtr(p.InputPrice, multiplier),
+		OutputPrice:      scaleFloatPtr(p.OutputPrice, multiplier),
+		CacheWritePrice:  scaleFloatPtr(p.CacheWritePrice, multiplier),
+		CacheReadPrice:   scaleFloatPtr(p.CacheReadPrice, multiplier),
+		ImageOutputPrice: scaleFloatPtr(p.ImageOutputPrice, multiplier),
+		PerRequestPrice:  scaleFloatPtr(p.PerRequestPrice, multiplier),
+		Intervals:        make([]userMarketplacePricingIntervalDTO, 0, len(p.Intervals)),
+	}
+	for _, iv := range p.Intervals {
+		scaled.Intervals = append(scaled.Intervals, userMarketplacePricingIntervalDTO{
+			MinTokens:       iv.MinTokens,
+			MaxTokens:       iv.MaxTokens,
+			TierLabel:       iv.TierLabel,
+			InputPrice:      scaleFloatPtr(iv.InputPrice, multiplier),
+			OutputPrice:     scaleFloatPtr(iv.OutputPrice, multiplier),
+			CacheWritePrice: scaleFloatPtr(iv.CacheWritePrice, multiplier),
+			CacheReadPrice:  scaleFloatPtr(iv.CacheReadPrice, multiplier),
+			PerRequestPrice: scaleFloatPtr(iv.PerRequestPrice, multiplier),
+		})
+	}
+	return scaled
+}
+
+func scaleFloatPtr(v *float64, multiplier float64) *float64 {
+	if v == nil {
+		return nil
+	}
+	scaled := *v * multiplier
+	return &scaled
+}
+
+func marketplacePricingScore(p *service.ChannelModelPricing, multiplier float64) float64 {
+	return marketplacePricingScoreFromDTO(toMarketplacePricing(p), multiplier)
+}
+
+func marketplacePricingScoreFromDTO(p *userMarketplacePricing, multiplier float64) float64 {
+	if p == nil {
+		return math.Inf(1)
+	}
+	values := marketplacePricingValues(p)
+	if len(values) == 0 {
+		return math.Inf(1)
+	}
+	var sum float64
+	for _, v := range values {
+		sum += v
+	}
+	return sum * multiplier
+}
+
+func marketplacePricingValues(p *userMarketplacePricing) []float64 {
+	if p == nil {
+		return nil
+	}
+	switch p.BillingMode {
+	case string(service.BillingModePerRequest), string(service.BillingModeImage):
+		return nonNilFloatValues(p.PerRequestPrice, p.ImageOutputPrice)
+	default:
+		values := nonNilFloatValues(p.InputPrice, p.OutputPrice, p.CacheWritePrice, p.CacheReadPrice, p.ImageOutputPrice)
+		for _, iv := range p.Intervals {
+			values = append(values, nonNilFloatValues(iv.InputPrice, iv.OutputPrice, iv.CacheWritePrice, iv.CacheReadPrice, iv.PerRequestPrice)...)
+		}
+		return values
+	}
+}
+
+func nonNilFloatValues(values ...*float64) []float64 {
+	out := make([]float64, 0, len(values))
+	for _, v := range values {
+		if v != nil {
+			out = append(out, *v)
+		}
+	}
+	return out
+}
+
+func sortedStringKeys(set map[string]struct{}) []string {
+	out := make([]string, 0, len(set))
+	for v := range set {
+		out = append(out, v)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func marketplaceContainsString(values []string, target string) bool {
+	for _, v := range values {
+		if v == target {
+			return true
+		}
+	}
+	return false
+}
+
+func vendorLabel(platform string) string {
+	switch strings.ToLower(platform) {
+	case "anthropic":
+		return "Anthropic"
+	case "openai":
+		return "OpenAI"
+	case "gemini":
+		return "Gemini"
+	case "antigravity":
+		return "Antigravity"
+	default:
+		if strings.TrimSpace(platform) == "" {
+			return "API"
+		}
+		return platform
 	}
 }

@@ -63,6 +63,55 @@ export interface UserAvailableChannel {
   platforms: UserChannelPlatformSection[]
 }
 
+export interface UserMarketplacePricingInterval {
+  min_tokens: number
+  max_tokens: number | null
+  tier_label?: string
+  input_price: number | null
+  output_price: number | null
+  cache_write_price: number | null
+  cache_read_price: number | null
+  per_request_price: number | null
+}
+
+export interface UserMarketplacePricing {
+  billing_mode: BillingMode
+  input_price: number | null
+  output_price: number | null
+  cache_write_price: number | null
+  cache_read_price: number | null
+  image_output_price: number | null
+  per_request_price: number | null
+  intervals: UserMarketplacePricingInterval[]
+}
+
+export interface UserMarketplaceAccess {
+  group_id: number
+  group_name: string
+  platform: string
+  subscription_type: string
+  rate_multiplier: number
+  is_exclusive: boolean
+  channel_names: string[]
+  base_pricing: UserMarketplacePricing | null
+  effective_pricing: UserMarketplacePricing | null
+}
+
+export interface UserMarketplaceModel {
+  id: string
+  name: string
+  platform: string
+  vendor: string
+  status: string
+  channel_names: string[]
+  accesses: UserMarketplaceAccess[]
+}
+
+export interface UserMarketplaceResponse {
+  models: UserMarketplaceModel[]
+  updated_at: string
+}
+
 /** 列出当前用户可见的「可用渠道」（与 /groups/available 保持一致，返回平数组）。 */
 export async function getAvailable(options?: { signal?: AbortSignal }): Promise<UserAvailableChannel[]> {
   const { data } = await apiClient.get<UserAvailableChannel[]>('/channels/available', {
@@ -71,6 +120,13 @@ export async function getAvailable(options?: { signal?: AbortSignal }): Promise<
   return data
 }
 
-export const userChannelsAPI = { getAvailable }
+export async function getMarketplace(options?: { signal?: AbortSignal }): Promise<UserMarketplaceResponse> {
+  const { data } = await apiClient.get<UserMarketplaceResponse>('/models/marketplace', {
+    signal: options?.signal
+  })
+  return data
+}
+
+export const userChannelsAPI = { getAvailable, getMarketplace }
 
 export default userChannelsAPI

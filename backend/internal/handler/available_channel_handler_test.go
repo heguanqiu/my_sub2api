@@ -155,3 +155,117 @@ func TestBuildPlatformSections_GroupsByPlatform(t *testing.T) {
 	require.Len(t, sections[0].SupportedModels, 1)
 	require.Equal(t, "claude-sonnet-4-6", sections[0].SupportedModels[0].Name)
 }
+
+func TestBuildMarketplaceModels_FiltersGroupsAndScalesPricing(t *testing.T) {
+	input := 1e-6
+	output := 5e-6
+	channels := []service.AvailableChannel{
+		{
+			Name:   "claude-channel",
+			Status: service.StatusActive,
+			Groups: []service.AvailableGroupRef{
+				{ID: 1, Name: "claude", Platform: "anthropic", RateMultiplier: 0.2},
+				{ID: 2, Name: "hidden", Platform: "anthropic", RateMultiplier: 0.8},
+			},
+			SupportedModels: []service.SupportedModel{
+				{
+					Name:     "claude-3-5-haiku-20241022",
+					Platform: "anthropic",
+					Pricing: &service.ChannelModelPricing{
+						BillingMode: service.BillingModeToken,
+						InputPrice:  &input,
+						OutputPrice: &output,
+					},
+				},
+			},
+		},
+	}
+
+	models := buildMarketplaceModels(
+		channels,
+		map[int64]struct{}{1: {}},
+		map[int64]float64{1: 0.15},
+	)
+
+	require.Len(t, models, 1)
+	require.Equal(t, "claude-3-5-haiku-20241022", models[0].Name)
+	require.Len(t, models[0].Accesses, 1)
+	access := models[0].Accesses[0]
+	require.Equal(t, int64(1), access.GroupID)
+	require.Equal(t, 0.15, access.RateMultiplier)
+	require.NotNil(t, access.BasePricing)
+	require.NotNil(t, access.EffectivePricing)
+	require.InDelta(t, input, *access.BasePricing.InputPrice, 1e-12)
+	require.InDelta(t, input*0.15, *access.EffectivePricing.InputPrice, 1e-12)
+	require.InDelta(t, output*0.15, *access.EffectivePricing.OutputPrice, 1e-12)
+}
+
+func TestBuildMarketplaceModels_ScalesImagePerRequestPricingAndTiers(t *testing.T) {
+	defaultPrice := 0.04
+	smallTierPrice := 0.03
+	largeTierPrice := 0.07
+	maxSmall := 1
+	channels := []service.AvailableChannel{
+		{
+			Name:   "image-channel",
+			Status: service.StatusActive,
+			Groups: []service.AvailableGroupRef{
+				{ID: 1, Name: "image", Platform: "openai", RateMultiplier: 0.5},
+			},
+			SupportedModels: []service.SupportedModel{
+				{
+					Name:     "gpt-image-1",
+					Platform: "openai",
+					Pricing: &service.ChannelModelPricing{
+						BillingMode:     service.BillingModeImage,
+						PerRequestPrice: &defaultPrice,
+						Intervals: []service.PricingInterval{
+							{MinTokens: 0, MaxTokens: &maxSmall, TierLabel: "1 image", PerRequestPrice: &smallTierPrice},
+							{MinTokens: 2, TierLabel: "2+ images", PerRequestPrice: &largeTierPrice},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	models := buildMarketplaceModels(channels, map[int64]struct{}{1: {}}, nil)
+
+	require.Len(t, models, 1)
+	require.Len(t, models[0].Accesses, 1)
+	access := models[0].Accesses[0]
+	require.NotNil(t, access.BasePricing)
+	require.NotNil(t, access.EffectivePricing)
+	require.Equal(t, string(service.BillingModeImage), access.EffectivePricing.BillingMode)
+	require.NotNil(t, access.EffectivePricing.PerRequestPrice)
+	require.InDelta(t, defaultPrice*0.5, *access.EffectivePricing.PerRequestPrice, 1e-12)
+	require.Len(t, access.EffectivePricing.Intervals, 2)
+	require.InDelta(t, smallTierPrice*0.5, *access.EffectivePricing.Intervals[0].PerRequestPrice, 1e-12)
+	require.InDelta(t, largeTierPrice*0.5, *access.EffectivePricing.Intervals[1].PerRequestPrice, 1e-12)
+}
+
+func TestBuildMarketplaceModels_SeparatesPlatforms(t *testing.T) {
+	price := 1e-6
+	channels := []service.AvailableChannel{
+		{
+			Name:   "mixed-channel",
+			Status: service.StatusActive,
+			Groups: []service.AvailableGroupRef{
+				{ID: 1, Name: "claude", Platform: "anthropic", RateMultiplier: 1},
+				{ID: 2, Name: "gpt", Platform: "openai", RateMultiplier: 1},
+			},
+			SupportedModels: []service.SupportedModel{
+				{Name: "claude-sonnet-4", Platform: "anthropic", Pricing: &service.ChannelModelPricing{BillingMode: service.BillingModeToken, InputPrice: &price}},
+				{Name: "gpt-5.4", Platform: "openai", Pricing: &service.ChannelModelPricing{BillingMode: service.BillingModeToken, InputPrice: &price}},
+			},
+		},
+	}
+
+	models := buildMarketplaceModels(channels, map[int64]struct{}{1: {}}, nil)
+
+	require.Len(t, models, 1)
+	require.Equal(t, "anthropic", models[0].Platform)
+	require.Equal(t, "claude-sonnet-4", models[0].Name)
+	require.Len(t, models[0].Accesses, 1)
+	require.Equal(t, int64(1), models[0].Accesses[0].GroupID)
+}
