@@ -25,6 +25,7 @@ func TestAdminRiskControlRoutesAreRegistered(t *testing.T) {
 		servermiddleware.AdminAuthMiddleware(func(c *gin.Context) {
 			c.AbortWithStatus(http.StatusTeapot)
 		}),
+		nil,
 	)
 
 	tests := []struct {
