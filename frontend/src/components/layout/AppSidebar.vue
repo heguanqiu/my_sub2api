@@ -157,44 +157,150 @@
     </nav>
 
     <!-- Bottom Section -->
-    <div class="mt-auto border-t border-gray-100 p-3 dark:border-dark-800">
-      <!-- Theme Toggle -->
-      <button
-        @click="toggleUiTheme"
-        class="sidebar-link mb-2 w-full"
-        :class="{ 'sidebar-link-collapsed': sidebarCollapsed }"
-        :title="sidebarCollapsed ? (isMecha ? t('nav.classicTheme') : t('nav.mechaTheme')) : undefined"
-      >
-        <CpuIcon class="h-5 w-5 flex-shrink-0" :class="isMecha ? 'text-cyan-400' : ''" />
-        <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{
-          isMecha ? t('nav.classicTheme') : t('nav.mechaTheme')
-        }}</span>
-      </button>
+    <div
+      ref="bottomToolsRef"
+      class="sidebar-bottom mt-auto border-t border-gray-100 p-3 dark:border-dark-800"
+      :class="{ 'sidebar-bottom-collapsed': sidebarCollapsed }"
+    >
+      <div v-if="user" class="relative mb-2">
+        <button
+          type="button"
+          class="sidebar-account-button"
+          :class="{ 'sidebar-account-button-collapsed': sidebarCollapsed }"
+          :title="sidebarCollapsed ? displayName : undefined"
+          aria-haspopup="menu"
+          :aria-expanded="accountMenuOpen ? 'true' : 'false'"
+          @click="toggleAccountMenu"
+        >
+          <div class="sidebar-account-avatar">
+            <img
+              v-if="avatarUrl"
+              :src="avatarUrl"
+              :alt="displayName"
+              class="h-full w-full object-cover"
+            >
+            <span v-else>{{ userInitials }}</span>
+          </div>
+          <div
+            class="sidebar-account-meta"
+            :class="{ 'sidebar-account-meta-collapsed': sidebarCollapsed }"
+            :aria-hidden="sidebarCollapsed ? 'true' : 'false'"
+          >
+            <span class="truncate text-sm font-semibold text-gray-900 dark:text-white">
+              {{ displayName }}
+            </span>
+            <span class="truncate text-xs capitalize text-gray-500 dark:text-dark-400">
+              {{ user.role }}
+            </span>
+          </div>
+          <Icon
+            name="chevronDown"
+            size="sm"
+            class="sidebar-account-chevron"
+            :class="[
+              accountMenuOpen ? 'rotate-180' : '',
+              sidebarCollapsed ? 'sidebar-account-chevron-collapsed' : ''
+            ]"
+          />
+        </button>
 
-      <button
-        @click="toggleTheme"
-        class="sidebar-link mb-2 w-full"
-        :class="{ 'sidebar-link-collapsed': sidebarCollapsed }"
-        :title="sidebarCollapsed ? (isDark ? t('nav.lightMode') : t('nav.darkMode')) : undefined"
-      >
-        <SunIcon v-if="isDark" class="h-5 w-5 flex-shrink-0 text-amber-500" />
-        <MoonIcon v-else class="h-5 w-5 flex-shrink-0" />
-        <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{
-          isDark ? t('nav.lightMode') : t('nav.darkMode')
-        }}</span>
-      </button>
+        <transition name="dropdown">
+          <div
+            v-if="accountMenuOpen"
+            class="dropdown sidebar-account-menu"
+            :class="sidebarCollapsed ? 'sidebar-account-menu-collapsed' : 'sidebar-account-menu-expanded'"
+            role="menu"
+          >
+            <div class="border-b border-gray-100 px-4 py-3 dark:border-dark-700">
+              <div class="truncate text-sm font-medium text-gray-900 dark:text-white">
+                {{ displayName }}
+              </div>
+              <div class="truncate text-xs text-gray-500 dark:text-dark-400">{{ user.email }}</div>
+            </div>
 
-      <!-- Collapse Button -->
-      <button
-        @click="toggleSidebar"
-        class="sidebar-link w-full"
-        :class="{ 'sidebar-link-collapsed': sidebarCollapsed }"
-        :title="sidebarCollapsed ? t('nav.expand') : t('nav.collapse')"
-      >
-        <ChevronDoubleLeftIcon v-if="!sidebarCollapsed" class="h-5 w-5 flex-shrink-0" />
-        <ChevronDoubleRightIcon v-else class="h-5 w-5 flex-shrink-0" />
-        <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{ t('nav.collapse') }}</span>
-      </button>
+            <div class="py-1">
+              <router-link to="/profile" @click="handleAccountNavigate" class="dropdown-item">
+                <Icon name="user" size="sm" />
+                {{ t('nav.profile') }}
+              </router-link>
+
+              <router-link to="/keys" @click="handleAccountNavigate" class="dropdown-item">
+                <Icon name="key" size="sm" />
+                {{ t('nav.apiKeys') }}
+              </router-link>
+
+              <a
+                v-if="authStore.isAdmin"
+                href="https://github.com/Wei-Shaw/sub2api"
+                target="_blank"
+                rel="noopener noreferrer"
+                @click="closeAccountMenu"
+                class="dropdown-item"
+              >
+                <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
+                    d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z"
+                  />
+                </svg>
+                {{ t('nav.github') }}
+              </a>
+            </div>
+
+            <div v-if="showOnboardingButton" class="border-t border-gray-100 py-1 dark:border-dark-700">
+              <button @click="handleReplayGuide" class="dropdown-item w-full">
+                <Icon name="questionCircle" size="sm" />
+                {{ $t('onboarding.restartTour') }}
+              </button>
+            </div>
+
+            <div class="border-t border-gray-100 py-1 dark:border-dark-700">
+              <button
+                @click="handleLogout"
+                class="dropdown-item w-full text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+              >
+                <Icon name="login" size="sm" />
+                {{ t('nav.logout') }}
+              </button>
+            </div>
+          </div>
+        </transition>
+      </div>
+
+      <div class="sidebar-tool-row" :class="{ 'sidebar-tool-row-collapsed': sidebarCollapsed }">
+        <button
+          type="button"
+          class="sidebar-tool-button"
+          :title="t('common.contactSupport')"
+          :aria-label="t('common.contactSupport')"
+          @click="openContactDialog"
+        >
+          <Icon name="chat" size="md" />
+        </button>
+
+        <button
+          type="button"
+          class="sidebar-tool-button"
+          :title="isDark ? t('nav.lightMode') : t('nav.darkMode')"
+          :aria-label="isDark ? t('nav.lightMode') : t('nav.darkMode')"
+          @click="toggleTheme"
+        >
+          <SunIcon v-if="isDark" class="h-5 w-5 flex-shrink-0 text-amber-500" />
+          <MoonIcon v-else class="h-5 w-5 flex-shrink-0" />
+        </button>
+
+        <button
+          type="button"
+          class="sidebar-tool-button"
+          :title="sidebarCollapsed ? t('nav.expand') : t('nav.collapse')"
+          :aria-label="sidebarCollapsed ? t('nav.expand') : t('nav.collapse')"
+          @click="toggleSidebar"
+        >
+          <ChevronDoubleLeftIcon v-if="!sidebarCollapsed" class="h-5 w-5 flex-shrink-0" />
+          <ChevronDoubleRightIcon v-else class="h-5 w-5 flex-shrink-0" />
+        </button>
+      </div>
     </div>
   </aside>
 
@@ -206,17 +312,56 @@
       @click="closeMobile"
     ></div>
   </transition>
+
+  <BaseDialog
+    :show="contactDialogOpen"
+    :title="t('common.contactSupport')"
+    width="narrow"
+    close-on-click-outside
+    @close="closeContactDialog"
+  >
+    <div class="space-y-4">
+      <p
+        v-if="contactInfo"
+        class="whitespace-pre-wrap break-words text-sm leading-6 text-gray-700 dark:text-dark-200"
+      >
+        {{ contactInfo }}
+      </p>
+      <div
+        v-if="contactImageUrl"
+        class="overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-dark-700 dark:bg-dark-900"
+      >
+        <img
+          :src="contactImageUrl"
+          :alt="t('common.contactSupport')"
+          class="mx-auto max-h-72 w-auto max-w-full rounded-lg object-contain"
+        >
+      </div>
+      <p
+        v-if="!hasContactSupportContent"
+        class="text-sm text-gray-500 dark:text-dark-400"
+      >
+        {{ t('common.noContactInfo') }}
+      </p>
+    </div>
+    <template #footer>
+      <button class="btn btn-primary" type="button" @click="closeContactDialog">
+        {{ t('common.close') }}
+      </button>
+    </template>
+  </BaseDialog>
 </template>
 
 <script setup lang="ts">
-import { computed, h, onMounted, ref, watch } from 'vue'
+import { computed, h, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAdminSettingsStore, useAppStore, useAuthStore, useOnboardingStore } from '@/stores'
 import VersionBadge from '@/components/common/VersionBadge.vue'
+import BaseDialog from '@/components/common/BaseDialog.vue'
+import Icon from '@/components/icons/Icon.vue'
 import { sanitizeSvg } from '@/utils/sanitize'
 import { FeatureFlags, makeSidebarFlag } from '@/utils/featureFlags'
-import { initUiTheme, setUiTheme, type UiTheme } from '@/utils/uiTheme'
 
 interface NavItem {
   path: string
@@ -265,9 +410,13 @@ const adminSettingsStore = useAdminSettingsStore()
 
 const sidebarCollapsed = computed(() => appStore.sidebarCollapsed)
 const mobileOpen = computed(() => appStore.mobileOpen)
+const user = computed(() => authStore.user)
 const isAdmin = computed(() => authStore.isAdmin)
 const isSales = computed(() => authStore.isSales)
 const isDark = ref(document.documentElement.classList.contains('dark'))
+const accountMenuOpen = ref(false)
+const contactDialogOpen = ref(false)
+const bottomToolsRef = ref<HTMLElement | null>(null)
 
 // Track which parent nav groups are expanded
 const expandedGroups = ref<Set<string>>(new Set())
@@ -277,8 +426,27 @@ const siteName = computed(() => appStore.siteName)
 const siteLogo = computed(() => appStore.siteLogo)
 const siteVersion = computed(() => appStore.siteVersion)
 const settingsLoaded = computed(() => appStore.publicSettingsLoaded)
-const uiTheme = ref<UiTheme>(initUiTheme())
-const isMecha = computed(() => uiTheme.value === 'mecha')
+const contactInfo = computed(() => appStore.contactInfo.trim())
+const contactImageUrl = computed(() => appStore.contactImageUrl.trim())
+const hasContactSupportContent = computed(() => Boolean(contactInfo.value || contactImageUrl.value))
+const avatarUrl = computed(() => user.value?.avatar_url?.trim() || '')
+const displayName = computed(() => {
+  if (!user.value) return ''
+  return user.value.username || user.value.email?.split('@')[0] || ''
+})
+const userInitials = computed(() => {
+  if (!user.value) return ''
+  if (user.value.username) {
+    return user.value.username.substring(0, 2).toUpperCase()
+  }
+  if (user.value.email) {
+    return user.value.email.split('@')[0].substring(0, 2).toUpperCase()
+  }
+  return ''
+})
+const showOnboardingButton = computed(() => {
+  return !authStore.isSimpleMode && user.value?.role === 'admin'
+})
 
 // SVG Icon Components
 const DashboardIcon = {
@@ -551,21 +719,6 @@ const MoonIcon = {
     )
 }
 
-const CpuIcon = {
-  render: () =>
-    h(
-      'svg',
-      { fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor', 'stroke-width': '1.5' },
-      [
-        h('path', {
-          'stroke-linecap': 'round',
-          'stroke-linejoin': 'round',
-          d: 'M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z'
-        })
-      ]
-    )
-}
-
 const ChevronDoubleLeftIcon = {
   render: () =>
     h(
@@ -697,6 +850,7 @@ const ChevronDownIcon = {
 const flagChannelMonitor = makeSidebarFlag(FeatureFlags.channelMonitor)
 const flagPayment = makeSidebarFlag(FeatureFlags.payment)
 const flagAvailableChannels = makeSidebarFlag(FeatureFlags.availableChannels)
+const flagAffiliate = makeSidebarFlag(FeatureFlags.affiliate)
 const flagRiskControl = makeSidebarFlag(FeatureFlags.riskControl)
 const flagOpsMonitoring = () => adminSettingsStore.opsMonitoringEnabled
 const flagAdminPayment = () => adminSettingsStore.paymentEnabled
@@ -704,8 +858,8 @@ const flagAdminPayment = () => adminSettingsStore.paymentEnabled
 // buildSelfNavItems 构造用户自己的导航项（用户端主菜单和管理员的"我的账户"子菜单共享这组声明）。
 // withDashboard=true 时包含仪表盘（用户端），false 时不含（管理员的个人区已经有独立仪表盘入口）。
 //
-// 条目顺序：密钥 → 用量 → 可用渠道 → 渠道状态 → 订阅/支付 → 兑换/资料。
-// 可用渠道紧挨渠道状态之上，让用户"先看自己能用什么、再看对应状态"。
+// 条目顺序：密钥 → 用量 → 模型广场 → 渠道状态 → 订阅/支付 → 兑换/资料。
+// 模型广场紧挨渠道状态之上，让用户"先看自己能用什么、再看对应状态"。
 function buildSelfNavItems(withDashboard: boolean): NavItem[] {
   const items: NavItem[] = []
   if (withDashboard) {
@@ -715,13 +869,13 @@ function buildSelfNavItems(withDashboard: boolean): NavItem[] {
     { path: '/keys', label: t('nav.apiKeys'), icon: KeyIcon },
     { path: '/playground', label: t('nav.playground'), icon: PlaygroundIcon },
     { path: '/usage', label: t('nav.usage'), icon: ChartIcon, hideInSimpleMode: true },
-    { path: '/available-channels', label: t('nav.availableChannels'), icon: ChannelIcon, hideInSimpleMode: true, featureFlag: flagAvailableChannels },
+    { path: '/models', label: t('nav.availableChannels'), icon: ChannelIcon, hideInSimpleMode: true, featureFlag: flagAvailableChannels },
     { path: '/monitor', label: t('nav.channelStatus'), icon: SignalIcon, featureFlag: flagChannelMonitor },
     { path: '/subscriptions', label: t('nav.mySubscriptions'), icon: CreditCardIcon, hideInSimpleMode: true },
     { path: '/purchase', label: t('nav.buySubscription'), icon: RechargeSubscriptionIcon, hideInSimpleMode: true, featureFlag: flagPayment },
     { path: '/orders', label: t('nav.myOrders'), icon: OrderListIcon, hideInSimpleMode: true, featureFlag: flagPayment },
-    { path: '/referral', label: t('nav.referral'), icon: GiftIcon, hideInSimpleMode: true },
     { path: '/redeem', label: t('nav.redeem'), icon: GiftIcon, hideInSimpleMode: true },
+    { path: '/affiliate', label: t('nav.affiliate'), icon: UsersIcon, hideInSimpleMode: true, featureFlag: flagAffiliate },
     { path: '/profile', label: t('nav.profile'), icon: UserIcon },
     ...customMenuItemsForUser.value.map((item): NavItem => ({
       path: `/custom/${item.id}`,
@@ -800,6 +954,19 @@ const adminNavItems = computed((): NavItem[] => {
     { path: '/admin/promo-codes', label: t('nav.promoCodes'), icon: GiftIcon, hideInSimpleMode: true },
     { path: '/admin/risk-control', label: t('nav.riskControl'), icon: ShieldIcon, hideInSimpleMode: true, featureFlag: flagRiskControl },
     {
+      path: '/admin/affiliates',
+      label: t('nav.affiliateManagement'),
+      icon: UsersIcon,
+      hideInSimpleMode: true,
+      expandOnly: true,
+      featureFlag: flagAffiliate,
+      children: [
+        { path: '/admin/affiliates/invites', label: t('nav.affiliateInviteRecords'), icon: UsersIcon },
+        { path: '/admin/affiliates/rebates', label: t('nav.affiliateRebateRecords'), icon: OrderIcon },
+        { path: '/admin/affiliates/transfers', label: t('nav.affiliateTransferRecords'), icon: CreditCardIcon },
+      ],
+    },
+    {
       path: '/admin/orders',
       label: t('nav.orderManagement'),
       icon: OrderIcon,
@@ -839,16 +1006,55 @@ function toggleSidebar() {
   appStore.toggleSidebar()
 }
 
+function toggleAccountMenu() {
+  accountMenuOpen.value = !accountMenuOpen.value
+}
+
+function closeAccountMenu() {
+  accountMenuOpen.value = false
+}
+
+function handleAccountNavigate() {
+  closeAccountMenu()
+  if (mobileOpen.value) {
+    closeMobile()
+  }
+}
+
+function openContactDialog() {
+  contactDialogOpen.value = true
+  closeAccountMenu()
+}
+
+function closeContactDialog() {
+  contactDialogOpen.value = false
+}
+
 function toggleTheme() {
   isDark.value = !isDark.value
   document.documentElement.classList.toggle('dark', isDark.value)
   localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
 }
 
-function toggleUiTheme() {
-  const nextTheme: UiTheme = isMecha.value ? 'classic' : 'mecha'
-  uiTheme.value = nextTheme
-  setUiTheme(nextTheme)
+function handleReplayGuide() {
+  closeAccountMenu()
+  onboardingStore.replay()
+}
+
+async function handleLogout() {
+  closeAccountMenu()
+  try {
+    await authStore.logout()
+  } catch (error) {
+    console.error('Logout error:', error)
+  }
+  await router.push('/login')
+}
+
+function handleClickOutside(event: MouseEvent) {
+  if (bottomToolsRef.value && !bottomToolsRef.value.contains(event.target as Node)) {
+    closeAccountMenu()
+  }
 }
 
 function closeMobile() {
@@ -940,9 +1146,14 @@ watch(
 )
 
 onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
   if (isAdmin.value) {
     adminSettingsStore.fetch()
   }
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
@@ -988,6 +1199,172 @@ onMounted(() => {
   gap: 0;
   padding-left: 0.875rem;
   padding-right: 0.875rem;
+}
+
+.sidebar-bottom {
+  transition:
+    padding 0.2s ease,
+    gap 0.2s ease;
+}
+
+.sidebar-bottom-collapsed {
+  padding-left: 0.875rem;
+  padding-right: 0.875rem;
+}
+
+.sidebar-account-button {
+  display: flex;
+  width: 100%;
+  min-height: 3rem;
+  align-items: center;
+  gap: 0.75rem;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  padding: 0.5rem;
+  text-align: left;
+  color: rgb(75 85 99);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    gap 0.2s ease,
+    padding 0.2s ease;
+}
+
+.sidebar-account-button:hover {
+  background: rgb(243 244 246);
+  color: rgb(17 24 39);
+}
+
+.dark .sidebar-account-button {
+  color: rgb(209 213 219);
+}
+
+.dark .sidebar-account-button:hover {
+  background: rgb(31 41 55);
+  color: white;
+}
+
+.sidebar-account-button-collapsed {
+  justify-content: center;
+  gap: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.sidebar-account-avatar {
+  display: flex;
+  height: 2rem;
+  width: 2rem;
+  flex: 0 0 2rem;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, rgb(59 130 246), rgb(37 99 235));
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: white;
+  box-shadow: 0 6px 16px rgb(37 99 235 / 0.22);
+}
+
+.sidebar-account-meta {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: hidden;
+  transition:
+    max-width 0.2s ease,
+    opacity 0.12s ease,
+    transform 0.12s ease;
+  max-width: 9.5rem;
+}
+
+.sidebar-account-meta-collapsed {
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-4px);
+  pointer-events: none;
+}
+
+.sidebar-account-chevron {
+  flex: 0 0 auto;
+  color: rgb(156 163 175);
+  transition:
+    transform 0.2s ease,
+    opacity 0.12s ease,
+    max-width 0.2s ease;
+  max-width: 1rem;
+}
+
+.sidebar-account-chevron-collapsed {
+  max-width: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar-account-menu {
+  bottom: calc(100% + 0.5rem);
+  margin-top: 0;
+  width: 14rem;
+  transform-origin: bottom left;
+}
+
+.sidebar-account-menu-expanded {
+  left: 0;
+}
+
+.sidebar-account-menu-collapsed {
+  left: calc(100% + 0.75rem);
+  bottom: 0;
+}
+
+.sidebar-tool-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.sidebar-tool-row-collapsed {
+  grid-template-columns: 1fr;
+}
+
+.sidebar-tool-button {
+  display: inline-flex;
+  min-height: 2.5rem;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  color: rgb(75 85 99);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.sidebar-tool-button:hover {
+  background: rgb(243 244 246);
+  color: rgb(17 24 39);
+}
+
+.dark .sidebar-tool-button {
+  color: rgb(209 213 219);
+}
+
+.dark .sidebar-tool-button:hover {
+  background: rgb(31 41 55);
+  color: white;
+}
+
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.2s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: scale(0.95) translateY(4px);
 }
 
 .sidebar-section-title {

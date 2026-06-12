@@ -24,15 +24,6 @@
       ></div>
     </div>
 
-    <button
-      type="button"
-      class="auth-theme-button absolute right-4 top-4 z-20 rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-dark-400 dark:hover:bg-dark-800 dark:hover:text-white"
-      :title="isMecha ? t('nav.classicTheme') : t('nav.mechaTheme')"
-      @click="toggleUiTheme"
-    >
-      <Icon name="cpu" size="md" />
-    </button>
-
     <!-- Content Container -->
     <div class="relative z-10 w-full max-w-md">
       <!-- Logo/Brand -->
@@ -72,15 +63,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { computed, onMounted } from 'vue'
 import { useAppStore } from '@/stores'
-import Icon from '@/components/icons/Icon.vue'
 import { sanitizeUrl } from '@/utils/url'
-import { initUiTheme, setUiTheme, type UiTheme } from '@/utils/uiTheme'
 
 const appStore = useAppStore()
-const { t } = useI18n()
 
 const siteName = computed(() => appStore.siteName || 'Sub2API')
 const siteLogo = computed(() => sanitizeUrl(appStore.siteLogo || '', { allowRelative: true, allowDataUrl: true }))
@@ -88,14 +75,6 @@ const siteSubtitle = computed(() => appStore.cachedPublicSettings?.site_subtitle
 const settingsLoaded = computed(() => appStore.publicSettingsLoaded)
 
 const currentYear = computed(() => new Date().getFullYear())
-const uiTheme = ref<UiTheme>(initUiTheme())
-const isMecha = computed(() => uiTheme.value === 'mecha')
-
-function toggleUiTheme() {
-  const nextTheme: UiTheme = isMecha.value ? 'classic' : 'mecha'
-  uiTheme.value = nextTheme
-  setUiTheme(nextTheme)
-}
 
 onMounted(() => {
   appStore.fetchPublicSettings()
