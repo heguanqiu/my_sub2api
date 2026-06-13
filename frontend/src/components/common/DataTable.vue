@@ -1,7 +1,7 @@
 <template>
-  <div v-if="!isDesktopViewport" class="space-y-3">
+  <div v-if="!isDesktopViewport" ref="mobileListRef" class="space-y-3">
     <template v-if="loading">
-      <div v-for="i in 5" :key="i" class="rounded-lg border border-gray-200 bg-white p-4 dark:border-dark-700 dark:bg-dark-900">
+      <div v-for="i in 5" :key="i" class="data-table-mobile-card rounded-lg border border-gray-200 bg-white p-4 dark:border-dark-700 dark:bg-dark-900">
         <div class="space-y-3">
           <div v-for="column in dataColumns" :key="column.key" class="flex justify-between">
             <div class="h-4 w-20 animate-pulse rounded bg-gray-200 dark:bg-dark-700"></div>
@@ -15,7 +15,7 @@
     </template>
 
     <template v-else-if="!data || data.length === 0">
-      <div class="rounded-lg border border-gray-200 bg-white p-12 text-center dark:border-dark-700 dark:bg-dark-900">
+      <div class="data-table-mobile-card rounded-lg border border-gray-200 bg-white p-12 text-center dark:border-dark-700 dark:bg-dark-900">
         <slot name="empty">
           <div class="flex flex-col items-center">
             <Icon
@@ -35,7 +35,7 @@
       <div
         v-for="(row, index) in sortedData"
         :key="resolveRowKey(row, index)"
-        class="rounded-lg border border-gray-200 bg-white p-4 dark:border-dark-700 dark:bg-dark-900"
+        class="data-table-mobile-card rounded-lg border border-gray-200 bg-white p-4 dark:border-dark-700 dark:bg-dark-900"
       >
         <div class="space-y-3">
           <div
@@ -196,11 +196,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useVirtualizer, observeElementRect as observeElementRectDefault } from '@tanstack/vue-virtual'
 import { useI18n } from 'vue-i18n'
 import type { Column } from './types'
 import Icon from '@/components/icons/Icon.vue'
+import { animateMountedSurface, clearMotion } from '@/composables/useGsapMotion'
 
 const { t } = useI18n()
 
@@ -215,8 +216,10 @@ const emit = defineEmits<{
 
 // 表格容器引用
 const tableWrapperRef = ref<HTMLElement | null>(null)
+const mobileListRef = ref<HTMLElement | null>(null)
 const isScrollable = ref(false)
 const actionsColumnNeedsExpanding = ref(false)
+const mobileMotionSelector = '.data-table-mobile-card'
 
 // --- 虚拟滚动「整表空白」根治 ---
 // 根因:本组件根 .table-wrapper 为 flex:1 / min-h-0,高度由父级 flex 链决定。@tanstack 虚拟化器
@@ -326,6 +329,25 @@ const attachDesktopTableTracking = () => {
   }
 }
 
+const getMobileMotionTargets = (root: HTMLElement) => [
+  root,
+  ...Array.from(root.querySelectorAll(mobileMotionSelector)),
+]
+
+const animateMobileCards = async () => {
+  if (isDesktopViewport.value) return
+  await nextTick()
+  const root = mobileListRef.value
+  if (!root) return
+  animateMountedSurface(root, mobileMotionSelector)
+}
+
+const clearMobileCardMotion = () => {
+  const root = mobileListRef.value
+  if (!root) return
+  clearMotion(getMobileMotionTargets(root))
+}
+
 onMounted(() => {
   if (typeof window !== 'undefined') {
     desktopViewportMediaQuery = window.matchMedia(desktopViewportQuery)
@@ -341,7 +363,8 @@ onMounted(() => {
   }
 })
 
-onUnmounted(() => {
+onBeforeUnmount(() => {
+  clearMobileCardMotion()
   detachDesktopTableTracking()
   if (desktopViewportMediaQuery && desktopViewportListener) {
     if (typeof desktopViewportMediaQuery.removeEventListener === 'function') {
@@ -536,6 +559,12 @@ watch(
     await nextTick()
     attachDesktopTableTracking()
   },
+  { immediate: true, flush: 'post' }
+)
+
+watch(
+  [isDesktopViewport, () => props.loading, () => props.data?.length ?? 0],
+  animateMobileCards,
   { immediate: true, flush: 'post' }
 )
 
