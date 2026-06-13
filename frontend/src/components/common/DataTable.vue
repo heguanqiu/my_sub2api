@@ -300,6 +300,7 @@ let resizeObserver: ResizeObserver | null = null
 let resizeHandler: (() => void) | null = null
 let desktopViewportMediaQuery: MediaQueryList | null = null
 let desktopViewportListener: ((event: MediaQueryListEvent) => void) | null = null
+let mobileMotionRunId = 0
 
 const detachDesktopTableTracking = () => {
   resizeObserver?.disconnect()
@@ -334,15 +335,22 @@ const getMobileMotionTargets = (root: HTMLElement) => [
   ...Array.from(root.querySelectorAll(mobileMotionSelector)),
 ]
 
+const invalidateMobileMotion = () => {
+  mobileMotionRunId += 1
+}
+
 const animateMobileCards = async () => {
+  const runId = ++mobileMotionRunId
   if (isDesktopViewport.value) return
   await nextTick()
+  if (runId !== mobileMotionRunId || isDesktopViewport.value) return
   const root = mobileListRef.value
   if (!root) return
   animateMountedSurface(root, mobileMotionSelector)
 }
 
 const clearMobileCardMotion = () => {
+  invalidateMobileMotion()
   const root = mobileListRef.value
   if (!root) return
   clearMotion(getMobileMotionTargets(root))
@@ -553,18 +561,22 @@ const columnsSignature = computed(() =>
 
 watch(
   isDesktopViewport,
+  (isDesktop, wasDesktop) => {
+    if (isDesktop && wasDesktop === false) {
+      clearMobileCardMotion()
+    }
+  },
+  { flush: 'pre' }
+)
+
+watch(
+  isDesktopViewport,
   async (isDesktop) => {
     detachDesktopTableTracking()
     if (!isDesktop) return
     await nextTick()
     attachDesktopTableTracking()
   },
-  { immediate: true, flush: 'post' }
-)
-
-watch(
-  [isDesktopViewport, () => props.loading, () => props.data?.length ?? 0],
-  animateMobileCards,
   { immediate: true, flush: 'post' }
 )
 
@@ -621,6 +633,23 @@ const sortedData = computed(() => {
     })
     .map(item => item.row)
 })
+
+const mobileMotionSignature = computed(() => {
+  if (isDesktopViewport.value) return 'desktop'
+  if (props.loading) return 'mobile:loading'
+
+  const rows = sortedData.value ?? []
+  if (rows.length === 0) return 'mobile:empty'
+
+  const rowKeys = rows.map((row, index) => String(resolveRowKey(row, index)))
+  return `mobile:rows:${JSON.stringify(rowKeys)}`
+})
+
+watch(
+  mobileMotionSignature,
+  animateMobileCards,
+  { immediate: true, flush: 'post' }
+)
 
 // --- Virtual scrolling ---
 const rowVirtualizer = useVirtualizer(computed(() => ({

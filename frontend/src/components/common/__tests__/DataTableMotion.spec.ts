@@ -55,21 +55,45 @@ const rows = [
   { id: 'row-2', name: 'Beta', status: 'paused' },
 ]
 
+const mobileMotionSelector = '.data-table-mobile-card'
+const desktopViewportQuery = '(min-width: 768px)'
+let desktopViewportMatches = true
+let desktopViewportListeners = new Set<(event: MediaQueryListEvent) => void>()
+
 const mockDesktopViewport = (matches: boolean) => {
+  desktopViewportMatches = matches
+  desktopViewportListeners = new Set()
+
   Object.defineProperty(window, 'matchMedia', {
     configurable: true,
     writable: true,
     value: vi.fn((query: string) => ({
-      matches: query === '(min-width: 768px)' ? matches : false,
+      matches: query === desktopViewportQuery ? desktopViewportMatches : false,
       media: query,
       onchange: null,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
+      addEventListener: vi.fn((_type: string, listener: (event: MediaQueryListEvent) => void) => {
+        if (query === desktopViewportQuery) desktopViewportListeners.add(listener)
+      }),
+      removeEventListener: vi.fn((_type: string, listener: (event: MediaQueryListEvent) => void) => {
+        desktopViewportListeners.delete(listener)
+      }),
+      addListener: vi.fn((listener: (event: MediaQueryListEvent) => void) => {
+        if (query === desktopViewportQuery) desktopViewportListeners.add(listener)
+      }),
+      removeListener: vi.fn((listener: (event: MediaQueryListEvent) => void) => {
+        desktopViewportListeners.delete(listener)
+      }),
       dispatchEvent: vi.fn(),
     })),
   })
+}
+
+const setDesktopViewport = (matches: boolean) => {
+  desktopViewportMatches = matches
+  const event = { matches, media: desktopViewportQuery } as MediaQueryListEvent
+  for (const listener of desktopViewportListeners) {
+    listener(event)
+  }
 }
 
 const mountDataTable = (props: Partial<InstanceType<typeof DataTable>['$props']> = {}) => mount(DataTable, {
@@ -104,10 +128,11 @@ describe('DataTable mobile motion', () => {
     await flushMountedMotion()
 
     const root = wrapper.element
-    const cards = Array.from(root.querySelectorAll('.data-table-mobile-card'))
+    const cards = Array.from(root.querySelectorAll(mobileMotionSelector))
 
     expect(cards).toHaveLength(5)
-    expect(motion.animateMountedSurface).toHaveBeenCalledWith(root, '.data-table-mobile-card')
+    expect(motion.animateMountedSurface).toHaveBeenCalledTimes(1)
+    expect(motion.animateMountedSurface).toHaveBeenCalledWith(root, mobileMotionSelector)
 
     wrapper.unmount()
 
@@ -121,10 +146,11 @@ describe('DataTable mobile motion', () => {
     await flushMountedMotion()
 
     const root = wrapper.element
-    const cards = Array.from(root.querySelectorAll('.data-table-mobile-card'))
+    const cards = Array.from(root.querySelectorAll(mobileMotionSelector))
 
     expect(cards).toHaveLength(1)
-    expect(motion.animateMountedSurface).toHaveBeenCalledWith(root, '.data-table-mobile-card')
+    expect(motion.animateMountedSurface).toHaveBeenCalledTimes(1)
+    expect(motion.animateMountedSurface).toHaveBeenCalledWith(root, mobileMotionSelector)
 
     wrapper.unmount()
 
@@ -138,10 +164,11 @@ describe('DataTable mobile motion', () => {
     await flushMountedMotion()
 
     const root = wrapper.element
-    const cards = Array.from(root.querySelectorAll('.data-table-mobile-card'))
+    const cards = Array.from(root.querySelectorAll(mobileMotionSelector))
 
     expect(cards).toHaveLength(rows.length)
-    expect(motion.animateMountedSurface).toHaveBeenCalledWith(root, '.data-table-mobile-card')
+    expect(motion.animateMountedSurface).toHaveBeenCalledTimes(1)
+    expect(motion.animateMountedSurface).toHaveBeenCalledWith(root, mobileMotionSelector)
 
     wrapper.unmount()
 
@@ -157,12 +184,84 @@ describe('DataTable mobile motion', () => {
     expect(wrapper.find('table').exists()).toBe(true)
     expect(wrapper.find('.table-wrapper').exists()).toBe(true)
     expect(wrapper.findAll('tbody tr[data-row-id]')).toHaveLength(rows.length)
-    expect(wrapper.findAll('.data-table-mobile-card')).toHaveLength(0)
+    expect(wrapper.findAll(mobileMotionSelector)).toHaveLength(0)
     expect(motion.animateMountedSurface).not.toHaveBeenCalled()
 
     for (const row of wrapper.findAll('tbody tr[data-row-id]')) {
       expect(row.classes()).not.toContain('data-table-mobile-card')
     }
+
+    wrapper.unmount()
+  })
+
+  it('animates same-length mobile row replacement when row keys change', async () => {
+    mockDesktopViewport(false)
+
+    const wrapper = mountDataTable()
+    await flushMountedMotion()
+
+    const root = wrapper.element
+    expect(motion.animateMountedSurface).toHaveBeenCalledTimes(1)
+
+    await wrapper.setProps({
+      data: [
+        { id: 'row-3', name: 'Gamma', status: 'active' },
+        { id: 'row-4', name: 'Delta', status: 'paused' },
+      ],
+    })
+    await flushMountedMotion()
+
+    const cards = Array.from(root.querySelectorAll(mobileMotionSelector))
+    expect(cards).toHaveLength(2)
+    expect(cards[0].textContent).toContain('Gamma')
+    expect(motion.animateMountedSurface).toHaveBeenCalledTimes(2)
+    expect(motion.animateMountedSurface).toHaveBeenLastCalledWith(root, mobileMotionSelector)
+
+    wrapper.unmount()
+  })
+
+  it('does not run stale mobile animations for rapid loading and data changes', async () => {
+    mockDesktopViewport(false)
+
+    const wrapper = mountDataTable()
+    await flushMountedMotion()
+    motion.animateMountedSurface.mockClear()
+
+    void wrapper.setProps({ loading: true })
+    void wrapper.setProps({ loading: false, data: [] })
+    void wrapper.setProps({
+      loading: false,
+      data: [
+        { id: 'row-final-1', name: 'Final Alpha', status: 'active' },
+        { id: 'row-final-2', name: 'Final Beta', status: 'paused' },
+      ],
+    })
+    await flushMountedMotion()
+
+    expect(wrapper.findAll(mobileMotionSelector)).toHaveLength(2)
+    expect(wrapper.text()).toContain('Final Alpha')
+    expect(motion.animateMountedSurface).toHaveBeenCalledTimes(1)
+    expect(motion.animateMountedSurface).toHaveBeenLastCalledWith(wrapper.element, mobileMotionSelector)
+
+    wrapper.unmount()
+  })
+
+  it('clears active mobile card motion when switching from mobile to desktop', async () => {
+    mockDesktopViewport(false)
+
+    const wrapper = mountDataTable()
+    await flushMountedMotion()
+
+    const root = wrapper.element
+    const cards = Array.from(root.querySelectorAll(mobileMotionSelector))
+    motion.clearMotion.mockClear()
+
+    setDesktopViewport(true)
+    await flushMountedMotion()
+
+    expect(wrapper.find('.table-wrapper').exists()).toBe(true)
+    expect(wrapper.findAll(mobileMotionSelector)).toHaveLength(0)
+    expect(motion.clearMotion).toHaveBeenCalledWith([root, ...cards])
 
     wrapper.unmount()
   })
