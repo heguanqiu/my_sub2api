@@ -589,13 +589,13 @@ Add this CSS in `frontend/src/components/common/Toast.vue`:
 }
 ```
 
-- [ ] **Step 5: Remove obsolete modal CSS transition rules**
+- [ ] **Step 5: Preserve modal CSS transition rules and add content will-change**
 
-In `frontend/src/style.css`, delete every selector block whose selector starts with `.modal-enter-` or `.modal-leave-`, including the reduced-motion media query that contains only modal transition selectors. The first removed selector should be `.modal-enter-active`, and the last removed selector should be the closing brace of that reduced-motion media query.
+In `frontend/src/style.css`, keep every selector block whose selector starts with `.modal-enter-` or `.modal-leave-`. Raw `<Transition name="modal">` users still exist, so those global legacy transition rules must remain available.
 
 Keep `.modal-overlay`, `.modal-content`, `.modal-header`, `.modal-body`, `.modal-footer`, and `body.modal-open`.
 
-Add this near `.modal-content`:
+Still add this near `.modal-content`:
 
 ```css
 .modal-content {

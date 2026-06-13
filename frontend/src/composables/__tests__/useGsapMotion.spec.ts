@@ -30,6 +30,18 @@ const makeDialog = () => {
   return { overlay, panel }
 }
 
+const makeSelectDropdown = (optionCount = 10) => {
+  const dropdown = document.createElement('div')
+  const options = Array.from({ length: optionCount }, () => {
+    const option = document.createElement('div')
+    option.className = 'select-option'
+    dropdown.appendChild(option)
+    return option
+  })
+
+  return { dropdown, options }
+}
+
 const callTimelineComplete = () => {
   const timelineOptions = gsapTimeline.mock.calls[0]?.[0]
   timelineOptions?.onComplete?.()
@@ -50,6 +62,23 @@ const mockMatchMedia = (matches: boolean) => {
       dispatchEvent: vi.fn(),
     })),
   })
+}
+
+const targetIncludes = (actual: unknown, target: Element) => {
+  return Array.isArray(actual) ? actual.includes(target) : actual === target
+}
+
+const killOrderFor = (target: Element) => {
+  const callIndex = gsapKillTweensOf.mock.calls.findIndex(([actual]) =>
+    targetIncludes(actual, target)
+  )
+
+  expect(callIndex).toBeGreaterThanOrEqual(0)
+  return gsapKillTweensOf.mock.invocationCallOrder[callIndex]
+}
+
+const expectKilledBefore = (target: Element, beforeOrder: number) => {
+  expect(killOrderFor(target)).toBeLessThan(beforeOrder)
 }
 
 describe('useGsapMotion', () => {
@@ -98,6 +127,21 @@ describe('useGsapMotion', () => {
     )
   })
 
+  it('kills dialog overlay and content before starting enter animation', async () => {
+    const timeline = makeTimeline()
+    gsapTimeline.mockReturnValue(timeline)
+    const { createDialogTransitionHooks } = await import('../useGsapMotion')
+    const { overlay, panel } = makeDialog()
+    const done = vi.fn()
+
+    createDialogTransitionHooks().onEnter(overlay, done)
+
+    const timelineOrder = gsapTimeline.mock.invocationCallOrder[0]
+    expectKilledBefore(overlay, timelineOrder)
+    expectKilledBefore(panel, timelineOrder)
+    expect(done).not.toHaveBeenCalled()
+  })
+
   it('runs dialog leave through a GSAP timeline and completes once', async () => {
     const timeline = makeTimeline()
     gsapTimeline.mockReturnValue(timeline)
@@ -118,6 +162,21 @@ describe('useGsapMotion', () => {
     expect(done).toHaveBeenCalledTimes(1)
   })
 
+  it('kills dialog overlay and content before starting leave animation', async () => {
+    const timeline = makeTimeline()
+    gsapTimeline.mockReturnValue(timeline)
+    const { createDialogTransitionHooks } = await import('../useGsapMotion')
+    const { overlay, panel } = makeDialog()
+    const done = vi.fn()
+
+    createDialogTransitionHooks().onLeave(overlay, done)
+
+    const timelineOrder = gsapTimeline.mock.invocationCallOrder[0]
+    expectKilledBefore(overlay, timelineOrder)
+    expectKilledBefore(panel, timelineOrder)
+    expect(done).not.toHaveBeenCalled()
+  })
+
   it('sets dialog leave final state and completes once when reduced motion is enabled', async () => {
     mockMatchMedia(true)
     const { createDialogTransitionHooks } = await import('../useGsapMotion')
@@ -126,6 +185,9 @@ describe('useGsapMotion', () => {
 
     createDialogTransitionHooks().onLeave(overlay, done)
 
+    const firstSetOrder = gsapSet.mock.invocationCallOrder[0]
+    expectKilledBefore(overlay, firstSetOrder)
+    expectKilledBefore(panel, firstSetOrder)
     expect(gsapSet).toHaveBeenCalledWith(overlay, expect.objectContaining({ autoAlpha: 0 }))
     expect(gsapSet).toHaveBeenCalledWith(
       panel,
@@ -157,6 +219,29 @@ describe('useGsapMotion', () => {
     expect(leaveDone).toHaveBeenCalledTimes(1)
   })
 
+  it('kills toast before starting interrupted enter and leave tweens', async () => {
+    gsapFromTo.mockImplementation(() => ({ kill: vi.fn() }))
+    gsapTo.mockImplementation(() => ({ kill: vi.fn() }))
+    const { createToastTransitionHooks } = await import('../useGsapMotion')
+    const toast = document.createElement('div')
+    const enterDone = vi.fn()
+    const leaveDone = vi.fn()
+
+    const hooks = createToastTransitionHooks()
+    hooks.onEnter(toast, enterDone)
+    hooks.onLeave(toast, leaveDone)
+
+    expect(enterDone).not.toHaveBeenCalled()
+    expect(gsapKillTweensOf.mock.calls[0]?.[0]).toBe(toast)
+    expect(gsapKillTweensOf.mock.invocationCallOrder[0]).toBeLessThan(
+      gsapFromTo.mock.invocationCallOrder[0]
+    )
+    expect(gsapKillTweensOf.mock.calls[1]?.[0]).toBe(toast)
+    expect(gsapKillTweensOf.mock.invocationCallOrder[1]).toBeLessThan(
+      gsapTo.mock.invocationCallOrder[0]
+    )
+  })
+
   it('sets toast enter and leave final states when reduced motion is enabled', async () => {
     mockMatchMedia(true)
     const { createToastTransitionHooks } = await import('../useGsapMotion')
@@ -168,6 +253,14 @@ describe('useGsapMotion', () => {
     hooks.onEnter(toast, enterDone)
     hooks.onLeave(toast, leaveDone)
 
+    expect(gsapKillTweensOf.mock.calls[0]?.[0]).toBe(toast)
+    expect(gsapKillTweensOf.mock.invocationCallOrder[0]).toBeLessThan(
+      gsapSet.mock.invocationCallOrder[0]
+    )
+    expect(gsapKillTweensOf.mock.calls[1]?.[0]).toBe(toast)
+    expect(gsapKillTweensOf.mock.invocationCallOrder[1]).toBeLessThan(
+      gsapSet.mock.invocationCallOrder[1]
+    )
     expect(gsapSet).toHaveBeenCalledWith(
       toast,
       expect.objectContaining({ autoAlpha: 1, x: 0, y: 0, scale: 1 })
@@ -183,11 +276,16 @@ describe('useGsapMotion', () => {
   it('sets final state immediately when reduced motion is enabled', async () => {
     mockMatchMedia(true)
     const { createSelectTransitionHooks } = await import('../useGsapMotion')
-    const dropdown = document.createElement('div')
+    const { dropdown, options } = makeSelectDropdown(3)
     const done = vi.fn()
 
     createSelectTransitionHooks().onEnter(dropdown, done)
 
+    const firstSetOrder = gsapSet.mock.invocationCallOrder[0]
+    expectKilledBefore(dropdown, firstSetOrder)
+    for (const option of options) {
+      expectKilledBefore(option, firstSetOrder)
+    }
     expect(gsapSet).toHaveBeenCalledWith(
       dropdown,
       expect.objectContaining({ autoAlpha: 1, y: 0, scaleY: 1 })
@@ -199,18 +297,17 @@ describe('useGsapMotion', () => {
     const timeline = makeTimeline()
     gsapTimeline.mockReturnValue(timeline)
     const { createSelectTransitionHooks } = await import('../useGsapMotion')
-    const dropdown = document.createElement('div')
-    const options = Array.from({ length: 10 }, () => {
-      const option = document.createElement('div')
-      option.className = 'select-option'
-      dropdown.appendChild(option)
-      return option
-    })
+    const { dropdown, options } = makeSelectDropdown()
     const done = vi.fn()
 
     createSelectTransitionHooks().onEnter(dropdown, done)
     callTimelineComplete()
 
+    const timelineOrder = gsapTimeline.mock.invocationCallOrder[0]
+    expectKilledBefore(dropdown, timelineOrder)
+    for (const option of options.slice(0, 8)) {
+      expectKilledBefore(option, timelineOrder)
+    }
     expect(gsapTimeline).toHaveBeenCalledWith({ onComplete: done })
     expect(timeline.fromTo).toHaveBeenCalledTimes(2)
     expect(timeline.fromTo.mock.calls[1][0]).toEqual(options.slice(0, 8))
@@ -220,11 +317,16 @@ describe('useGsapMotion', () => {
 
   it('runs select leave through GSAP and completes once', async () => {
     const { createSelectTransitionHooks } = await import('../useGsapMotion')
-    const dropdown = document.createElement('div')
+    const { dropdown, options } = makeSelectDropdown(4)
     const done = vi.fn()
 
     createSelectTransitionHooks().onLeave(dropdown, done)
 
+    const toOrder = gsapTo.mock.invocationCallOrder[0]
+    expectKilledBefore(dropdown, toOrder)
+    for (const option of options) {
+      expectKilledBefore(option, toOrder)
+    }
     expect(gsapTo).toHaveBeenCalledWith(
       dropdown,
       expect.objectContaining({ autoAlpha: 0, y: -6, scaleY: 0.96, onComplete: done })
@@ -235,11 +337,16 @@ describe('useGsapMotion', () => {
   it('sets select leave final state and completes once when reduced motion is enabled', async () => {
     mockMatchMedia(true)
     const { createSelectTransitionHooks } = await import('../useGsapMotion')
-    const dropdown = document.createElement('div')
+    const { dropdown, options } = makeSelectDropdown(4)
     const done = vi.fn()
 
     createSelectTransitionHooks().onLeave(dropdown, done)
 
+    const firstSetOrder = gsapSet.mock.invocationCallOrder[0]
+    expectKilledBefore(dropdown, firstSetOrder)
+    for (const option of options) {
+      expectKilledBefore(option, firstSetOrder)
+    }
     expect(gsapSet).toHaveBeenCalledWith(
       dropdown,
       expect.objectContaining({ autoAlpha: 0, y: -6, scaleY: 0.96 })
@@ -254,10 +361,64 @@ describe('useGsapMotion', () => {
 
     animateMountedSurface(element)
 
+    expectKilledBefore(element, gsapSet.mock.invocationCallOrder[0])
     expect(gsapSet).toHaveBeenCalledWith(
       element,
       expect.objectContaining({ autoAlpha: 1, y: 0, scale: 1 })
     )
+  })
+
+  it('kills mounted surface root before animating the root target', async () => {
+    const { animateMountedSurface } = await import('../useGsapMotion')
+    const element = document.createElement('div')
+
+    animateMountedSurface(element)
+
+    expectKilledBefore(element, gsapFromTo.mock.invocationCallOrder[0])
+    expect(gsapFromTo).toHaveBeenCalledWith(
+      element,
+      expect.objectContaining({ autoAlpha: 0, y: 10, scale: 0.99 }),
+      expect.objectContaining({ autoAlpha: 1, y: 0, scale: 1 })
+    )
+  })
+
+  it('kills mounted surface child targets before animating a child selector array', async () => {
+    const { animateMountedSurface } = await import('../useGsapMotion')
+    const element = document.createElement('div')
+    const children = Array.from({ length: 3 }, () => {
+      const child = document.createElement('div')
+      child.className = 'surface-item'
+      element.appendChild(child)
+      return child
+    })
+
+    animateMountedSurface(element, '.surface-item')
+
+    expect(gsapFromTo.mock.calls[0]?.[0]).toEqual(children)
+    const fromToOrder = gsapFromTo.mock.invocationCallOrder[0]
+    for (const child of children) {
+      expectKilledBefore(child, fromToOrder)
+    }
+  })
+
+  it('kills mounted surface child targets before reduced-motion set', async () => {
+    mockMatchMedia(true)
+    const { animateMountedSurface } = await import('../useGsapMotion')
+    const element = document.createElement('div')
+    const children = Array.from({ length: 2 }, () => {
+      const child = document.createElement('div')
+      child.className = 'surface-item'
+      element.appendChild(child)
+      return child
+    })
+
+    animateMountedSurface(element, '.surface-item')
+
+    expect(gsapSet.mock.calls[0]?.[0]).toEqual(children)
+    const setOrder = gsapSet.mock.invocationCallOrder[0]
+    for (const child of children) {
+      expectKilledBefore(child, setOrder)
+    }
   })
 
   it('kills active tweens for hover feedback before starting a new hover tween', async () => {
@@ -283,7 +444,7 @@ describe('useGsapMotion', () => {
     expect(gsapKillTweensOf).toHaveBeenCalledWith(element)
     expect(gsapSet).toHaveBeenCalledWith(
       element,
-      expect.objectContaining({ y: -3, scale: 1.01 })
+      expect.objectContaining({ y: 0, scale: 1 })
     )
     expect(gsapTo).not.toHaveBeenCalled()
   })

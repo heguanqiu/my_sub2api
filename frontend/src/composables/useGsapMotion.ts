@@ -32,10 +32,39 @@ function getSelectOptions(el: Element): Element[] {
   return Array.from(el.querySelectorAll('.select-option')).slice(0, 8)
 }
 
+function normalizeTargets(...targets: MotionTarget[]): Element[] {
+  const seen = new Set<Element>()
+  const normalized: Element[] = []
+
+  for (const target of targets) {
+    const elements = Array.isArray(target) ? target : [target]
+
+    for (const element of elements) {
+      if (!seen.has(element)) {
+        seen.add(element)
+        normalized.push(element)
+      }
+    }
+  }
+
+  return normalized
+}
+
+function killMotionTargets(...targets: MotionTarget[]) {
+  const normalized = normalizeTargets(...targets)
+
+  if (normalized.length === 0) {
+    return
+  }
+
+  gsap.killTweensOf(normalized.length === 1 ? normalized[0] : normalized)
+}
+
 export function createDialogTransitionHooks() {
   return {
     onEnter(el: Element, done: DoneCallback) {
       const content = getDialogContent(el)
+      killMotionTargets(el, content)
 
       if (prefersReducedMotion()) {
         gsap.set(el, { autoAlpha: 1 })
@@ -65,6 +94,7 @@ export function createDialogTransitionHooks() {
     },
     onLeave(el: Element, done: DoneCallback) {
       const content = getDialogContent(el)
+      killMotionTargets(el, content)
 
       if (prefersReducedMotion()) {
         gsap.set(el, { autoAlpha: 0 })
@@ -93,6 +123,8 @@ export function createDialogTransitionHooks() {
 export function createToastTransitionHooks() {
   return {
     onEnter(el: Element, done: DoneCallback) {
+      killMotionTargets(el)
+
       if (prefersReducedMotion()) {
         gsap.set(el, { autoAlpha: 1, x: 0, y: 0, scale: 1 })
         done()
@@ -114,6 +146,8 @@ export function createToastTransitionHooks() {
       )
     },
     onLeave(el: Element, done: DoneCallback) {
+      killMotionTargets(el)
+
       if (prefersReducedMotion()) {
         gsap.set(el, { autoAlpha: 0, x: 18, y: -6, scale: 0.98 })
         done()
@@ -137,6 +171,7 @@ export function createSelectTransitionHooks() {
   return {
     onEnter(el: Element, done: DoneCallback) {
       const options = getSelectOptions(el)
+      killMotionTargets(el, options)
 
       if (prefersReducedMotion()) {
         gsap.set(el, { autoAlpha: 1, y: 0, scaleY: 1 })
@@ -176,6 +211,9 @@ export function createSelectTransitionHooks() {
       }
     },
     onLeave(el: Element, done: DoneCallback) {
+      const options = getSelectOptions(el)
+      killMotionTargets(el, options)
+
       if (prefersReducedMotion()) {
         gsap.set(el, { autoAlpha: 0, y: -6, scaleY: 0.96 })
         done()
@@ -196,6 +234,7 @@ export function createSelectTransitionHooks() {
 
 export function animateMountedSurface(el: Element, childSelector?: string) {
   const target = childSelector ? Array.from(el.querySelectorAll(childSelector)) : el
+  killMotionTargets(target)
 
   if (prefersReducedMotion()) {
     gsap.set(target, { autoAlpha: 1, y: 0, scale: 1 })
@@ -220,7 +259,7 @@ export function animateHoverLift(el: Element, lifted: boolean) {
   gsap.killTweensOf(el)
 
   if (prefersReducedMotion()) {
-    gsap.set(el, { y: lifted ? -3 : 0, scale: lifted ? 1.01 : 1 })
+    gsap.set(el, { y: 0, scale: 1 })
     return
   }
 
