@@ -300,14 +300,6 @@ export function createToastTransitionHooks() {
       }
 
       gsap.to(el, { autoAlpha: 0, x: 36, scale: 0.98, duration: motionDurations.fast, ease: motionEases.exit, onComplete: done })
-    },
-    onMove(el: Element, done: DoneCallback) {
-      if (prefersReducedMotion()) {
-        done()
-        return
-      }
-
-      gsap.fromTo(el, { scale: 0.98 }, { scale: 1, duration: motionDurations.fast, ease: motionEases.enter, onComplete: done })
     }
   }
 }
@@ -481,8 +473,7 @@ import { useAppStore } from '@/stores/app'
 
 const toastHooks = {
   onEnter: vi.fn((_el: Element, done: () => void) => done()),
-  onLeave: vi.fn((_el: Element, done: () => void) => done()),
-  onMove: vi.fn((_el: Element, done: () => void) => done())
+  onLeave: vi.fn((_el: Element, done: () => void) => done())
 }
 
 vi.mock('@/composables/useGsapMotion', () => ({
@@ -564,9 +555,9 @@ In `frontend/src/components/common/Toast.vue`, replace the `TransitionGroup` ope
 ```vue
 <TransitionGroup
   :css="false"
+  move-class="toast-move"
   @enter="toastMotion.onEnter"
   @leave="toastMotion.onLeave"
-  @move="toastMotion.onMove"
 >
 ```
 
@@ -582,7 +573,21 @@ Add after `const appStore = useAppStore()`:
 const toastMotion = createToastTransitionHooks()
 ```
 
-Do not change toast store behavior, close button behavior, or progress-bar markup.
+Do not change toast store behavior, close button behavior, or progress-bar markup. Use the `toast-move` CSS class for TransitionGroup stack movement; Vue does not expose a JavaScript `@move` hook.
+
+Add this CSS in `frontend/src/components/common/Toast.vue`:
+
+```css
+.toast-move {
+  transition: transform 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-move {
+    transition-duration: 1ms;
+  }
+}
+```
 
 - [ ] **Step 5: Remove obsolete modal CSS transition rules**
 
