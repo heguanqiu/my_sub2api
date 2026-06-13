@@ -250,6 +250,7 @@
   .stat-card {
     @apply card p-5;
     @apply flex items-start gap-4;
+    will-change: transform, opacity;
   }
 
   .stat-icon {

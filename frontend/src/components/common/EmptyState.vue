@@ -1,8 +1,8 @@
 <template>
-  <div class="empty-state">
+  <div ref="rootRef" class="empty-state">
     <!-- Icon -->
     <div
-      class="mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-gray-100 dark:bg-dark-800"
+      class="empty-state-motion-item mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-gray-100 dark:bg-dark-800"
     >
       <slot name="icon">
         <component v-if="icon" :is="icon" class="empty-state-icon h-10 w-10" aria-hidden="true" />
@@ -24,17 +24,17 @@
     </div>
 
     <!-- Title -->
-    <h3 class="empty-state-title">
+    <h3 class="empty-state-motion-item empty-state-title">
       {{ displayTitle }}
     </h3>
 
     <!-- Description -->
-    <p class="empty-state-description">
+    <p class="empty-state-motion-item empty-state-description">
       {{ description }}
     </p>
 
     <!-- Action -->
-    <div v-if="actionText || $slots.action" class="mt-6">
+    <div v-if="actionText || $slots.action" class="empty-state-motion-item mt-6">
       <slot name="action">
         <component
           :is="actionTo ? 'RouterLink' : 'button'"
@@ -52,12 +52,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Component } from 'vue'
 import Icon from '@/components/icons/Icon.vue'
+import { animateMountedSurface, clearMotion } from '@/composables/useGsapMotion'
 
 const { t } = useI18n()
+const rootRef = ref<HTMLElement | null>(null)
 
 interface Props {
   icon?: Component | string
@@ -77,4 +79,16 @@ const props = withDefaults(defineProps<Props>(), {
 const displayTitle = computed(() => props.title || t('common.noData'))
 
 defineEmits(['action'])
+
+onMounted(() => {
+  if (rootRef.value) {
+    animateMountedSurface(rootRef.value, '.empty-state-motion-item')
+  }
+})
+
+onUnmounted(() => {
+  if (rootRef.value) {
+    clearMotion(rootRef.value)
+  }
+})
 </script>
