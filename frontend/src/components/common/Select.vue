@@ -45,7 +45,11 @@
 
     <!-- Teleport dropdown to body to escape stacking context -->
     <Teleport to="body">
-      <Transition name="select-dropdown">
+      <Transition
+        :css="false"
+        @enter="selectMotion.onEnter"
+        @leave="selectMotion.onLeave"
+      >
         <div
           v-if="isOpen"
           ref="dropdownRef"
@@ -121,8 +125,10 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'
+import { createSelectTransitionHooks } from '@/composables/useGsapMotion'
 
 const { t } = useI18n()
+const selectMotion = createSelectTransitionHooks()
 
 // Instance ID for unique click-outside detection
 const instanceId = `select-${Math.random().toString(36).substring(2, 9)}`
@@ -501,6 +507,7 @@ onUnmounted(() => {
   @apply border border-gray-200 dark:border-dark-700;
   @apply shadow-lg shadow-black/10 dark:shadow-black/30;
   @apply overflow-hidden;
+  will-change: transform, opacity;
   pointer-events: auto !important;
 }
 
@@ -562,14 +569,4 @@ onUnmounted(() => {
   @apply text-gray-500 dark:text-dark-400;
 }
 
-.select-dropdown-enter-active,
-.select-dropdown-leave-active {
-  transition: all 0.2s ease;
-}
-
-.select-dropdown-enter-from,
-.select-dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
-}
 </style>
