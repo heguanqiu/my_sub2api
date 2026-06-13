@@ -180,6 +180,32 @@ describe('useGsapMotion', () => {
     expect(leaveDone).toHaveBeenCalledTimes(1)
   })
 
+  it('runs toast move through GSAP and completes once', async () => {
+    const { createToastTransitionHooks } = await import('../useGsapMotion')
+    const toast = document.createElement('div')
+    const done = vi.fn()
+
+    createToastTransitionHooks().onMove(toast, done)
+
+    expect(gsapTo).toHaveBeenCalledWith(
+      toast,
+      expect.objectContaining({ x: 0, y: 0, onComplete: done })
+    )
+    expect(done).toHaveBeenCalledTimes(1)
+  })
+
+  it('sets toast move final state and completes once when reduced motion is enabled', async () => {
+    mockMatchMedia(true)
+    const { createToastTransitionHooks } = await import('../useGsapMotion')
+    const toast = document.createElement('div')
+    const done = vi.fn()
+
+    createToastTransitionHooks().onMove(toast, done)
+
+    expect(gsapSet).toHaveBeenCalledWith(toast, expect.objectContaining({ x: 0, y: 0 }))
+    expect(done).toHaveBeenCalledTimes(1)
+  })
+
   it('sets final state immediately when reduced motion is enabled', async () => {
     mockMatchMedia(true)
     const { createSelectTransitionHooks } = await import('../useGsapMotion')
@@ -193,6 +219,29 @@ describe('useGsapMotion', () => {
       expect.objectContaining({ autoAlpha: 1, y: 0, scaleY: 1 })
     )
     expect(done).toHaveBeenCalled()
+  })
+
+  it('animates only the first eight select options on enter', async () => {
+    const timeline = makeTimeline()
+    gsapTimeline.mockReturnValue(timeline)
+    const { createSelectTransitionHooks } = await import('../useGsapMotion')
+    const dropdown = document.createElement('div')
+    const options = Array.from({ length: 10 }, () => {
+      const option = document.createElement('div')
+      option.className = 'select-option'
+      dropdown.appendChild(option)
+      return option
+    })
+    const done = vi.fn()
+
+    createSelectTransitionHooks().onEnter(dropdown, done)
+    callTimelineComplete()
+
+    expect(gsapTimeline).toHaveBeenCalledWith({ onComplete: done })
+    expect(timeline.fromTo).toHaveBeenCalledTimes(2)
+    expect(timeline.fromTo.mock.calls[1][0]).toEqual(options.slice(0, 8))
+    expect(timeline.fromTo.mock.calls[1][0]).toHaveLength(8)
+    expect(done).toHaveBeenCalledTimes(1)
   })
 
   it('runs select leave through GSAP and completes once', async () => {
