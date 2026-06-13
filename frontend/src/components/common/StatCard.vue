@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { Component } from 'vue'
 import Icon from '@/components/icons/Icon.vue'
 import { animateHoverLift, animateMountedSurface, clearMotion } from '@/composables/useGsapMotion'
@@ -99,9 +99,12 @@ onMounted(() => {
   }
 })
 
-onUnmounted(() => {
+onBeforeUnmount(() => {
   if (rootRef.value) {
-    clearMotion(rootRef.value)
+    clearMotion([
+      rootRef.value,
+      ...Array.from(rootRef.value.querySelectorAll('.stat-card-motion-item')),
+    ])
   }
 })
 </script>

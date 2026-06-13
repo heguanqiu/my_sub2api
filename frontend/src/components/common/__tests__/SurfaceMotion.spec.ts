@@ -23,8 +23,8 @@ describe('common surface motion', () => {
     document.body.innerHTML = ''
   })
 
-  it('animates EmptyState motion items on mount', () => {
-    mount(EmptyState, {
+  it('animates EmptyState motion items on mount and clears them on unmount', () => {
+    const wrapper = mount(EmptyState, {
       attachTo: document.body,
       props: {
         title: 'Nothing here',
@@ -42,9 +42,16 @@ describe('common surface motion', () => {
       expect.any(HTMLDivElement),
       '.empty-state-motion-item'
     )
+
+    const root = wrapper.get('.empty-state').element
+    const motionItems = Array.from(root.querySelectorAll('.empty-state-motion-item'))
+
+    wrapper.unmount()
+
+    expect(motion.clearMotion).toHaveBeenCalledWith([root, ...motionItems])
   })
 
-  it('animates StatCard mount and hover lift', async () => {
+  it('animates StatCard mount and hover lift, then clears motion targets on unmount', async () => {
     const wrapper = mount(StatCard, {
       attachTo: document.body,
       props: {
@@ -72,5 +79,11 @@ describe('common surface motion', () => {
 
     await wrapper.get('.stat-card').trigger('mouseleave')
     expect(motion.animateHoverLift).toHaveBeenCalledWith(element, false)
+
+    const motionItems = Array.from(element.querySelectorAll('.stat-card-motion-item'))
+
+    wrapper.unmount()
+
+    expect(motion.clearMotion).toHaveBeenCalledWith([element, ...motionItems])
   })
 })

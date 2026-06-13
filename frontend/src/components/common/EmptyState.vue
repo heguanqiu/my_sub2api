@@ -52,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Component } from 'vue'
 import Icon from '@/components/icons/Icon.vue'
@@ -86,9 +86,12 @@ onMounted(() => {
   }
 })
 
-onUnmounted(() => {
+onBeforeUnmount(() => {
   if (rootRef.value) {
-    clearMotion(rootRef.value)
+    clearMotion([
+      rootRef.value,
+      ...Array.from(rootRef.value.querySelectorAll('.empty-state-motion-item')),
+    ])
   }
 })
 </script>
