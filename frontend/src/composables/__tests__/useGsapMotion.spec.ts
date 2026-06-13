@@ -180,32 +180,6 @@ describe('useGsapMotion', () => {
     expect(leaveDone).toHaveBeenCalledTimes(1)
   })
 
-  it('runs toast move through GSAP and completes once', async () => {
-    const { createToastTransitionHooks } = await import('../useGsapMotion')
-    const toast = document.createElement('div')
-    const done = vi.fn()
-
-    createToastTransitionHooks().onMove(toast, done)
-
-    expect(gsapTo).toHaveBeenCalledWith(
-      toast,
-      expect.objectContaining({ x: 0, y: 0, onComplete: done })
-    )
-    expect(done).toHaveBeenCalledTimes(1)
-  })
-
-  it('sets toast move final state and completes once when reduced motion is enabled', async () => {
-    mockMatchMedia(true)
-    const { createToastTransitionHooks } = await import('../useGsapMotion')
-    const toast = document.createElement('div')
-    const done = vi.fn()
-
-    createToastTransitionHooks().onMove(toast, done)
-
-    expect(gsapSet).toHaveBeenCalledWith(toast, expect.objectContaining({ x: 0, y: 0 }))
-    expect(done).toHaveBeenCalledTimes(1)
-  })
-
   it('sets final state immediately when reduced motion is enabled', async () => {
     mockMatchMedia(true)
     const { createSelectTransitionHooks } = await import('../useGsapMotion')

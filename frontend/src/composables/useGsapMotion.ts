@@ -130,21 +130,6 @@ export function createToastTransitionHooks() {
         onComplete: done,
       })
     },
-    onMove(el: Element, done: DoneCallback) {
-      if (prefersReducedMotion()) {
-        gsap.set(el, { x: 0, y: 0 })
-        done()
-        return
-      }
-
-      gsap.to(el, {
-        x: 0,
-        y: 0,
-        duration: motionDurations.fast,
-        ease: motionEases.enter,
-        onComplete: done,
-      })
-    },
   }
 }
 
