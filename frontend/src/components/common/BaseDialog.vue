@@ -1,6 +1,11 @@
 <template>
   <Teleport to="body">
-    <Transition name="modal">
+    <Transition
+      appear
+      :css="false"
+      @enter="dialogMotion.onEnter"
+      @leave="dialogMotion.onLeave"
+    >
       <div
         v-if="show"
         class="modal-overlay"
@@ -45,6 +50,7 @@
 <script setup lang="ts">
 import { computed, watch, onMounted, onUnmounted, ref, nextTick } from 'vue'
 import Icon from '@/components/icons/Icon.vue'
+import { createDialogTransitionHooks } from '@/composables/useGsapMotion'
 
 // 生成唯一ID以避免多个对话框时ID冲突
 let dialogIdCounter = 0
@@ -79,6 +85,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<Emits>()
+const dialogMotion = createDialogTransitionHooks()
 
 // Custom z-index style (overrides the default z-50 from CSS)
 const zIndexStyle = computed(() => {

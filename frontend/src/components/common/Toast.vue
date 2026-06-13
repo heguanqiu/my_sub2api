@@ -6,12 +6,10 @@
       aria-atomic="true"
     >
       <TransitionGroup
-        enter-active-class="transition ease-out duration-300"
-        enter-from-class="opacity-0 translate-x-full"
-        enter-to-class="opacity-100 translate-x-0"
-        leave-active-class="transition ease-in duration-200"
-        leave-from-class="opacity-100 translate-x-0"
-        leave-to-class="opacity-0 translate-x-full"
+        :css="false"
+        move-class="toast-move"
+        @enter="toastMotion.onEnter"
+        @leave="toastMotion.onLeave"
       >
         <div
           v-for="toast in toasts"
@@ -80,8 +78,10 @@
 import { computed } from 'vue'
 import Icon from '@/components/icons/Icon.vue'
 import { useAppStore } from '@/stores/app'
+import { createToastTransitionHooks } from '@/composables/useGsapMotion'
 
 const appStore = useAppStore()
+const toastMotion = createToastTransitionHooks()
 
 const toasts = computed(() => appStore.toasts)
 
@@ -140,6 +140,16 @@ const removeToast = (id: string) => {
   animation-name: toast-progress-shrink;
   animation-timing-function: linear;
   animation-fill-mode: forwards;
+}
+
+.toast-move {
+  transition: transform 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-move {
+    transition-duration: 1ms;
+  }
 }
 
 @keyframes toast-progress-shrink {
