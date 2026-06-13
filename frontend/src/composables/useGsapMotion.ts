@@ -233,6 +233,12 @@ export function animateMountedSurface(el: Element, childSelector?: string) {
 
 export function animateHoverLift(el: Element, lifted: boolean) {
   gsap.killTweensOf(el)
+
+  if (prefersReducedMotion()) {
+    gsap.set(el, { y: lifted ? -3 : 0, scale: lifted ? 1.01 : 1 })
+    return
+  }
+
   gsap.to(el, {
     y: lifted ? -3 : 0,
     scale: lifted ? 1.01 : 1,
