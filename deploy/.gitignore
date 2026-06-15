@@ -18,6 +18,7 @@ jx-redis_data/
 *.backup
 *.bak
 prod-snapshot-*/
+local-backups/
 
 # Temporary files
 *.tmp
