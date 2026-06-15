@@ -82,6 +82,18 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 
 	reqLog = reqLog.With(zap.String("model", reqModel), zap.Bool("stream", reqStream))
 
+	if imageRequest, err := buildOpenAIImagesRequestFromChatCompletion(body, reqModel); err != nil {
+		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", err.Error())
+		return
+	} else if imageRequest != nil {
+		reqLog.Info("openai_chat_completions.image_model_reroute",
+			zap.String("images_endpoint", imageRequest.Endpoint),
+			zap.Int("image_count", imageRequest.ImageCount),
+		)
+		h.serveOpenAIChatImageReroute(c, imageRequest, reqModel, reqStream)
+		return
+	}
+
 	setOpsRequestContext(c, reqModel, reqStream)
 	setOpsEndpointContext(c, "", int16(service.RequestTypeFromLegacy(reqStream, false)))
 

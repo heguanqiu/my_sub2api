@@ -769,11 +769,7 @@ func buildOpenAIImagesAPIResponse(
 	for _, img := range results {
 		item := []byte(`{}`)
 		if format == "url" {
-			url := strings.TrimSpace(img.Result)
-			if !isOpenAIImagesDirectURL(url) {
-				url = "data:" + openAIImageOutputMIMEType(img.OutputFormat) + ";base64," + url
-			}
-			item, _ = sjson.SetBytes(item, "url", url)
+			item, _ = sjson.SetBytes(item, "url", "data:"+openAIImageOutputMIMEType(img.OutputFormat)+";base64,"+img.Result)
 		} else {
 			item, _ = sjson.SetBytes(item, "b64_json", img.Result)
 		}
@@ -801,13 +797,6 @@ func buildOpenAIImagesAPIResponse(
 		out, _ = sjson.SetRawBytes(out, "usage", usageRaw)
 	}
 	return out, nil
-}
-
-func isOpenAIImagesDirectURL(value string) bool {
-	value = strings.ToLower(strings.TrimSpace(value))
-	return strings.HasPrefix(value, "http://") ||
-		strings.HasPrefix(value, "https://") ||
-		strings.HasPrefix(value, "data:image/")
 }
 
 func openAIImagesStreamPrefix(parsed *OpenAIImagesRequest) string {
