@@ -376,6 +376,7 @@ func TestValidateOAuthRegistrationInvitation_AllowsUsedInvitationRedeemCodeReuse
 			SettingKeyInvitationCodeEnabled: "true",
 		},
 		&emailCacheStub{},
+		nil,
 	)
 
 	redeemCode, err := authService.validateOAuthRegistrationInvitation(context.Background(), "INVITE-REUSE")
