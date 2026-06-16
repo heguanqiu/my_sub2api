@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -1081,7 +1082,7 @@ func TestOpenAIGatewayServiceForwardImages_APIKeyEditUsesConfiguredV1BaseURL(t *
 	writer := multipart.NewWriter(&body)
 	require.NoError(t, writer.WriteField("model", "gpt-image-2"))
 	require.NoError(t, writer.WriteField("prompt", "replace background"))
-	imagePart, err := writer.CreateFormFile("image", "source.png")
+	imagePart, err := writer.CreateFormFile("image[]", "source.png")
 	require.NoError(t, err)
 	_, err = imagePart.Write([]byte("png-image-content"))
 	require.NoError(t, err)
@@ -1108,6 +1109,8 @@ func TestOpenAIGatewayServiceForwardImages_APIKeyEditUsesConfiguredV1BaseURL(t *
 	}
 	parsed, err := svc.ParseOpenAIImagesRequest(c, body.Bytes())
 	require.NoError(t, err)
+	require.Len(t, parsed.Uploads, 1)
+	require.Equal(t, "image[]", parsed.Uploads[0].FieldName)
 
 	account := &Account{
 		ID:       7,
@@ -1133,8 +1136,37 @@ func TestOpenAIGatewayServiceForwardImages_APIKeyEditUsesConfiguredV1BaseURL(t *
 	require.Contains(t, upstream.lastReq.Header.Get("Content-Type"), "multipart/form-data")
 	require.Contains(t, string(upstream.lastBody), `name="model"`)
 	require.Contains(t, string(upstream.lastBody), "gpt-image-2")
+	requireOpenAIImagesMultipartFileField(t, upstream.lastReq.Header.Get("Content-Type"), upstream.lastBody, "image", "png-image-content")
+	require.NotContains(t, string(upstream.lastBody), `name="image[]"`)
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.Equal(t, "ZWRpdGVk", gjson.Get(rec.Body.String(), "data.0.b64_json").String())
+}
+
+func requireOpenAIImagesMultipartFileField(t *testing.T, contentType string, body []byte, fieldName string, wantBody string) {
+	t.Helper()
+
+	mediaType, params, err := mime.ParseMediaType(contentType)
+	require.NoError(t, err)
+	require.Equal(t, "multipart/form-data", mediaType)
+	boundary := strings.TrimSpace(params["boundary"])
+	require.NotEmpty(t, boundary)
+
+	reader := multipart.NewReader(bytes.NewReader(body), boundary)
+	for {
+		part, err := reader.NextPart()
+		if err == io.EOF {
+			break
+		}
+		require.NoError(t, err)
+		partBody, err := io.ReadAll(part)
+		require.NoError(t, err)
+		require.NoError(t, part.Close())
+		if part.FormName() == fieldName && part.FileName() != "" {
+			require.Equal(t, wantBody, string(partBody))
+			return
+		}
+	}
+	require.Failf(t, "multipart file field not found", "field=%s", fieldName)
 }
 
 func TestOpenAIGatewayServiceForwardImages_OAuthStreamingTransformsEvents(t *testing.T) {

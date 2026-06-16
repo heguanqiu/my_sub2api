@@ -353,7 +353,7 @@ func parseOpenAIImagesMultipartRequest(body []byte, contentType string, req *Ope
 				}
 				req.MaskUpload = &maskUpload
 			}
-			if name == "image" || strings.HasPrefix(name, "image[") {
+			if isOpenAIImagesMultipartImageField(name) {
 				width, height := parseOpenAIImageDimensions(part.Header)
 				req.Uploads = append(req.Uploads, OpenAIImagesUpload{
 					FieldName:   name,
@@ -810,6 +810,9 @@ func rewriteOpenAIImagesMultipartModel(body []byte, contentType string, model st
 
 		formName := strings.TrimSpace(part.FormName())
 		partHeader := cloneMultipartHeader(part.Header)
+		if part.FileName() != "" && formName != "image" && isOpenAIImagesMultipartImageField(formName) {
+			normalizeOpenAIImagesMultipartPartName(partHeader, "image")
+		}
 		target, err := writer.CreatePart(partHeader)
 		if err != nil {
 			_ = part.Close()
@@ -841,6 +844,21 @@ func rewriteOpenAIImagesMultipartModel(body []byte, contentType string, model st
 		return nil, "", fmt.Errorf("finalize multipart body: %w", err)
 	}
 	return buffer.Bytes(), writer.FormDataContentType(), nil
+}
+
+func isOpenAIImagesMultipartImageField(name string) bool {
+	return name == "image" || strings.HasPrefix(name, "image[")
+}
+
+func normalizeOpenAIImagesMultipartPartName(header textproto.MIMEHeader, name string) {
+	disposition := strings.TrimSpace(header.Get("Content-Disposition"))
+	mediaType, params, err := mime.ParseMediaType(disposition)
+	if err != nil || strings.TrimSpace(mediaType) == "" {
+		mediaType = "form-data"
+		params = map[string]string{}
+	}
+	params["name"] = name
+	header.Set("Content-Disposition", mime.FormatMediaType(mediaType, params))
 }
 
 func cloneMultipartHeader(src textproto.MIMEHeader) textproto.MIMEHeader {

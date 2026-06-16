@@ -55,6 +55,17 @@ func RegisterUserRoutes(
 			}
 		}
 
+		// 专属邀请链接与邀请记录
+		referral := authenticated.Group("/referral")
+		{
+			referral.GET("/my-link", h.User.GetMyInviteLink)
+			referral.POST("/my-link/regenerate", h.User.RegenerateMyInviteLink)
+			referral.POST("/my-link/disable", h.User.DisableMyInviteLink)
+			referral.POST("/my-link/revoke", h.User.RevokeMyInviteLink)
+			referral.GET("/my-invitees", h.User.GetMyInvitees)
+			referral.GET("/my-rewards", h.User.GetMyRewards)
+		}
+
 		// API Key管理
 		keys := authenticated.Group("/keys")
 		{
