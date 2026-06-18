@@ -695,42 +695,25 @@ onBeforeUnmount(() => {
 }
 
 .brand-mark {
-  background:
-    linear-gradient(145deg, rgba(36, 155, 255, 0.95), rgba(8, 40, 118, 0.95)),
-    #1478ff;
-  box-shadow: 0 0 28px rgba(20, 120, 255, 0.35);
+  background: linear-gradient(145deg, #3a8bff, #1551c4);
+  box-shadow: 0 6px 16px rgba(29, 111, 242, 0.22);
 }
 
 .hero-stage {
-  background:
-    linear-gradient(180deg, #030711 0%, #050b16 70%, #030711 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #f7f9fc 100%);
 }
 
-.hero-asset {
-  object-position: 66% 50%;
-  opacity: 0.95;
-}
-
-.hero-vignette {
-  background:
-    linear-gradient(90deg, rgba(3, 7, 17, 0.98) 0%, rgba(3, 7, 17, 0.86) 30%, rgba(3, 7, 17, 0.32) 61%, rgba(3, 7, 17, 0.84) 100%),
-    linear-gradient(180deg, rgba(3, 7, 17, 0.28) 0%, rgba(3, 7, 17, 0.08) 46%, rgba(3, 7, 17, 0.98) 100%);
-}
-
-.hero-blueprint {
-  background-image:
-    linear-gradient(rgba(54, 177, 255, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(54, 177, 255, 0.055) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 72%, transparent 100%);
-}
-
-.hero-title-gradient {
-  background: linear-gradient(92deg, #53d8ff 0%, #1478ff 42%, #8bbdff 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: 0 0 34px rgba(20, 120, 255, 0.28);
+.section-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border: 1px solid #d6e4ff;
+  border-radius: 999px;
+  background: #eaf2ff;
+  padding: 0.375rem 0.75rem;
+  color: #1d6ff2;
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 .base-url-bar {
@@ -739,80 +722,22 @@ onBeforeUnmount(() => {
 
 .metric-tile {
   min-height: 5.875rem;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
-.section-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  border: 1px solid rgba(75, 184, 255, 0.28);
+/* 几何插画：纯 CSS 形状，无发光 */
+.hero-geo-ring {
+  border: 1.5px solid #d6e4ff;
   border-radius: 999px;
-  background: rgba(20, 120, 255, 0.12);
-  padding: 0.375rem 0.75rem;
-  color: #7bd7ff;
-  font-size: 0.75rem;
-  font-weight: 900;
-  letter-spacing: 0;
-  text-transform: uppercase;
 }
 
-.section-glow {
-  pointer-events: none;
-  position: absolute;
-  height: 28rem;
-  width: 28rem;
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(20, 120, 255, 0.2), transparent 67%);
-  filter: blur(18px);
-}
-
-.section-glow-left {
-  left: -10rem;
-  top: 8rem;
-}
-
-.section-glow-right {
-  right: -12rem;
-  top: 7rem;
-}
-
-.routing-board,
-.signal-panel,
-.assurance-card,
-.final-cta {
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.07),
-    0 24px 80px rgba(0, 0, 0, 0.26);
-}
-
-.routing-step {
-  min-height: 14.5rem;
-}
-
-.final-cta {
-  background:
-    linear-gradient(120deg, rgba(20, 120, 255, 0.2), transparent 48%),
-    #07111f;
+.hero-geo-grid {
+  background-image: radial-gradient(#d6e4ff 1.4px, transparent 1.4px);
+  background-size: 22px 22px;
 }
 
 @media (max-width: 1023px) {
-  .hero-asset {
-    object-position: 72% 50%;
-    opacity: 0.54;
-  }
-
-  .hero-vignette {
-    background:
-      linear-gradient(90deg, rgba(3, 7, 17, 0.98) 0%, rgba(3, 7, 17, 0.78) 58%, rgba(3, 7, 17, 0.9) 100%),
-      linear-gradient(180deg, rgba(3, 7, 17, 0.18) 0%, rgba(3, 7, 17, 0.98) 100%);
-  }
-}
-
-@media (max-width: 640px) {
-  .hero-asset {
-    object-position: 78% 50%;
-    opacity: 0.38;
+  .hero-geo-stage {
+    display: none;
   }
 
   .base-url-bar {
