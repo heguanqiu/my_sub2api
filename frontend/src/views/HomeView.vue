@@ -188,13 +188,13 @@
           </div>
 
           <div class="hero-geo-stage relative h-[26rem]" v-reveal.right="200">
-            <div class="hero-geo-grid absolute inset-6 rounded-2xl opacity-70"></div>
-            <div class="hero-geo-ring absolute right-10 top-6 h-56 w-56"></div>
-            <div class="hero-geo-ring absolute right-24 top-20 h-32 w-32"></div>
-            <div class="absolute left-4 top-16 h-28 w-44 rounded-2xl border border-[#e6e9ef] bg-white shadow-sm"></div>
-            <div class="absolute left-16 top-44 h-24 w-52 rounded-2xl border border-[#d6e4ff] bg-[#eaf2ff]"></div>
-            <div class="absolute bottom-8 right-16 h-20 w-20 rounded-2xl bg-[#1d6ff2] shadow-sm"></div>
-            <div class="absolute right-40 bottom-24 h-10 w-10 rounded-full bg-[#3a8bff]"></div>
+            <div class="hero-geo-grid hero-geo-motion absolute inset-6 rounded-2xl opacity-70"></div>
+            <div class="hero-geo-ring hero-geo-motion hero-geo-ring-large absolute right-10 top-6 h-56 w-56"></div>
+            <div class="hero-geo-ring hero-geo-motion hero-geo-ring-small absolute right-24 top-20 h-32 w-32"></div>
+            <div class="hero-geo-motion hero-geo-panel absolute left-4 top-16 h-28 w-44 rounded-2xl border border-[#e6e9ef] bg-white shadow-sm"></div>
+            <div class="hero-geo-motion hero-geo-panel hero-geo-panel-alt absolute left-16 top-44 h-24 w-52 rounded-2xl border border-[#d6e4ff] bg-[#eaf2ff]"></div>
+            <div class="hero-geo-motion hero-geo-spark absolute bottom-8 right-16 h-20 w-20 rounded-2xl bg-[#1d6ff2] shadow-sm"></div>
+            <div class="hero-geo-motion hero-geo-dot absolute right-40 bottom-24 h-10 w-10 rounded-full bg-[#3a8bff]"></div>
           </div>
         </div>
       </section>
@@ -828,6 +828,120 @@ onBeforeUnmount(() => {
   background-size: 22px 22px;
 }
 
+.hero-geo-motion {
+  transform-origin: center;
+  will-change: transform, opacity, background-position;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .reveal-in .hero-geo-grid {
+    animation: hero-geo-grid-drift 16s linear infinite;
+  }
+
+  .reveal-in .hero-geo-ring-large {
+    animation: hero-geo-ring-float 9s ease-in-out infinite;
+  }
+
+  .reveal-in .hero-geo-ring-small {
+    animation: hero-geo-ring-float 7s ease-in-out infinite reverse;
+    animation-delay: -2s;
+  }
+
+  .reveal-in .hero-geo-panel {
+    animation: hero-geo-panel-float 8s ease-in-out infinite;
+  }
+
+  .reveal-in .hero-geo-panel-alt {
+    animation: hero-geo-panel-float 10s ease-in-out infinite reverse;
+    animation-delay: -1.4s;
+  }
+
+  .reveal-in .hero-geo-spark {
+    animation: hero-geo-spark-bob 6s ease-in-out infinite;
+  }
+
+  .reveal-in .hero-geo-dot {
+    animation: hero-geo-dot-orbit 5.5s ease-in-out infinite;
+  }
+}
+
+@keyframes hero-geo-grid-drift {
+  0% {
+    background-position: 0 0;
+    opacity: 0.7;
+  }
+
+  50% {
+    background-position: 14px 10px;
+    opacity: 0.82;
+  }
+
+  100% {
+    background-position: 0 0;
+    opacity: 0.7;
+  }
+}
+
+@keyframes hero-geo-ring-float {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(-10px, 8px, 0) scale(1.03);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes hero-geo-panel-float {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+
+  50% {
+    transform: translate3d(0, -10px, 0) rotate(-1deg);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+}
+
+@keyframes hero-geo-spark-bob {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(8px, -12px, 0) scale(1.08);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes hero-geo-dot-orbit {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate3d(-8px, 6px, 0) scale(0.95);
+  }
+
+  66% {
+    transform: translate3d(10px, -4px, 0) scale(1.05);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
 /* 渐入动画：进入视口时按方向滑入淡入 */
 .reveal-init {
   opacity: 0;
@@ -866,6 +980,10 @@ onBeforeUnmount(() => {
     opacity: 1;
     transform: none;
     transition: none;
+  }
+
+  .hero-geo-motion {
+    animation: none !important;
   }
 }
 
