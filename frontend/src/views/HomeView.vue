@@ -760,6 +760,10 @@ function setMeta(name: string, content: string) {
 }
 
 onMounted(() => {
+  if ('scrollRestoration' in window.history) {
+    window.history.scrollRestoration = 'manual'
+  }
+  window.scrollTo(0, 0)
   onScroll()
   setLandingMeta()
   window.addEventListener('scroll', onScroll, { passive: true })
