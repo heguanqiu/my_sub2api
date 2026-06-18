@@ -41,6 +41,12 @@
           >
             成为合伙人
           </router-link>
+          <router-link
+            to="/plugins"
+            class="rounded-lg px-3 py-2 text-sm font-semibold text-[#475467] transition hover:bg-[#f3f5f9] hover:text-[#0f1729]"
+          >
+            插件中心
+          </router-link>
           <button
             v-for="item in navItems"
             :key="item.id"
@@ -115,6 +121,13 @@
             @click="mobileMenuOpen = false"
           >
             成为合伙人
+          </router-link>
+          <router-link
+            to="/plugins"
+            class="rounded-lg px-3 py-2 text-sm font-semibold text-[#475467] hover:bg-[#f3f5f9]"
+            @click="mobileMenuOpen = false"
+          >
+            插件中心
           </router-link>
           <router-link
             :to="isAuthenticated ? dashboardPath : '/login'"

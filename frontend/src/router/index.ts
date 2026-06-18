@@ -50,6 +50,16 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/plugins',
+    name: 'PluginCenter',
+    component: () => import('@/views/public/PluginCenterView.vue'),
+    meta: {
+      requiresAuth: false,
+      title: 'Plugin Center',
+      titleKey: 'pluginCenter.title'
+    }
+  },
+  {
     path: '/login',
     name: 'Login',
     component: () => import('@/views/auth/LoginView.vue'),
