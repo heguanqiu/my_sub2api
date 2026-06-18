@@ -26,6 +26,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/paymentproviderinstance"
 	"github.com/Wei-Shaw/sub2api/ent/pendingauthsession"
+	"github.com/Wei-Shaw/sub2api/ent/plugin"
 	"github.com/Wei-Shaw/sub2api/ent/promocode"
 	"github.com/Wei-Shaw/sub2api/ent/promocodeusage"
 	"github.com/Wei-Shaw/sub2api/ent/proxy"
@@ -1275,6 +1276,88 @@ func init() {
 	pendingauthsessionDescCompletionCodeHash := pendingauthsessionFields[12].Descriptor()
 	// pendingauthsession.DefaultCompletionCodeHash holds the default value on creation for the completion_code_hash field.
 	pendingauthsession.DefaultCompletionCodeHash = pendingauthsessionDescCompletionCodeHash.Default.(string)
+	pluginFields := schema.Plugin{}.Fields()
+	_ = pluginFields
+	// pluginDescName is the schema descriptor for name field.
+	pluginDescName := pluginFields[0].Descriptor()
+	// plugin.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	plugin.NameValidator = func() func(string) error {
+		validators := pluginDescName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(name string) error {
+			for _, fn := range fns {
+				if err := fn(name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// pluginDescDescription is the schema descriptor for description field.
+	pluginDescDescription := pluginFields[1].Descriptor()
+	// plugin.DefaultDescription holds the default value on creation for the description field.
+	plugin.DefaultDescription = pluginDescDescription.Default.(string)
+	// pluginDescVersion is the schema descriptor for version field.
+	pluginDescVersion := pluginFields[2].Descriptor()
+	// plugin.DefaultVersion holds the default value on creation for the version field.
+	plugin.DefaultVersion = pluginDescVersion.Default.(string)
+	// plugin.VersionValidator is a validator for the "version" field. It is called by the builders before save.
+	plugin.VersionValidator = pluginDescVersion.Validators[0].(func(string) error)
+	// pluginDescCategory is the schema descriptor for category field.
+	pluginDescCategory := pluginFields[3].Descriptor()
+	// plugin.DefaultCategory holds the default value on creation for the category field.
+	plugin.DefaultCategory = pluginDescCategory.Default.(string)
+	// plugin.CategoryValidator is a validator for the "category" field. It is called by the builders before save.
+	plugin.CategoryValidator = pluginDescCategory.Validators[0].(func(string) error)
+	// pluginDescPlatform is the schema descriptor for platform field.
+	pluginDescPlatform := pluginFields[4].Descriptor()
+	// plugin.DefaultPlatform holds the default value on creation for the platform field.
+	plugin.DefaultPlatform = pluginDescPlatform.Default.(string)
+	// plugin.PlatformValidator is a validator for the "platform" field. It is called by the builders before save.
+	plugin.PlatformValidator = pluginDescPlatform.Validators[0].(func(string) error)
+	// pluginDescIconKey is the schema descriptor for icon_key field.
+	pluginDescIconKey := pluginFields[5].Descriptor()
+	// plugin.DefaultIconKey holds the default value on creation for the icon_key field.
+	plugin.DefaultIconKey = pluginDescIconKey.Default.(string)
+	// pluginDescFileKey is the schema descriptor for file_key field.
+	pluginDescFileKey := pluginFields[6].Descriptor()
+	// plugin.DefaultFileKey holds the default value on creation for the file_key field.
+	plugin.DefaultFileKey = pluginDescFileKey.Default.(string)
+	// pluginDescFileName is the schema descriptor for file_name field.
+	pluginDescFileName := pluginFields[7].Descriptor()
+	// plugin.DefaultFileName holds the default value on creation for the file_name field.
+	plugin.DefaultFileName = pluginDescFileName.Default.(string)
+	// pluginDescFileSize is the schema descriptor for file_size field.
+	pluginDescFileSize := pluginFields[8].Descriptor()
+	// plugin.DefaultFileSize holds the default value on creation for the file_size field.
+	plugin.DefaultFileSize = pluginDescFileSize.Default.(int64)
+	// pluginDescDownloadCount is the schema descriptor for download_count field.
+	pluginDescDownloadCount := pluginFields[9].Descriptor()
+	// plugin.DefaultDownloadCount holds the default value on creation for the download_count field.
+	plugin.DefaultDownloadCount = pluginDescDownloadCount.Default.(int64)
+	// pluginDescStatus is the schema descriptor for status field.
+	pluginDescStatus := pluginFields[10].Descriptor()
+	// plugin.DefaultStatus holds the default value on creation for the status field.
+	plugin.DefaultStatus = pluginDescStatus.Default.(string)
+	// plugin.StatusValidator is a validator for the "status" field. It is called by the builders before save.
+	plugin.StatusValidator = pluginDescStatus.Validators[0].(func(string) error)
+	// pluginDescSortWeight is the schema descriptor for sort_weight field.
+	pluginDescSortWeight := pluginFields[11].Descriptor()
+	// plugin.DefaultSortWeight holds the default value on creation for the sort_weight field.
+	plugin.DefaultSortWeight = pluginDescSortWeight.Default.(int)
+	// pluginDescCreatedAt is the schema descriptor for created_at field.
+	pluginDescCreatedAt := pluginFields[14].Descriptor()
+	// plugin.DefaultCreatedAt holds the default value on creation for the created_at field.
+	plugin.DefaultCreatedAt = pluginDescCreatedAt.Default.(func() time.Time)
+	// pluginDescUpdatedAt is the schema descriptor for updated_at field.
+	pluginDescUpdatedAt := pluginFields[15].Descriptor()
+	// plugin.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	plugin.DefaultUpdatedAt = pluginDescUpdatedAt.Default.(func() time.Time)
+	// plugin.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	plugin.UpdateDefaultUpdatedAt = pluginDescUpdatedAt.UpdateDefault.(func() time.Time)
 	promocodeFields := schema.PromoCode{}.Fields()
 	_ = promocodeFields
 	// promocodeDescCode is the schema descriptor for code field.
