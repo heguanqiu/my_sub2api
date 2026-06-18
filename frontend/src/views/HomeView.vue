@@ -218,49 +218,48 @@
         </div>
       </section>
 
-      <section id="workflow" class="border-y border-white/10 bg-[#050b16] py-10">
+      <section id="workflow" class="border-y border-[#e6e9ef] bg-[#f7f9fc] py-10">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <p class="text-center text-sm font-semibold text-slate-500">支持的开发者工作流</p>
+          <p class="text-center text-sm font-semibold text-[#98a2b3]">支持的开发者工作流</p>
           <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
             <div
               v-for="tool in workflowBadges"
               :key="tool.name"
-              class="flex h-16 items-center justify-center gap-3 rounded-lg border border-white/10 bg-white/[0.045] px-4 text-sm font-bold text-slate-100 transition hover:border-blue-300/35 hover:bg-blue-500/10"
+              class="flex h-16 items-center justify-center gap-3 rounded-lg border border-[#e6e9ef] bg-white px-4 text-sm font-semibold text-[#0f1729] transition hover:border-[#d6e4ff] hover:bg-[#eaf2ff]"
             >
-              <Icon :name="tool.icon" size="sm" class="text-[#35b8ff]" />
+              <Icon :name="tool.icon" size="sm" class="text-[#1d6ff2]" />
               {{ tool.name }}
             </div>
           </div>
         </div>
       </section>
 
-      <section id="routing" class="relative overflow-hidden bg-[#030711] py-24">
-        <div class="section-glow section-glow-left"></div>
+      <section id="routing" class="bg-white py-24">
         <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div class="grid gap-12 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
             <div>
               <p class="section-eyebrow">Routing Engine</p>
-              <h2 class="mt-4 text-3xl font-black leading-tight text-white sm:text-5xl">
+              <h2 class="mt-4 text-3xl font-bold leading-tight text-[#0f1729] sm:text-5xl">
                 自动选择更稳的模型线路
               </h2>
-              <p class="mt-5 text-base leading-8 text-slate-400">
+              <p class="mt-5 text-base leading-8 text-[#475467]">
                 Jlaude 把 API 接入、模型路由、用量计费和故障切换收敛到一个入口。开发者只需要维护一套配置，后面的稳定性由网关持续处理。
               </p>
             </div>
 
-            <div class="routing-board rounded-lg border border-white/10 bg-white/[0.045] p-4 shadow-2xl shadow-blue-950/20 backdrop-blur-xl sm:p-6">
+            <div class="routing-board rounded-lg border border-[#e6e9ef] bg-[#f7f9fc] p-4 sm:p-6">
               <div class="grid gap-3 md:grid-cols-5">
                 <article
                   v-for="(step, index) in routingSteps"
                   :key="step.title"
-                  class="routing-step relative rounded-lg border border-white/10 bg-[#07111f]/82 p-4"
+                  class="routing-step relative rounded-lg border border-[#e6e9ef] bg-white p-4 shadow-sm"
                 >
-                  <span class="text-xs font-black text-blue-300">0{{ index + 1 }}</span>
-                  <div class="mt-4 flex h-11 w-11 items-center justify-center rounded-lg bg-blue-500/10 text-[#39c9ff]">
+                  <span class="text-xs font-bold text-[#1d6ff2]">0{{ index + 1 }}</span>
+                  <div class="mt-4 flex h-11 w-11 items-center justify-center rounded-lg bg-[#eaf2ff] text-[#1d6ff2]">
                     <Icon :name="step.icon" size="md" />
                   </div>
-                  <h3 class="mt-5 text-sm font-black text-white">{{ step.title }}</h3>
-                  <p class="mt-2 text-xs leading-6 text-slate-400">{{ step.description }}</p>
+                  <h3 class="mt-5 text-sm font-semibold text-[#0f1729]">{{ step.title }}</h3>
+                  <p class="mt-2 text-xs leading-6 text-[#475467]">{{ step.description }}</p>
                 </article>
               </div>
             </div>
@@ -268,16 +267,16 @@
         </div>
       </section>
 
-      <section id="guarantees" class="bg-[#06101d] py-24">
+      <section id="guarantees" class="bg-[#f7f9fc] py-24">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div class="grid gap-12 lg:grid-cols-[1fr_0.9fr] lg:items-start">
             <div>
               <p class="section-eyebrow">Service Layer</p>
-              <h2 class="mt-4 max-w-3xl text-3xl font-black leading-tight text-white sm:text-5xl">
+              <h2 class="mt-4 max-w-3xl text-3xl font-bold leading-tight text-[#0f1729] sm:text-5xl">
                 为高频 AI 编码请求准备的服务层
               </h2>
             </div>
-            <p class="text-base leading-8 text-slate-400">
+            <p class="text-base leading-8 text-[#475467]">
               首页不需要解释所有细节，但用户要一眼看懂：Jlaude 不是普通转发地址，而是围绕研发链路稳定性做的一层 API 基础设施。
             </p>
           </div>
@@ -286,13 +285,13 @@
             <article
               v-for="item in assuranceItems"
               :key="item.title"
-              class="assurance-card rounded-lg border border-white/10 bg-white/[0.045] p-6 transition hover:-translate-y-1 hover:border-blue-300/35 hover:bg-blue-500/[0.08]"
+              class="assurance-card rounded-lg border border-[#e6e9ef] bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-[#d6e4ff]"
             >
-              <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-500/10 text-[#35b8ff]">
+              <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-[#eaf2ff] text-[#1d6ff2]">
                 <Icon :name="item.icon" size="md" />
               </div>
-              <h3 class="mt-5 text-lg font-black text-white">{{ item.title }}</h3>
-              <p class="mt-3 text-sm leading-7 text-slate-400">{{ item.description }}</p>
+              <h3 class="mt-5 text-lg font-semibold text-[#0f1729]">{{ item.title }}</h3>
+              <p class="mt-3 text-sm leading-7 text-[#475467]">{{ item.description }}</p>
             </article>
           </div>
         </div>
