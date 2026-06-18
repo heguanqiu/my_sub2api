@@ -377,6 +377,7 @@ export default {
   nav: {
     dashboard: '仪表盘',
     announcements: '公告',
+    plugins: '插件中心',
     apiKeys: 'API 密钥',
     playground: '演武场',
     usage: '使用记录',
@@ -4772,6 +4773,31 @@ export default {
       deleteConfirm: '确定要删除该公告吗？此操作无法撤销。'
     },
 
+    // Plugins
+    plugins: {
+      title: '插件中心',
+      description: '维护可供用户下载的插件',
+      searchPlaceholder: '搜索插件名称/描述',
+      create: '新增插件',
+      edit: '编辑插件',
+      name: '名称',
+      version: '版本',
+      category: '分类',
+      platform: '平台',
+      status: '状态',
+      statusDraft: '草稿',
+      statusPublished: '已发布',
+      sortWeight: '排序权重',
+      downloadCount: '下载次数',
+      packageFile: '插件包',
+      icon: '图标',
+      uploadPackage: '上传插件包',
+      uploadIcon: '上传图标',
+      deleteConfirm: '确定删除该插件？文件也会一并删除。',
+      saved: '已保存',
+      deleted: '已删除'
+    },
+
     // Promo Codes
     promo: {
       title: '优惠码管理',
@@ -6970,6 +6996,15 @@ export default {
     emptyDescription: '暂时没有任何系统公告',
     readStatus: '您已阅读此公告',
     markReadHint: '点击"已读"标记此公告'
+  },
+
+  pluginCenter: {
+    title: '插件中心',
+    subtitle: '下载我们提供的插件，提升你的工作流',
+    all: '全部',
+    download: '下载',
+    downloads: '已下载 {count} 次',
+    empty: '暂无插件'
   },
 
   // User Subscriptions Page
