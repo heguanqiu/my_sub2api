@@ -9,12 +9,12 @@
     <div v-else class="home-custom-content" v-html="homeContent"></div>
   </div>
 
-  <div v-else class="landing-shell min-h-screen bg-[#030711] text-white">
+  <div v-else class="landing-shell min-h-screen bg-white text-[#0f1729]">
     <header
       class="fixed inset-x-0 top-0 z-40 border-b transition-all duration-300"
       :class="isScrolled
-        ? 'border-white/10 bg-[#030711]/86 shadow-2xl shadow-black/30 backdrop-blur-2xl'
-        : 'border-white/[0.07] bg-[#030711]/38 backdrop-blur-md'"
+        ? 'border-[#e6e9ef] bg-white/95 shadow-sm backdrop-blur'
+        : 'border-transparent bg-white/80 backdrop-blur'"
     >
       <nav class="mx-auto flex h-18 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <router-link to="/home" class="flex min-w-0 items-center gap-3">
@@ -28,8 +28,8 @@
             <span v-else class="text-base font-black text-white">J</span>
           </span>
           <span class="min-w-0">
-            <span class="block text-base font-black tracking-normal text-white">{{ brandName }}</span>
-            <span class="hidden text-xs text-slate-400 sm:block">AI API Gateway</span>
+            <span class="block text-base font-bold tracking-normal text-[#0f1729]">{{ brandName }}</span>
+            <span class="hidden text-xs text-[#98a2b3] sm:block">AI API Gateway</span>
           </span>
         </router-link>
 
@@ -37,7 +37,7 @@
           <router-link
             to="/token-merchant"
             data-test="home-partner-entry"
-            class="rounded-lg px-3 py-2 text-sm font-semibold text-[#35b8ff] transition hover:bg-blue-500/10 hover:text-[#7bd7ff]"
+            class="rounded-lg px-3 py-2 text-sm font-semibold text-[#1d6ff2] transition hover:bg-[#eaf2ff]"
           >
             成为合伙人
           </router-link>
@@ -45,7 +45,7 @@
             v-for="item in navItems"
             :key="item.id"
             type="button"
-            class="rounded-lg px-3 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
+            class="rounded-lg px-3 py-2 text-sm font-semibold text-[#475467] transition hover:bg-[#f3f5f9] hover:text-[#0f1729]"
             @click="scrollToSection(item.id)"
           >
             {{ item.label }}
@@ -54,7 +54,7 @@
             :href="docUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="rounded-lg px-3 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
+            class="rounded-lg px-3 py-2 text-sm font-semibold text-[#475467] transition hover:bg-[#f3f5f9] hover:text-[#0f1729]"
           >
             文档
           </a>
@@ -63,14 +63,14 @@
         <div class="flex justify-end gap-2">
           <router-link
             :to="isAuthenticated ? dashboardPath : '/login'"
-            class="hidden items-center justify-center gap-2 rounded-lg bg-[#1478ff] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-blue-500/25 transition hover:-translate-y-0.5 hover:bg-[#2c8cff] sm:inline-flex"
+            class="hidden items-center justify-center gap-2 rounded-lg bg-[#1d6ff2] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#1551c4] sm:inline-flex"
           >
             {{ isAuthenticated ? '进入控制台' : '登入' }}
             <Icon name="arrowRight" size="sm" />
           </router-link>
           <button
             type="button"
-            class="inline-flex rounded-lg p-2 text-slate-200 transition hover:bg-white/10 hover:text-white lg:hidden"
+            class="inline-flex rounded-lg p-2 text-[#475467] transition hover:bg-[#f3f5f9] hover:text-[#0f1729] lg:hidden"
             @click="mobileMenuOpen = !mobileMenuOpen"
           >
             <Icon v-if="mobileMenuOpen" name="x" size="md" />
@@ -81,14 +81,14 @@
 
       <div
         v-if="mobileMenuOpen"
-        class="border-t border-white/10 bg-[#030711]/95 px-4 py-4 backdrop-blur-2xl lg:hidden"
+        class="border-t border-[#e6e9ef] bg-white px-4 py-4 lg:hidden"
       >
         <div class="mx-auto grid max-w-7xl gap-2">
           <button
             v-for="item in navItems"
             :key="item.id"
             type="button"
-            class="rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-200 hover:bg-white/10"
+            class="rounded-lg px-3 py-2 text-left text-sm font-semibold text-[#475467] hover:bg-[#f3f5f9]"
             @click="scrollToSection(item.id)"
           >
             {{ item.label }}
@@ -97,13 +97,13 @@
             :href="docUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="rounded-lg px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10"
+            class="rounded-lg px-3 py-2 text-sm font-semibold text-[#475467] hover:bg-[#f3f5f9]"
           >
             文档
           </a>
           <button
             type="button"
-            class="rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-200 hover:bg-white/10"
+            class="rounded-lg px-3 py-2 text-left text-sm font-semibold text-[#475467] hover:bg-[#f3f5f9]"
             @click="openContact"
           >
             联系支持
@@ -111,14 +111,14 @@
           <router-link
             to="/token-merchant"
             data-test="home-partner-entry-mobile"
-            class="rounded-lg px-3 py-2 text-sm font-semibold text-[#35b8ff] hover:bg-blue-500/10"
+            class="rounded-lg px-3 py-2 text-sm font-semibold text-[#1d6ff2] hover:bg-[#eaf2ff]"
             @click="mobileMenuOpen = false"
           >
             成为合伙人
           </router-link>
           <router-link
             :to="isAuthenticated ? dashboardPath : '/login'"
-            class="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-[#1478ff] px-4 py-2.5 text-sm font-bold text-white"
+            class="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-[#1d6ff2] px-4 py-2.5 text-sm font-semibold text-white"
           >
             {{ isAuthenticated ? '进入控制台' : '登入' }}
             <Icon name="arrowRight" size="sm" />
