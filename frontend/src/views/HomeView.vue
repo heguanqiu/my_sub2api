@@ -657,7 +657,7 @@ async function copyBaseUrl() {
 
 function setLandingMeta() {
   document.title = 'Jlaude - 高速稳定的 AI API 网关'
-  setMeta('theme-color', '#1478ff')
+  setMeta('theme-color', '#1d6ff2')
   setMeta('description', 'Jlaude 是面向开发者与团队的 AI API 网关，支持 Claude Code、Codex、OpenAI 兼容接口等常见 AI 工具接入，提供统一 Base URL、透明计费与持续服务支持。')
   setMeta('keywords', 'AI API网关,AI中转站,Claude Code中转站,Codex API,OpenAI API中转,Jlaude')
 }
