@@ -535,10 +535,10 @@ const navItems = [
 ]
 
 const heroStats: MetricItem[] = [
-  { icon: 'checkCircle', value: '99.9%', label: '服务可用率' },
-  { icon: 'clock', value: '500ms', label: '平均延迟' },
-  { icon: 'globe', value: '20+', label: '全球节点' },
-  { icon: 'server', value: '10M+', label: '日均请求' }
+  { icon: 'globe', value: '统一 Base URL', label: '一处配置接入所有工具' },
+  { icon: 'sync', value: 'Claude / OpenAI', label: '双协议兼容接入' },
+  { icon: 'shield', value: '故障自动切换', label: '异常线路即时降级' },
+  { icon: 'chart', value: '透明计费', label: '按模型与用量回执' }
 ]
 
 const workflowBadges: WorkflowBadge[] = [
