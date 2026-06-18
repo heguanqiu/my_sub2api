@@ -129,35 +129,26 @@
 
     <main>
       <section class="hero-stage relative min-h-screen overflow-hidden pt-28">
-        <img
-          src="/landing/api-theater-hero.png"
-          alt=""
-          class="hero-asset pointer-events-none absolute inset-y-0 right-0 h-full w-full object-cover"
-          aria-hidden="true"
-        />
-        <div class="hero-vignette absolute inset-0"></div>
-        <div class="hero-blueprint absolute inset-0"></div>
-
-        <div class="relative mx-auto flex min-h-[calc(100vh-7rem)] max-w-7xl flex-col justify-center px-4 pb-10 sm:px-6 lg:px-8">
-          <div class="max-w-3xl">
-            <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-300/25 bg-blue-500/10 px-3 py-1.5 text-sm font-semibold text-blue-100 shadow-lg shadow-blue-500/10 backdrop-blur-xl">
-              <span class="h-2 w-2 rounded-full bg-[#35f0ff] shadow-[0_0_18px_rgba(53,240,255,0.95)]"></span>
+        <div class="relative mx-auto grid min-h-[calc(100vh-7rem)] max-w-7xl items-center gap-12 px-4 pb-10 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
+          <div class="max-w-2xl">
+            <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-[#d6e4ff] bg-[#eaf2ff] px-3 py-1.5 text-sm font-semibold text-[#1d6ff2]">
+              <span class="h-2 w-2 rounded-full bg-[#1d6ff2]"></span>
               Claude Code / Codex / OpenAI 统一接入
             </div>
 
-            <h1 class="max-w-4xl text-[clamp(3rem,7vw,6.8rem)] font-black leading-[0.95] tracking-normal text-white">
+            <h1 class="text-[clamp(2.6rem,6vw,5.4rem)] font-bold leading-[1.02] tracking-tight text-[#0f1729]">
               把 Claude Code 与 Codex
-              <span class="hero-title-gradient block">接入一条稳定高速的线路</span>
+              <span class="block text-[#1d6ff2]">接入一条稳定高速的线路</span>
             </h1>
 
-            <p class="mt-7 max-w-2xl text-lg leading-8 text-slate-300 sm:text-xl">
+            <p class="mt-6 max-w-xl text-lg leading-8 text-[#475467]">
               Jlaude 是面向开发者工作流的 AI API 网关，用一个 Base URL 连接主流模型、编码工具与团队交付流程。
             </p>
 
             <div class="mt-8 flex flex-col gap-3 sm:flex-row">
               <router-link
                 :to="isAuthenticated ? dashboardPath : '/login'"
-                class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1478ff] px-6 py-3 text-base font-black text-white shadow-2xl shadow-blue-500/30 transition hover:-translate-y-0.5 hover:bg-[#2c8cff]"
+                class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1d6ff2] px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#1551c4]"
               >
                 {{ isAuthenticated ? '进入控制台' : '开始接入' }}
                 <Icon name="arrowRight" size="md" />
@@ -166,14 +157,14 @@
                 :href="docUrl"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/[0.06] px-6 py-3 text-base font-bold text-white backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-white/10"
+                class="inline-flex items-center justify-center gap-2 rounded-lg border border-[#e6e9ef] bg-white px-6 py-3 text-base font-semibold text-[#0f1729] transition hover:border-[#d6e4ff] hover:bg-[#f7f9fc]"
               >
                 查看文档
                 <Icon name="book" size="md" />
               </a>
               <router-link
                 to="/token-merchant"
-                class="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-300/35 bg-blue-500/10 px-6 py-3 text-base font-black text-[#7bd7ff] backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-blue-500/16"
+                class="inline-flex items-center justify-center gap-2 rounded-lg border border-[#d6e4ff] bg-[#eaf2ff] px-6 py-3 text-base font-semibold text-[#1d6ff2] transition hover:-translate-y-0.5 hover:bg-[#dbe9ff]"
               >
                 成为合伙人
                 <Icon name="users" size="md" />
@@ -182,33 +173,45 @@
 
             <button
               type="button"
-              class="base-url-bar mt-8 flex w-full max-w-xl items-center justify-between gap-4 rounded-lg border border-white/12 bg-[#07111f]/72 px-4 py-4 text-left shadow-2xl shadow-blue-950/30 backdrop-blur-2xl transition hover:border-blue-300/45 hover:bg-[#09182d]/82"
+              class="base-url-bar mt-8 flex w-full max-w-xl items-center justify-between gap-4 rounded-lg border border-[#e6e9ef] bg-white px-4 py-4 text-left shadow-sm transition hover:border-[#d6e4ff]"
               @click="copyBaseUrl"
             >
               <span class="min-w-0">
-                <span class="block text-xs font-bold uppercase tracking-normal text-slate-500">API Base URL</span>
-                <span class="mt-1 block truncate font-mono text-base text-[#48c8ff]">{{ apiBaseUrl }}</span>
+                <span class="block text-xs font-bold uppercase tracking-normal text-[#98a2b3]">API Base URL</span>
+                <span class="mt-1 block truncate font-mono text-base text-[#1d6ff2]">{{ apiBaseUrl }}</span>
               </span>
-              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06] text-slate-200">
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#e6e9ef] bg-[#f7f9fc] text-[#475467]">
                 <Icon name="copy" size="md" />
               </span>
             </button>
           </div>
 
-          <div class="mt-12 grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="hero-geo-stage relative h-[26rem]">
+            <div class="hero-geo-grid absolute inset-6 rounded-2xl opacity-70"></div>
+            <div class="hero-geo-ring absolute right-10 top-6 h-56 w-56"></div>
+            <div class="hero-geo-ring absolute right-24 top-20 h-32 w-32"></div>
+            <div class="absolute left-4 top-16 h-28 w-44 rounded-2xl border border-[#e6e9ef] bg-white shadow-sm"></div>
+            <div class="absolute left-16 top-44 h-24 w-52 rounded-2xl border border-[#d6e4ff] bg-[#eaf2ff]"></div>
+            <div class="absolute bottom-8 right-16 h-20 w-20 rounded-2xl bg-[#1d6ff2] shadow-sm"></div>
+            <div class="absolute right-40 bottom-24 h-10 w-10 rounded-full bg-[#3a8bff]"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="border-y border-[#e6e9ef] bg-white py-10">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div
               v-for="stat in heroStats"
               :key="stat.label"
-              class="metric-tile rounded-lg border border-white/10 bg-white/[0.055] p-5 backdrop-blur-2xl"
+              class="metric-tile flex items-center gap-3 rounded-lg border border-[#e6e9ef] bg-white p-5"
             >
-              <div class="flex items-center gap-3">
-                <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 text-[#35b8ff]">
-                  <Icon :name="stat.icon" size="md" />
-                </span>
-                <div>
-                  <p class="text-2xl font-black text-white">{{ stat.value }}</p>
-                  <p class="mt-1 text-xs font-semibold text-slate-400">{{ stat.label }}</p>
-                </div>
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eaf2ff] text-[#1d6ff2]">
+                <Icon :name="stat.icon" size="md" />
+              </span>
+              <div class="min-w-0">
+                <p class="text-base font-bold text-[#0f1729]">{{ stat.value }}</p>
+                <p class="mt-0.5 text-xs font-semibold text-[#98a2b3]">{{ stat.label }}</p>
               </div>
             </div>
           </div>
