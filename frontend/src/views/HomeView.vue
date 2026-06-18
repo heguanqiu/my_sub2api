@@ -34,6 +34,13 @@
         </router-link>
 
         <div class="hidden flex-1 items-center justify-center gap-1 lg:flex">
+          <router-link
+            to="/token-merchant"
+            data-test="home-partner-entry"
+            class="rounded-lg px-3 py-2 text-sm font-semibold text-[#35b8ff] transition hover:bg-blue-500/10 hover:text-[#7bd7ff]"
+          >
+            成为合伙人
+          </router-link>
           <button
             v-for="item in navItems"
             :key="item.id"
@@ -102,6 +109,14 @@
             联系支持
           </button>
           <router-link
+            to="/token-merchant"
+            data-test="home-partner-entry-mobile"
+            class="rounded-lg px-3 py-2 text-sm font-semibold text-[#35b8ff] hover:bg-blue-500/10"
+            @click="mobileMenuOpen = false"
+          >
+            成为合伙人
+          </router-link>
+          <router-link
             :to="isAuthenticated ? dashboardPath : '/login'"
             class="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-[#1478ff] px-4 py-2.5 text-sm font-bold text-white"
           >
@@ -156,6 +171,13 @@
                 查看文档
                 <Icon name="book" size="md" />
               </a>
+              <router-link
+                to="/token-merchant"
+                class="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-300/35 bg-blue-500/10 px-6 py-3 text-base font-black text-[#7bd7ff] backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-blue-500/16"
+              >
+                成为合伙人
+                <Icon name="users" size="md" />
+              </router-link>
             </div>
 
             <button
@@ -273,85 +295,6 @@
         </div>
       </section>
 
-      <section id="signals" class="relative overflow-hidden bg-[#030711] py-24">
-        <div class="section-glow section-glow-right"></div>
-        <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div class="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-            <div>
-              <p class="section-eyebrow">Live Signals</p>
-              <h2 class="mt-4 text-3xl font-black leading-tight text-white sm:text-5xl">
-                速度、状态、消耗都应该清楚
-              </h2>
-              <p class="mt-5 text-base leading-8 text-slate-400">
-                控制台负责更完整的管理，首页只传达一件事：这是一条可以持续依赖的 AI API 线路。
-              </p>
-            </div>
-
-            <div class="signal-panel rounded-lg border border-white/10 bg-[#07111f]/82 p-5 shadow-2xl shadow-blue-950/20">
-              <div class="flex items-center justify-between border-b border-white/10 pb-4">
-                <div>
-                  <p class="text-sm font-black text-white">jlaude-gateway</p>
-                  <p class="mt-1 text-xs text-slate-500">Realtime request ledger</p>
-                </div>
-                <span class="rounded-full border border-emerald-300/25 bg-emerald-400/10 px-3 py-1 text-xs font-bold text-emerald-200">
-                  online
-                </span>
-              </div>
-
-              <div class="mt-4 grid gap-3">
-                <div
-                  v-for="signal in liveSignals"
-                  :key="signal.model"
-                  class="grid grid-cols-[1fr_auto] gap-3 rounded-lg bg-white/[0.045] px-4 py-3 sm:grid-cols-[1fr_auto_auto]"
-                >
-                  <div class="min-w-0">
-                    <p class="truncate font-mono text-sm text-slate-100">{{ signal.model }}</p>
-                    <p class="mt-1 text-xs text-slate-500">{{ signal.route }}</p>
-                  </div>
-                  <span class="self-center text-sm font-black text-[#35b8ff]">{{ signal.latency }}</span>
-                  <span class="hidden self-center rounded-full bg-white/[0.06] px-3 py-1 text-xs font-semibold text-slate-300 sm:inline-flex">
-                    {{ signal.status }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="testimonials" class="border-y border-white/10 bg-[#050b16] py-24">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div class="mx-auto max-w-3xl text-center">
-            <p class="section-eyebrow mx-auto">Testimonials</p>
-            <h2 class="mt-4 text-3xl font-black text-white sm:text-5xl">
-              他们关心的是少中断、少折腾
-            </h2>
-          </div>
-
-          <div class="mt-12 grid gap-4 md:grid-cols-3">
-            <article
-              v-for="item in testimonials"
-              :key="item.name"
-              class="rounded-lg border border-white/10 bg-white/[0.045] p-6"
-            >
-              <div class="flex items-center gap-4">
-                <img
-                  :src="item.avatar"
-                  :alt="`${item.name} avatar`"
-                  class="h-12 w-12 rounded-lg object-cover"
-                  loading="lazy"
-                />
-                <div>
-                  <h3 class="font-black text-white">{{ item.name }}</h3>
-                  <p class="text-sm text-slate-500">{{ item.role }}</p>
-                </div>
-              </div>
-              <p class="mt-5 text-sm leading-7 text-slate-300">"{{ item.quote }}"</p>
-            </article>
-          </div>
-        </div>
-      </section>
-
       <section id="faq" class="bg-[#030711] py-24">
         <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <div class="text-center">
@@ -464,6 +407,7 @@
             <h3 class="text-sm font-black text-white">服务</h3>
             <div class="mt-4 grid gap-3 text-sm text-slate-500">
               <router-link :to="dashboardPath" class="hover:text-white">控制台</router-link>
+              <router-link to="/token-merchant" class="hover:text-white">成为合伙人</router-link>
               <button type="button" class="text-left hover:text-white" @click="openContact">联系支持</button>
               <button type="button" class="text-left hover:text-white" @click="copyBaseUrl">复制 Base URL</button>
             </div>
@@ -664,34 +608,6 @@ const assuranceItems: IconTextItem[] = [
     icon: 'chat',
     title: '人工支持',
     description: '遇到链路、模型、扣费或接入问题，可通过后台配置的客服渠道联系。'
-  }
-]
-
-const liveSignals = [
-  { model: 'claude-opus-4-8', route: 'claude-code / stream', latency: '286ms', status: '200 OK' },
-  { model: 'gpt-5.5', route: 'codex / responses', latency: '312ms', status: '200 OK' },
-  { model: 'gpt-image-2', route: 'image-generation / stream', latency: 'ready', status: 'queued' },
-  { model: 'claude-fable-5', route: 'fallback / low-latency', latency: '198ms', status: '200 OK' }
-]
-
-const testimonials = [
-  {
-    name: '刘工',
-    role: '独立开发者',
-    avatar: '/landing/avatars/1.png',
-    quote: '我最在意的是 Claude Code 能不能持续跑起来。Jlaude 把接入和线路问题收敛掉之后，开发节奏明显稳定了。'
-  },
-  {
-    name: '周颖',
-    role: '创业团队 CTO',
-    avatar: '/landing/avatars/2.png',
-    quote: '团队用 AI 编码工具以后，统一入口和用量管理比单次体验更重要。现在成员接入、排障、核算都更清楚。'
-  },
-  {
-    name: '陈越',
-    role: '全栈开发者',
-    avatar: '/landing/avatars/3.png',
-    quote: '以前我经常在模型、Base URL 和异常上来回试。现在把这些放到一个网关里，日常开发少了很多打断。'
   }
 ]
 
