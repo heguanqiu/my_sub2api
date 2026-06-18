@@ -297,31 +297,31 @@
         </div>
       </section>
 
-      <section id="faq" class="bg-[#030711] py-24">
+      <section id="faq" class="bg-white py-24">
         <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <div class="text-center">
             <p class="section-eyebrow mx-auto">FAQ</p>
-            <h2 class="mt-4 text-3xl font-black text-white sm:text-5xl">
+            <h2 class="mt-4 text-3xl font-bold text-[#0f1729] sm:text-5xl">
               常见问题
             </h2>
           </div>
 
-          <div class="mt-10 divide-y divide-white/10 rounded-lg border border-white/10 bg-white/[0.045]">
+          <div class="mt-10 divide-y divide-[#e6e9ef] rounded-lg border border-[#e6e9ef] bg-white">
             <article v-for="(item, index) in faqs" :key="item.question">
               <button
                 type="button"
                 class="flex w-full items-center justify-between gap-4 px-5 py-5 text-left"
                 @click="activeFaq = activeFaq === index ? -1 : index"
               >
-                <span class="text-base font-black text-white">{{ item.question }}</span>
+                <span class="text-base font-semibold text-[#0f1729]">{{ item.question }}</span>
                 <Icon
                   name="chevronDown"
                   size="sm"
-                  class="shrink-0 text-slate-500 transition"
+                  class="shrink-0 text-[#98a2b3] transition"
                   :class="activeFaq === index ? 'rotate-180' : ''"
                 />
               </button>
-              <div v-if="activeFaq === index" class="px-5 pb-5 text-sm leading-7 text-slate-400">
+              <div v-if="activeFaq === index" class="px-5 pb-5 text-sm leading-7 text-[#475467]">
                 {{ item.answer }}
               </div>
             </article>
@@ -329,30 +329,30 @@
         </div>
       </section>
 
-      <section class="bg-[#050b16] pb-24">
+      <section class="bg-white pb-24">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div class="final-cta overflow-hidden rounded-lg border border-blue-300/20 bg-[#07111f] px-6 py-12 shadow-2xl shadow-blue-950/30 sm:px-10 lg:px-14">
+          <div class="final-cta overflow-hidden rounded-lg border border-[#d6e4ff] bg-[#eaf2ff] px-6 py-12 sm:px-10 lg:px-14">
             <div class="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
               <div>
                 <p class="section-eyebrow">Start</p>
-                <h2 class="mt-4 text-3xl font-black text-white sm:text-5xl">
+                <h2 class="mt-4 text-3xl font-bold text-[#0f1729] sm:text-5xl">
                   用一条线路接住你的 AI 开发工作流
                 </h2>
-                <p class="mt-4 max-w-2xl text-base leading-8 text-slate-400">
+                <p class="mt-4 max-w-2xl text-base leading-8 text-[#475467]">
                   个人开发、团队协作、企业交付，都从统一 Base URL 开始。
                 </p>
               </div>
               <div class="flex flex-col gap-3 sm:flex-row">
                 <router-link
                   :to="isAuthenticated ? dashboardPath : '/login'"
-                  class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1478ff] px-6 py-3 text-sm font-black text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#2c8cff]"
+                  class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1d6ff2] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1551c4]"
                 >
                   {{ isAuthenticated ? '进入控制台' : '开始接入' }}
                   <Icon name="arrowRight" size="sm" />
                 </router-link>
                 <button
                   type="button"
-                  class="inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+                  class="inline-flex items-center justify-center gap-2 rounded-lg border border-[#d6e4ff] bg-white px-6 py-3 text-sm font-semibold text-[#0f1729] transition hover:bg-[#f7f9fc]"
                   @click="openContact"
                 >
                   联系支持
@@ -365,7 +365,7 @@
       </section>
     </main>
 
-    <footer class="border-t border-white/10 bg-[#030711] py-12">
+    <footer class="border-t border-[#e6e9ef] bg-white py-12">
       <div class="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:px-8">
         <div>
           <div class="flex items-center gap-3">
@@ -378,40 +378,40 @@
               />
               <span v-else class="font-black text-white">J</span>
             </span>
-            <span class="text-lg font-black text-white">{{ brandName }}</span>
+            <span class="text-lg font-bold text-[#0f1729]">{{ brandName }}</span>
           </div>
-          <p class="mt-5 max-w-xl text-sm leading-7 text-slate-500">
+          <p class="mt-5 max-w-xl text-sm leading-7 text-[#475467]">
             面向开发者与团队的 AI API 网关，连接 Claude Code、Codex、OpenAI 兼容接口与常见 AI 客户端。
           </p>
-          <p class="mt-6 text-sm text-slate-600">
+          <p class="mt-6 text-sm text-[#98a2b3]">
             © {{ currentYear }} {{ brandName }}. 保留所有权利。
           </p>
         </div>
 
         <div class="grid gap-8 sm:grid-cols-3">
           <div>
-            <h3 class="text-sm font-black text-white">产品</h3>
-            <div class="mt-4 grid gap-3 text-sm text-slate-500">
-              <button type="button" class="text-left hover:text-white" @click="scrollToSection('routing')">智能路由</button>
-              <button type="button" class="text-left hover:text-white" @click="scrollToSection('guarantees')">服务保障</button>
-              <button type="button" class="text-left hover:text-white" @click="scrollToSection('faq')">常见问题</button>
+            <h3 class="text-sm font-bold text-[#0f1729]">产品</h3>
+            <div class="mt-4 grid gap-3 text-sm text-[#475467]">
+              <button type="button" class="text-left hover:text-[#0f1729]" @click="scrollToSection('routing')">智能路由</button>
+              <button type="button" class="text-left hover:text-[#0f1729]" @click="scrollToSection('guarantees')">服务保障</button>
+              <button type="button" class="text-left hover:text-[#0f1729]" @click="scrollToSection('faq')">常见问题</button>
             </div>
           </div>
           <div>
-            <h3 class="text-sm font-black text-white">资源</h3>
-            <div class="mt-4 grid gap-3 text-sm text-slate-500">
-              <a :href="docUrl" target="_blank" rel="noopener noreferrer" class="hover:text-white">使用文档</a>
-              <router-link to="/legal/privacy" class="hover:text-white">隐私政策</router-link>
-              <router-link to="/legal/terms" class="hover:text-white">用户协议</router-link>
+            <h3 class="text-sm font-bold text-[#0f1729]">资源</h3>
+            <div class="mt-4 grid gap-3 text-sm text-[#475467]">
+              <a :href="docUrl" target="_blank" rel="noopener noreferrer" class="hover:text-[#0f1729]">使用文档</a>
+              <router-link to="/legal/privacy" class="hover:text-[#0f1729]">隐私政策</router-link>
+              <router-link to="/legal/terms" class="hover:text-[#0f1729]">用户协议</router-link>
             </div>
           </div>
           <div>
-            <h3 class="text-sm font-black text-white">服务</h3>
-            <div class="mt-4 grid gap-3 text-sm text-slate-500">
-              <router-link :to="dashboardPath" class="hover:text-white">控制台</router-link>
-              <router-link to="/token-merchant" class="hover:text-white">成为合伙人</router-link>
-              <button type="button" class="text-left hover:text-white" @click="openContact">联系支持</button>
-              <button type="button" class="text-left hover:text-white" @click="copyBaseUrl">复制 Base URL</button>
+            <h3 class="text-sm font-bold text-[#0f1729]">服务</h3>
+            <div class="mt-4 grid gap-3 text-sm text-[#475467]">
+              <router-link :to="dashboardPath" class="hover:text-[#0f1729]">控制台</router-link>
+              <router-link to="/token-merchant" class="hover:text-[#0f1729]">成为合伙人</router-link>
+              <button type="button" class="text-left hover:text-[#0f1729]" @click="openContact">联系支持</button>
+              <button type="button" class="text-left hover:text-[#0f1729]" @click="copyBaseUrl">复制 Base URL</button>
             </div>
           </div>
         </div>
@@ -423,17 +423,17 @@
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
       @click.self="contactModalOpen = false"
     >
-      <div class="w-full max-w-md rounded-lg border border-white/10 bg-[#07111f] p-6 shadow-2xl shadow-blue-950/40">
+      <div class="w-full max-w-md rounded-lg border border-[#e6e9ef] bg-white p-6 shadow-xl">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <h2 class="text-xl font-black text-white">联系 Jlaude</h2>
-            <p class="mt-2 text-sm leading-6 text-slate-400">
+            <h2 class="text-xl font-bold text-[#0f1729]">联系 Jlaude</h2>
+            <p class="mt-2 text-sm leading-6 text-[#475467]">
               咨询额度、团队接入或企业合作。
             </p>
           </div>
           <button
             type="button"
-            class="rounded-lg p-2 text-slate-400 hover:bg-white/10 hover:text-white"
+            class="rounded-lg p-2 text-[#98a2b3] hover:bg-[#f3f5f9] hover:text-[#0f1729]"
             @click="contactModalOpen = false"
           >
             <Icon name="x" size="md" />
@@ -444,11 +444,11 @@
           <img
             :src="contactImageUrl"
             alt="Jlaude 客服二维码"
-            class="max-h-72 rounded-lg border border-white/10 object-contain"
+            class="max-h-72 rounded-lg border border-[#e6e9ef] object-contain"
           />
         </div>
 
-        <div class="mt-6 whitespace-pre-wrap rounded-lg border border-white/10 bg-white/[0.045] p-4 text-sm leading-7 text-slate-300">
+        <div class="mt-6 whitespace-pre-wrap rounded-lg border border-[#e6e9ef] bg-[#f7f9fc] p-4 text-sm leading-7 text-[#475467]">
           {{ contactInfo || '加入用户群或咨询企业方案，请联系 Jlaude 客服。管理员可以在后台配置 QQ 群、入群说明或客服二维码。' }}
         </div>
       </div>
