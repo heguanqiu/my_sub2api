@@ -11,6 +11,20 @@ import (
 // Plugin 领域类型别名
 type Plugin = domain.Plugin
 
+// Plugin 状态常量（re-export domain）
+const (
+	PluginStatusDraft     = domain.PluginStatusDraft
+	PluginStatusPublished = domain.PluginStatusPublished
+)
+
+// Plugin 平台常量（re-export domain）
+const (
+	PluginPlatformAll     = domain.PluginPlatformAll
+	PluginPlatformWindows = domain.PluginPlatformWindows
+	PluginPlatformMacOS   = domain.PluginPlatformMacOS
+	PluginPlatformLinux   = domain.PluginPlatformLinux
+)
+
 // 领域错误
 var (
 	ErrPluginNotFound             = infraerrors.NotFound("PLUGIN_NOT_FOUND", "plugin not found")
