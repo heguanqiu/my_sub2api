@@ -131,21 +131,21 @@
       <section class="hero-stage relative min-h-screen overflow-hidden pt-28">
         <div class="relative mx-auto grid min-h-[calc(100vh-7rem)] max-w-7xl items-center gap-12 px-4 pb-10 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
           <div class="max-w-2xl">
-            <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-[#d6e4ff] bg-[#eaf2ff] px-3 py-1.5 text-sm font-semibold text-[#1d6ff2]">
+            <div v-reveal.left="0" class="mb-6 inline-flex items-center gap-2 rounded-full border border-[#d6e4ff] bg-[#eaf2ff] px-3 py-1.5 text-sm font-semibold text-[#1d6ff2]">
               <span class="h-2 w-2 rounded-full bg-[#1d6ff2]"></span>
               Claude Code / Codex / OpenAI 统一接入
             </div>
 
-            <h1 class="text-[clamp(2.6rem,6vw,5.4rem)] font-bold leading-[1.02] tracking-tight text-[#0f1729]">
+            <h1 v-reveal.left="80" class="text-[clamp(2.6rem,6vw,5.4rem)] font-bold leading-[1.02] tracking-tight text-[#0f1729]">
               把 Claude Code 与 Codex
               <span class="block text-[#1d6ff2]">接入一条稳定高速的线路</span>
             </h1>
 
-            <p class="mt-6 max-w-xl text-lg leading-8 text-[#475467]">
+            <p v-reveal.left="180" class="mt-6 max-w-xl text-lg leading-8 text-[#475467]">
               Jlaude 是面向开发者工作流的 AI API 网关，用一个 Base URL 连接主流模型、编码工具与团队交付流程。
             </p>
 
-            <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div v-reveal.left="280" class="mt-8 flex flex-col gap-3 sm:flex-row">
               <router-link
                 :to="isAuthenticated ? dashboardPath : '/login'"
                 class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1d6ff2] px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#1551c4]"
@@ -173,6 +173,7 @@
 
             <button
               type="button"
+              v-reveal.left="380"
               class="base-url-bar mt-8 flex w-full max-w-xl items-center justify-between gap-4 rounded-lg border border-[#e6e9ef] bg-white px-4 py-4 text-left shadow-sm transition hover:border-[#d6e4ff]"
               @click="copyBaseUrl"
             >
@@ -186,7 +187,7 @@
             </button>
           </div>
 
-          <div class="hero-geo-stage relative h-[26rem]">
+          <div class="hero-geo-stage relative h-[26rem]" v-reveal.right="200">
             <div class="hero-geo-grid absolute inset-6 rounded-2xl opacity-70"></div>
             <div class="hero-geo-ring absolute right-10 top-6 h-56 w-56"></div>
             <div class="hero-geo-ring absolute right-24 top-20 h-32 w-32"></div>
@@ -202,11 +203,15 @@
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div
-              v-for="stat in heroStats"
+              v-for="(stat, i) in heroStats"
               :key="stat.label"
+              v-reveal.scale="i * 90"
               class="metric-tile flex items-center gap-3 rounded-lg border border-[#e6e9ef] bg-white p-5"
             >
-              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eaf2ff] text-[#1d6ff2]">
+              <span
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+                :style="{ background: tones[stat.tone].bg, color: tones[stat.tone].fg }"
+              >
                 <Icon :name="stat.icon" size="md" />
               </span>
               <div class="min-w-0">
@@ -220,14 +225,29 @@
 
       <section id="workflow" class="border-y border-[#e6e9ef] bg-[#f7f9fc] py-10">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <p class="text-center text-sm font-semibold text-[#98a2b3]">支持的开发者工作流</p>
+          <p v-reveal="0" class="text-center text-sm font-semibold text-[#98a2b3]">支持的开发者工作流</p>
           <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
             <div
-              v-for="tool in workflowBadges"
+              v-for="(tool, i) in workflowBadges"
               :key="tool.name"
-              class="flex h-16 items-center justify-center gap-3 rounded-lg border border-[#e6e9ef] bg-white px-4 text-sm font-semibold text-[#0f1729] transition hover:border-[#d6e4ff] hover:bg-[#eaf2ff]"
+              v-reveal.scale="i * 70"
+              class="flex h-16 items-center justify-center gap-3 rounded-lg border border-[#e6e9ef] bg-white px-4 text-sm font-semibold text-[#0f1729] transition hover:border-[#d6e4ff] hover:bg-[#f7f9fc]"
             >
-              <Icon :name="tool.icon" size="sm" class="text-[#1d6ff2]" />
+              <img
+                v-if="!logoFailed[tool.name]"
+                :src="tool.logo"
+                :alt="`${tool.name} logo`"
+                class="h-7 w-7 shrink-0 object-contain"
+                loading="lazy"
+                @error="onLogoError(tool.name)"
+              />
+              <span
+                v-else
+                class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-xs font-bold"
+                :style="{ background: tones[tool.tone].bg, color: tones[tool.tone].fg }"
+              >
+                {{ tool.name.charAt(0) }}
+              </span>
               {{ tool.name }}
             </div>
           </div>
@@ -237,7 +257,7 @@
       <section id="routing" class="bg-white py-24">
         <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div class="grid gap-12 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
-            <div>
+            <div v-reveal.left="0">
               <p class="section-eyebrow">Routing Engine</p>
               <h2 class="mt-4 text-3xl font-bold leading-tight text-[#0f1729] sm:text-5xl">
                 自动选择更稳的模型线路
@@ -252,10 +272,14 @@
                 <article
                   v-for="(step, index) in routingSteps"
                   :key="step.title"
+                  v-reveal="index * 80"
                   class="routing-step relative rounded-lg border border-[#e6e9ef] bg-white p-4 shadow-sm"
                 >
-                  <span class="text-xs font-bold text-[#1d6ff2]">0{{ index + 1 }}</span>
-                  <div class="mt-4 flex h-11 w-11 items-center justify-center rounded-lg bg-[#eaf2ff] text-[#1d6ff2]">
+                  <span class="text-xs font-bold" :style="{ color: tones[step.tone].fg }">0{{ index + 1 }}</span>
+                  <div
+                    class="mt-4 flex h-11 w-11 items-center justify-center rounded-lg"
+                    :style="{ background: tones[step.tone].bg, color: tones[step.tone].fg }"
+                  >
                     <Icon :name="step.icon" size="md" />
                   </div>
                   <h3 class="mt-5 text-sm font-semibold text-[#0f1729]">{{ step.title }}</h3>
@@ -269,25 +293,24 @@
 
       <section id="guarantees" class="bg-[#f7f9fc] py-24">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div class="grid gap-12 lg:grid-cols-[1fr_0.9fr] lg:items-start">
-            <div>
-              <p class="section-eyebrow">Service Layer</p>
-              <h2 class="mt-4 max-w-3xl text-3xl font-bold leading-tight text-[#0f1729] sm:text-5xl">
-                为高频 AI 编码请求准备的服务层
-              </h2>
-            </div>
-            <p class="text-base leading-8 text-[#475467]">
-              首页不需要解释所有细节，但用户要一眼看懂：Jlaude 不是普通转发地址，而是围绕研发链路稳定性做的一层 API 基础设施。
-            </p>
+          <div v-reveal.left="0" class="max-w-3xl">
+            <p class="section-eyebrow">Service Layer</p>
+            <h2 class="mt-4 text-3xl font-bold leading-tight text-[#0f1729] sm:text-5xl">
+              为高频 AI 编码请求准备的服务层
+            </h2>
           </div>
 
           <div class="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <article
-              v-for="item in assuranceItems"
+              v-for="(item, i) in assuranceItems"
               :key="item.title"
+              v-reveal.scale="(i % 3) * 80"
               class="assurance-card rounded-lg border border-[#e6e9ef] bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-[#d6e4ff]"
             >
-              <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-[#eaf2ff] text-[#1d6ff2]">
+              <div
+                class="flex h-11 w-11 items-center justify-center rounded-lg"
+                :style="{ background: tones[item.tone].bg, color: tones[item.tone].fg }"
+              >
                 <Icon :name="item.icon" size="md" />
               </div>
               <h3 class="mt-5 text-lg font-semibold text-[#0f1729]">{{ item.title }}</h3>
@@ -299,7 +322,7 @@
 
       <section id="faq" class="bg-white py-24">
         <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-          <div class="text-center">
+          <div v-reveal="0" class="text-center">
             <p class="section-eyebrow mx-auto">FAQ</p>
             <h2 class="mt-4 text-3xl font-bold text-[#0f1729] sm:text-5xl">
               常见问题
@@ -331,7 +354,7 @@
 
       <section class="bg-white pb-24">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div class="final-cta overflow-hidden rounded-lg border border-[#d6e4ff] bg-[#eaf2ff] px-6 py-12 sm:px-10 lg:px-14">
+          <div v-reveal="0" class="final-cta overflow-hidden rounded-lg border border-[#d6e4ff] bg-[#eaf2ff] px-6 py-12 sm:px-10 lg:px-14">
             <div class="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
               <div>
                 <p class="section-eyebrow">Start</p>
@@ -487,17 +510,65 @@ interface IconTextItem {
   icon: IconName
   title: string
   description: string
+  tone: ToneName
 }
 
 interface MetricItem {
   icon: IconName
   value: string
   label: string
+  tone: ToneName
 }
 
 interface WorkflowBadge {
   icon: IconName
   name: string
+  tone: ToneName
+  logo: string
+}
+
+type ToneName = 'blue' | 'violet' | 'teal' | 'amber' | 'rose' | 'emerald' | 'sky' | 'indigo'
+
+const tones: Record<ToneName, { fg: string; bg: string }> = {
+  blue: { fg: '#1d6ff2', bg: '#eaf2ff' },
+  violet: { fg: '#6d4aff', bg: '#ece7ff' },
+  teal: { fg: '#0ea5a5', bg: '#e2f7f5' },
+  amber: { fg: '#d98300', bg: '#fdf0d9' },
+  rose: { fg: '#e5484d', bg: '#fdeaeb' },
+  emerald: { fg: '#12a150', bg: '#e3f6ea' },
+  sky: { fg: '#0b8fd6', bg: '#e2f3fc' },
+  indigo: { fg: '#4f5bd5', bg: '#e9ebfb' }
+}
+
+const vReveal = {
+  mounted(el: HTMLElement, binding: { value?: number; modifiers: Record<string, boolean> }) {
+    if (typeof window !== 'undefined'
+      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      return
+    }
+    el.classList.add('reveal-init')
+    const m = binding.modifiers
+    if (m.left) el.classList.add('reveal-from-left')
+    else if (m.right) el.classList.add('reveal-from-right')
+    else if (m.scale) el.classList.add('reveal-from-scale')
+    else if (m.down) el.classList.add('reveal-from-down')
+    else el.classList.add('reveal-from-up')
+    const delay = typeof binding.value === 'number' ? binding.value : 0
+    el.style.transitionDelay = `${delay}ms`
+    if (typeof IntersectionObserver === 'undefined') {
+      el.classList.add('reveal-in')
+      return
+    }
+    const io = new IntersectionObserver((entries, obs) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          el.classList.add('reveal-in')
+          obs.unobserve(el)
+        }
+      })
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' })
+    io.observe(el)
+  }
 }
 
 const authStore = useAuthStore()
@@ -537,46 +608,56 @@ const navItems = [
 ]
 
 const heroStats: MetricItem[] = [
-  { icon: 'globe', value: '统一 Base URL', label: '一处配置接入所有工具' },
-  { icon: 'sync', value: 'Claude / OpenAI', label: '双协议兼容接入' },
-  { icon: 'shield', value: '故障自动切换', label: '异常线路即时降级' },
-  { icon: 'chart', value: '透明计费', label: '按模型与用量回执' }
+  { icon: 'globe', value: '统一 Base URL', label: '一处配置接入所有工具', tone: 'blue' },
+  { icon: 'sync', value: 'Claude / OpenAI', label: '双协议兼容接入', tone: 'violet' },
+  { icon: 'shield', value: '故障自动切换', label: '异常线路即时降级', tone: 'emerald' },
+  { icon: 'chart', value: '透明计费', label: '按模型与用量回执', tone: 'amber' }
 ]
 
 const workflowBadges: WorkflowBadge[] = [
-  { icon: 'terminal', name: 'Claude Code' },
-  { icon: 'cpu', name: 'Codex' },
-  { icon: 'sparkles', name: 'Open code' },
-  { icon: 'database', name: 'Open claw' },
-  { icon: 'sync', name: 'Hermes' },
-  { icon: 'server', name: 'Cursor' }
+  { icon: 'terminal', name: 'Claude Code', tone: 'blue', logo: '/landing/logos/claude-code.svg' },
+  { icon: 'cpu', name: 'Codex', tone: 'violet', logo: '/landing/logos/codex.svg' },
+  { icon: 'sparkles', name: 'Open code', tone: 'amber', logo: '/landing/logos/open-code.svg' },
+  { icon: 'database', name: 'Open claw', tone: 'teal', logo: '/landing/logos/open-claw.svg' },
+  { icon: 'sync', name: 'Hermes', tone: 'rose', logo: '/landing/logos/hermes.svg' },
+  { icon: 'server', name: 'Cursor', tone: 'sky', logo: '/landing/logos/cursor.svg' }
 ]
+
+const logoFailed = ref<Record<string, boolean>>({})
+function onLogoError(name: string) {
+  logoFailed.value = { ...logoFailed.value, [name]: true }
+}
 
 const routingSteps: IconTextItem[] = [
   {
     icon: 'terminal',
     title: '客户端请求',
-    description: 'Claude Code、Codex 与 OpenAI 兼容工具使用统一入口。'
+    description: 'Claude Code、Codex 与 OpenAI 兼容工具使用统一入口。',
+    tone: 'blue'
   },
   {
     icon: 'key',
     title: '权限校验',
-    description: '统一识别用户、密钥、额度、分组与访问策略。'
+    description: '统一识别用户、密钥、额度、分组与访问策略。',
+    tone: 'violet'
   },
   {
     icon: 'sync',
     title: '模型路由',
-    description: '根据模型、线路状态与策略选择更合适的上游。'
+    description: '根据模型、线路状态与策略选择更合适的上游。',
+    tone: 'teal'
   },
   {
     icon: 'shield',
     title: '故障切换',
-    description: '异常线路自动降级，减少开发流程被打断的概率。'
+    description: '异常线路自动降级，减少开发流程被打断的概率。',
+    tone: 'emerald'
   },
   {
     icon: 'chart',
     title: '透明回执',
-    description: '请求状态、消耗、延迟与扣费明细回到控制台。'
+    description: '请求状态、消耗、延迟与扣费明细回到控制台。',
+    tone: 'amber'
   }
 ]
 
@@ -584,32 +665,38 @@ const assuranceItems: IconTextItem[] = [
   {
     icon: 'server',
     title: '多源冗余',
-    description: '接入多路可用资源，围绕高频 AI 编码请求做连续性保障。'
+    description: '接入多路可用资源，围绕高频 AI 编码请求做连续性保障。',
+    tone: 'blue'
   },
   {
     icon: 'globe',
     title: '低延迟线路',
-    description: '面向国内开发环境优化访问体验，减少工具等待和上下文中断。'
+    description: '面向国内开发环境优化访问体验，减少工具等待和上下文中断。',
+    tone: 'sky'
   },
   {
     icon: 'lock',
     title: '最小化留存',
-    description: '平台聚焦认证、路由与计费，默认不把请求内容作为产品数据沉淀。'
+    description: '平台聚焦认证、路由与计费，默认不把请求内容作为产品数据沉淀。',
+    tone: 'violet'
   },
   {
     icon: 'chart',
     title: '用量可追踪',
-    description: '按模型、用户、分组和请求维度查看消耗，团队成本更容易复盘。'
+    description: '按模型、用户、分组和请求维度查看消耗，团队成本更容易复盘。',
+    tone: 'amber'
   },
   {
     icon: 'users',
     title: '团队协作',
-    description: '支持多人接入、额度分配和权限管理，避免团队各自维护零散配置。'
+    description: '支持多人接入、额度分配和权限管理，避免团队各自维护零散配置。',
+    tone: 'emerald'
   },
   {
     icon: 'chat',
     title: '人工支持',
-    description: '遇到链路、模型、扣费或接入问题，可通过后台配置的客服渠道联系。'
+    description: '遇到链路、模型、扣费或接入问题，可通过后台配置的客服渠道联系。',
+    tone: 'rose'
   }
 ]
 
@@ -735,6 +822,47 @@ onBeforeUnmount(() => {
 .hero-geo-grid {
   background-image: radial-gradient(#d6e4ff 1.4px, transparent 1.4px);
   background-size: 22px 22px;
+}
+
+/* 渐入动画：进入视口时按方向滑入淡入 */
+.reveal-init {
+  opacity: 0;
+  transition: opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-from-up {
+  transform: translateY(28px);
+}
+
+.reveal-from-down {
+  transform: translateY(-28px);
+}
+
+.reveal-from-left {
+  transform: translateX(-40px);
+}
+
+.reveal-from-right {
+  transform: translateX(40px);
+}
+
+.reveal-from-scale {
+  transform: scale(0.92);
+}
+
+.reveal-in {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-init {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }
 
 @media (max-width: 1023px) {
