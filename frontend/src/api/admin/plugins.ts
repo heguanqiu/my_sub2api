@@ -57,7 +57,7 @@ export async function upload(kind: 'package' | 'icon', file: File): Promise<Plug
   form.append('file', file)
   const { data } = await apiClient.post<PluginUploadResult>('/admin/plugins/upload', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
-    timeout: 120000
+    timeout: 600000
   })
   return data
 }

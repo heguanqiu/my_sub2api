@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	maxPluginFileSize = 100 << 20 // 100MB
+	maxPluginFileSize = 512 << 20 // 512MB
 	maxPluginIconSize = 2 << 20   // 2MB
 )
 
@@ -23,6 +23,26 @@ var (
 	allowedPluginExts = map[string]bool{".zip": true, ".vsix": true, ".gz": true, ".tgz": true}
 	allowedIconExts   = map[string]bool{".png": true, ".jpg": true, ".jpeg": true, ".svg": true, ".webp": true}
 )
+
+func validatePluginUploadFile(kind, filename string, size int64) string {
+	ext := strings.ToLower(filepath.Ext(filename))
+	if kind == "package" {
+		if size > maxPluginFileSize {
+			return "插件包不能超过 512MB"
+		}
+		if !allowedPluginExts[ext] {
+			return "不支持的插件包格式"
+		}
+		return ""
+	}
+	if size > maxPluginIconSize {
+		return "图标不能超过 2MB"
+	}
+	if !allowedIconExts[ext] {
+		return "不支持的图标格式"
+	}
+	return ""
+}
 
 // PluginHandler handles admin plugin management
 type PluginHandler struct {
@@ -173,25 +193,9 @@ func (h *PluginHandler) Upload(c *gin.Context) {
 		response.BadRequest(c, "file is required")
 		return
 	}
-	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
-	if kind == "package" {
-		if fileHeader.Size > maxPluginFileSize {
-			response.BadRequest(c, "插件包不能超过 100MB")
-			return
-		}
-		if !allowedPluginExts[ext] {
-			response.BadRequest(c, "不支持的插件包格式")
-			return
-		}
-	} else {
-		if fileHeader.Size > maxPluginIconSize {
-			response.BadRequest(c, "图标不能超过 2MB")
-			return
-		}
-		if !allowedIconExts[ext] {
-			response.BadRequest(c, "不支持的图标格式")
-			return
-		}
+	if msg := validatePluginUploadFile(kind, fileHeader.Filename, fileHeader.Size); msg != "" {
+		response.BadRequest(c, msg)
+		return
 	}
 	f, err := fileHeader.Open()
 	if err != nil {

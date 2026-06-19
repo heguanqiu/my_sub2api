@@ -85,17 +85,15 @@ func buildUploadRequest(t *testing.T, kind, filename string, size int) *http.Req
 }
 
 func TestPluginHandler_Upload_RejectsOversizePackage(t *testing.T) {
-	handler, _ := newPluginTestHandler()
-	router := gin.New()
-	router.POST("/admin/plugins/upload", handler.Upload)
+	msg := validatePluginUploadFile("package", "big.zip", maxPluginFileSize+1)
 
-	// 101MB
-	req := buildUploadRequest(t, "package", "big.zip", (100<<20)+1)
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
+	require.Contains(t, msg, "512MB")
+}
 
-	require.Equal(t, http.StatusBadRequest, rec.Code)
-	require.Contains(t, rec.Body.String(), "100MB")
+func TestPluginHandler_Upload_AllowsPackageAtLimit(t *testing.T) {
+	msg := validatePluginUploadFile("package", "big.zip", maxPluginFileSize)
+
+	require.Empty(t, msg)
 }
 
 func TestPluginHandler_Upload_RejectsBadExtension(t *testing.T) {
