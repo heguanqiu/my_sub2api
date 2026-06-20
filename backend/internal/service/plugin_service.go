@@ -4,11 +4,15 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
+	"net/url"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/domain"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
+	"github.com/Wei-Shaw/sub2api/internal/util/urlvalidator"
 
 	"github.com/google/uuid"
 )
@@ -22,10 +26,17 @@ const (
 type PluginService struct {
 	repo          PluginRepository
 	storeProvider PluginStoreProvider
+	httpClient    *http.Client
 }
 
 func NewPluginService(repo PluginRepository, storeProvider PluginStoreProvider) *PluginService {
-	return &PluginService{repo: repo, storeProvider: storeProvider}
+	return &PluginService{
+		repo:          repo,
+		storeProvider: storeProvider,
+		httpClient: &http.Client{
+			Timeout: 30 * time.Minute,
+		},
+	}
 }
 
 // UploadResult 上传后返回给前端的元数据
@@ -33,6 +44,14 @@ type UploadResult struct {
 	Key      string
 	FileName string
 	Size     int64
+}
+
+type PluginDownload struct {
+	Body          io.ReadCloser
+	FileName      string
+	FileSize      int64
+	ContentType   string
+	ContentLength int64
 }
 
 // UploadObject 上传插件包或图标，返回 key/原名/大小
@@ -212,4 +231,82 @@ func (s *PluginService) PrepareDownload(ctx context.Context, id int64) (string, 
 		return "", err
 	}
 	return s.PresignKey(ctx, p.FileKey)
+}
+
+// OpenDownload increments download count and opens the plugin package for server-side streaming.
+func (s *PluginService) OpenDownload(ctx context.Context, id int64) (*PluginDownload, error) {
+	p, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if p.Status != domain.PluginStatusPublished || strings.TrimSpace(p.FileKey) == "" {
+		return nil, ErrPluginNotFound
+	}
+
+	body, contentType, contentLength, err := s.openPluginFile(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.repo.IncrementDownloadCount(ctx, id); err != nil {
+		_ = body.Close()
+		return nil, err
+	}
+
+	fileName := strings.TrimSpace(p.FileName)
+	if fileName == "" {
+		fileName = path.Base(p.FileKey)
+	}
+	return &PluginDownload{
+		Body:          body,
+		FileName:      fileName,
+		FileSize:      p.FileSize,
+		ContentType:   contentType,
+		ContentLength: contentLength,
+	}, nil
+}
+
+func (s *PluginService) openPluginFile(ctx context.Context, p *Plugin) (io.ReadCloser, string, int64, error) {
+	fileKey := strings.TrimSpace(p.FileKey)
+	if parsed, err := url.Parse(fileKey); err == nil && parsed.Scheme != "" && parsed.Host != "" {
+		return s.openPluginFileURL(ctx, fileKey)
+	}
+
+	store, err := s.storeProvider.Store(ctx)
+	if err != nil {
+		return nil, "", 0, err
+	}
+	body, err := store.Download(ctx, fileKey)
+	if err != nil {
+		return nil, "", 0, fmt.Errorf("download object: %w", err)
+	}
+	return body, "", p.FileSize, nil
+}
+
+func (s *PluginService) openPluginFileURL(ctx context.Context, rawURL string) (io.ReadCloser, string, int64, error) {
+	normalized, err := urlvalidator.ValidateHTTPURL(rawURL, true, urlvalidator.ValidationOptions{
+		AllowPrivate: false,
+	})
+	if err != nil {
+		return nil, "", 0, err
+	}
+	parsed, err := url.Parse(normalized)
+	if err != nil {
+		return nil, "", 0, err
+	}
+	if err := urlvalidator.ValidateResolvedIP(parsed.Hostname()); err != nil {
+		return nil, "", 0, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, normalized, nil)
+	if err != nil {
+		return nil, "", 0, err
+	}
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, "", 0, fmt.Errorf("download remote plugin: %w", err)
+	}
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		_ = resp.Body.Close()
+		return nil, "", 0, fmt.Errorf("download remote plugin: status %d", resp.StatusCode)
+	}
+	return resp.Body, resp.Header.Get("Content-Type"), resp.ContentLength, nil
 }

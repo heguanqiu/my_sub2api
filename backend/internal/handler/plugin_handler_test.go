@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -22,8 +23,10 @@ type pubPluginStore struct{}
 func (pubPluginStore) Upload(_ context.Context, _ string, _ io.Reader, _ string) (int64, error) {
 	return 0, nil
 }
-func (pubPluginStore) Download(_ context.Context, _ string) (io.ReadCloser, error) { return nil, nil }
-func (pubPluginStore) Delete(_ context.Context, _ string) error                    { return nil }
+func (pubPluginStore) Download(_ context.Context, key string) (io.ReadCloser, error) {
+	return io.NopCloser(strings.NewReader("body:" + key)), nil
+}
+func (pubPluginStore) Delete(_ context.Context, _ string) error { return nil }
 func (pubPluginStore) PresignURL(_ context.Context, key string, _ time.Duration) (string, error) {
 	return "https://example.test/" + key, nil
 }
@@ -51,7 +54,7 @@ func (r *pubPluginRepo) GetByID(_ context.Context, id int64) (*service.Plugin, e
 	return nil, service.ErrPluginNotFound
 }
 func (r *pubPluginRepo) Update(_ context.Context, _ *service.Plugin) error { return nil }
-func (r *pubPluginRepo) Delete(_ context.Context, _ int64) error          { return nil }
+func (r *pubPluginRepo) Delete(_ context.Context, _ int64) error           { return nil }
 func (r *pubPluginRepo) List(_ context.Context, _ pagination.PaginationParams, _ service.PluginListFilters) ([]service.Plugin, *pagination.PaginationResult, error) {
 	return nil, &pagination.PaginationResult{}, nil
 }
@@ -95,9 +98,9 @@ func TestPublicPluginHandler_List_OnlyPublished(t *testing.T) {
 	require.Contains(t, body, "/api/v1/plugins/1/download")
 }
 
-func TestPublicPluginHandler_Download_Redirects(t *testing.T) {
+func TestPublicPluginHandler_Download_StreamsThroughServer(t *testing.T) {
 	handler, repo := newPublicPluginHandler([]service.Plugin{
-		{ID: 1, Name: "pub", Status: service.PluginStatusPublished, FileKey: "plugins/files/x-a.zip"},
+		{ID: 1, Name: "pub", Status: service.PluginStatusPublished, FileKey: "plugins/files/x-a.zip", FileName: "a.zip", FileSize: 26},
 	})
 	router := gin.New()
 	router.GET("/api/v1/plugins/:id/download", handler.Download)
@@ -106,8 +109,11 @@ func TestPublicPluginHandler_Download_Redirects(t *testing.T) {
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
-	require.Equal(t, http.StatusFound, rec.Code)
-	require.Equal(t, "https://example.test/plugins/files/x-a.zip", rec.Header().Get("Location"))
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Empty(t, rec.Header().Get("Location"))
+	require.Equal(t, `attachment; filename="a.zip"`, rec.Header().Get("Content-Disposition"))
+	require.Equal(t, "application/octet-stream", rec.Header().Get("Content-Type"))
+	require.Equal(t, "body:plugins/files/x-a.zip", rec.Body.String())
 	require.Equal(t, 1, repo.incremented)
 }
 

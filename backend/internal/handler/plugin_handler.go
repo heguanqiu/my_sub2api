@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -64,10 +65,28 @@ func (h *PluginHandler) Download(c *gin.Context) {
 		response.BadRequest(c, "Invalid plugin ID")
 		return
 	}
-	url, err := h.pluginService.PrepareDownload(c.Request.Context(), id)
+	download, err := h.pluginService.OpenDownload(c.Request.Context(), id)
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
 	}
-	c.Redirect(http.StatusFound, url)
+	defer download.Body.Close()
+
+	contentType := strings.TrimSpace(download.ContentType)
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	c.Header("Content-Type", contentType)
+	if download.FileName != "" {
+		c.Header("Content-Disposition", `attachment; filename="`+strings.ReplaceAll(download.FileName, `"`, "")+`"`)
+	}
+	if download.ContentLength > 0 {
+		c.Header("Content-Length", strconv.FormatInt(download.ContentLength, 10))
+	} else if download.FileSize > 0 {
+		c.Header("Content-Length", strconv.FormatInt(download.FileSize, 10))
+	}
+	c.Status(http.StatusOK)
+	if _, err := io.Copy(c.Writer, download.Body); err != nil {
+		_ = c.Error(err)
+	}
 }

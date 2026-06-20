@@ -29,7 +29,7 @@ func (f *fakePluginStore) Upload(_ context.Context, key string, body io.Reader, 
 	return int64(len(b)), nil
 }
 func (f *fakePluginStore) Download(_ context.Context, _ string) (io.ReadCloser, error) {
-	return nil, nil
+	return io.NopCloser(strings.NewReader("download-body")), nil
 }
 func (f *fakePluginStore) Delete(_ context.Context, key string) error {
 	f.deleted = append(f.deleted, key)
@@ -163,6 +163,28 @@ func TestPluginService_PrepareDownload_DraftReturnsNotFound(t *testing.T) {
 
 	_, err = svc.PrepareDownload(ctx, p.ID)
 	require.True(t, errors.Is(err, ErrPluginNotFound))
+}
+
+func TestPluginService_OpenDownload_IncrementsAndReturnsBody(t *testing.T) {
+	svc, repo, _ := newTestPluginService()
+	ctx := context.Background()
+
+	p, err := svc.Create(ctx, &CreatePluginInput{
+		Name: "P", Status: PluginStatusPublished, FileKey: "plugins/files/x-tool.zip", FileName: "tool.zip", FileSize: 13,
+	})
+	require.NoError(t, err)
+
+	download, err := svc.OpenDownload(ctx, p.ID)
+	require.NoError(t, err)
+	defer download.Body.Close()
+
+	body, err := io.ReadAll(download.Body)
+	require.NoError(t, err)
+	require.Equal(t, "download-body", string(body))
+	require.Equal(t, "tool.zip", download.FileName)
+	require.Equal(t, int64(13), download.FileSize)
+	require.Equal(t, int64(13), download.ContentLength)
+	require.Equal(t, 1, repo.increment)
 }
 
 func TestPluginService_Delete_RemovesObjects(t *testing.T) {
