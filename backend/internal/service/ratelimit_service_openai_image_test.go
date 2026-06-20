@@ -109,7 +109,7 @@ func TestOpenAIGatewayServiceForwardImages_ImageRateLimitReturnsFailoverAndCools
 		},
 	}
 
-	result, err := svc.ForwardImages(context.Background(), c, account, body, parsed, "")
+	result, err := svc.ForwardImages(context.Background(), c, account, body, parsed, "", 1)
 
 	require.Nil(t, result)
 	var failoverErr *UpstreamFailoverError

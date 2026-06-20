@@ -542,13 +542,14 @@ func (s *OpenAIGatewayService) ForwardImages(
 	body []byte,
 	parsed *OpenAIImagesRequest,
 	channelMappedModel string,
+	userID int64,
 ) (*OpenAIForwardResult, error) {
 	if parsed == nil {
 		return nil, fmt.Errorf("parsed images request is required")
 	}
 	switch account.Type {
 	case AccountTypeAPIKey:
-		return s.forwardOpenAIImagesAPIKey(ctx, c, account, body, parsed, channelMappedModel)
+		return s.forwardOpenAIImagesAPIKey(ctx, c, account, body, parsed, channelMappedModel, userID)
 	case AccountTypeOAuth:
 		return s.forwardOpenAIImagesOAuth(ctx, c, account, parsed, channelMappedModel)
 	default:
@@ -563,6 +564,7 @@ func (s *OpenAIGatewayService) forwardOpenAIImagesAPIKey(
 	body []byte,
 	parsed *OpenAIImagesRequest,
 	channelMappedModel string,
+	userID int64,
 ) (*OpenAIForwardResult, error) {
 	startTime := time.Now()
 	requestModel := strings.TrimSpace(parsed.Model)
@@ -588,7 +590,30 @@ func (s *OpenAIGatewayService) forwardOpenAIImagesAPIKey(
 	if err != nil {
 		return nil, err
 	}
-	upstreamCtx, releaseUpstreamCtx := detachStreamUpstreamContext(ctx, parsed.Stream)
+
+	// Non-stream: check result cache first (populated by a previous request that completed
+	// after the client disconnected). This lets clients retry without re-hitting the upstream.
+	if !parsed.Stream && parsed.bodyHash != "" && s.imageResultCache != nil {
+		if entry, ok := s.imageResultCache.get(userID, parsed.bodyHash, parsed.Endpoint); ok {
+			c.Data(entry.statusCode, entry.contentType, entry.body)
+			usage, _ := extractOpenAIUsageFromJSONBytes(entry.body)
+			return &OpenAIForwardResult{
+				Usage:            usage,
+				Model:            requestModel,
+				UpstreamModel:    upstreamModel,
+				Stream:           false,
+				Duration:         time.Since(startTime),
+				ImageCount:       parsed.N,
+				ImageSize:        parsed.SizeTier,
+				ImageInputSize:   parsed.Size,
+				ImageOutputSizes: collectOpenAIResponseImageOutputSizesFromJSONBytes(entry.body),
+			}, nil
+		}
+	}
+
+	// Always detach from the client's request context so a client-side timeout or disconnect
+	// does not cancel the upstream image generation call.
+	upstreamCtx, releaseUpstreamCtx := detachUpstreamContext(ctx)
 	defer releaseUpstreamCtx()
 
 	token, _, err := s.GetAccessToken(upstreamCtx, account)
@@ -692,9 +717,34 @@ func (s *OpenAIGatewayService) forwardOpenAIImagesAPIKey(
 			ImageOutputSizes: imageOutputSizes,
 		}, nil
 	} else {
+		// Pre-read body so we can populate the result cache for client retries.
+		// The body is restored into resp.Body so handleOpenAIImagesNonStreamingResponse
+		// can read it normally.
+		var preReadBody []byte
+		if !parsed.Stream && parsed.bodyHash != "" && s.imageResultCache != nil {
+			if rb, readErr := io.ReadAll(resp.Body); readErr == nil {
+				preReadBody = rb
+				_ = resp.Body.Close()
+				resp.Body = io.NopCloser(bytes.NewReader(rb))
+			}
+		}
+
 		nonStreamUsage, nonStreamCount, nonStreamSizes, err := s.handleOpenAIImagesNonStreamingResponse(resp, c)
 		if err != nil {
 			return nil, err
+		}
+		// Cache the successful response body so a retry from the same client
+		// (after a client-side timeout) is served instantly without a new upstream call.
+		if len(preReadBody) > 0 {
+			ct := resp.Header.Get("Content-Type")
+			if ct == "" {
+				ct = "application/json"
+			}
+			s.imageResultCache.set(userID, parsed.bodyHash, parsed.Endpoint, &imageResultEntry{
+				statusCode:  resp.StatusCode,
+				contentType: ct,
+				body:        preReadBody,
+			})
 		}
 		usage = nonStreamUsage
 		if nonStreamCount > 0 {
