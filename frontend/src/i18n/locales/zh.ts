@@ -416,6 +416,7 @@ export default {
     salesOrders: '充值记录',
     orderManagement: '订单管理',
     paymentDashboard: '支付概览',
+    adminSales: '销售数据',
     paymentConfig: '支付配置',
     paymentPlans: '订阅套餐',
     channelManagement: '渠道管理',
@@ -1917,6 +1918,22 @@ export default {
         availableQuota: '可提余额',
         historyQuota: '历史返利'
       }
+    },
+
+    // Sales Data
+    sales: {
+      title: '销售数据',
+      description: '按销售账号查看客户、充值订单和统计汇总',
+      salesAccount: '销售账号',
+      range: '统计范围',
+      emptySales: '暂无可查看的销售账号',
+      noSalesOptions: '暂无销售账号',
+      customersTab: '客户',
+      ordersTab: '充值订单',
+      customerOrdersTab: '客户订单',
+      searchCustomers: '搜索客户邮箱 / 用户名',
+      customer: '客户',
+      currentCustomer: '当前客户'
     },
 
     // Users Management

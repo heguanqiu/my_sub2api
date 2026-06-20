@@ -98,6 +98,16 @@ func RegisterPaymentRoutes(
 			adminOrders.POST("/:id/refund", adminPaymentHandler.ProcessRefund)
 		}
 
+		// Sales data visibility for admins
+		adminSales := adminGroup.Group("/sales/:sales_id")
+		{
+			adminSales.GET("/dashboard", adminPaymentHandler.GetSalesDashboard)
+			adminSales.GET("/customers", adminPaymentHandler.ListSalesCustomers)
+			adminSales.GET("/orders", adminPaymentHandler.GetSalesOrders)
+			adminSales.GET("/customers/:customer_id/orders", adminPaymentHandler.GetSalesCustomerOrders)
+			adminSales.GET("/customers/:customer_id", adminPaymentHandler.GetSalesCustomer)
+		}
+
 		// Subscription Plans
 		plans := adminGroup.Group("/plans")
 		{

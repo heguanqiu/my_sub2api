@@ -416,6 +416,7 @@ export default {
     salesOrders: 'Recharge Records',
     orderManagement: 'Orders',
     paymentDashboard: 'Payment Dashboard',
+    adminSales: 'Sales Data',
     paymentConfig: 'Payment Config',
     paymentPlans: 'Plans',
     channelManagement: 'Channels',
@@ -1896,6 +1897,22 @@ export default {
         availableQuota: 'Available Quota',
         historyQuota: 'Historical Rebate'
       }
+    },
+
+    // Sales Data
+    sales: {
+      title: 'Sales Data',
+      description: 'View customers, recharge orders, and summaries by sales account',
+      salesAccount: 'Sales Account',
+      range: 'Range',
+      emptySales: 'No sales accounts available',
+      noSalesOptions: 'No sales accounts',
+      customersTab: 'Customers',
+      ordersTab: 'Recharge Orders',
+      customerOrdersTab: 'Customer Orders',
+      searchCustomers: 'Search customer email / username',
+      customer: 'Customer',
+      currentCustomer: 'Current Customer'
     },
 
     // Users
