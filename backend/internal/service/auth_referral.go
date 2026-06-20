@@ -81,9 +81,13 @@ func (s *AuthService) resolveRegistrationAffiliation(ctx context.Context, invita
 		if getErr != nil {
 			return nil, ErrInvitationCodeInvalid
 		}
+		ownerSalesID := deriveOwnerSalesIDForReferral(inviter)
+		if !inviter.IsSales() && link.OwnerSalesID != nil {
+			ownerSalesID = cloneInt64Ptr(link.OwnerSalesID)
+		}
 		return &registrationAffiliation{
 			InvitedByUserID: cloneInt64Ptr(&inviter.ID),
-			OwnerSalesID:    deriveOwnerSalesIDForReferral(inviter),
+			OwnerSalesID:    ownerSalesID,
 		}, nil
 	}
 

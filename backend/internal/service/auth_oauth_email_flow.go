@@ -67,6 +67,9 @@ func (s *AuthService) validateOAuthRegistrationInvitation(ctx context.Context, i
 	if invitationCode == "" {
 		return nil, ErrInvitationCodeRequired
 	}
+	if link, err := s.findActiveInviteLinkByCode(ctx, invitationCode); err == nil && link != nil {
+		return nil, nil
+	}
 
 	redeemCode, err := s.loadOAuthRegistrationInvitation(ctx, invitationCode)
 	if err != nil {
@@ -220,8 +223,18 @@ func (s *AuthService) RegisterVerifiedOAuthEmailAccount(
 	if strings.TrimSpace(password) == "" {
 		return nil, nil, infraerrors.BadRequest("PASSWORD_REQUIRED", "password is required")
 	}
-	if _, err := s.validateOAuthRegistrationInvitation(ctx, invitationCode); err != nil {
-		return nil, nil, err
+	var affiliation *registrationAffiliation
+	if s.settingService != nil && s.settingService.IsInvitationCodeEnabled(ctx) {
+		if strings.TrimSpace(invitationCode) == "" {
+			return nil, nil, ErrInvitationCodeRequired
+		}
+		resolvedAffiliation, err := s.resolveRegistrationAffiliation(ctx, invitationCode)
+		if err != nil {
+			return nil, nil, err
+		}
+		affiliation = resolvedAffiliation
+	} else if strings.TrimSpace(invitationCode) != "" {
+		affiliation, _ = s.resolveRegistrationAffiliation(ctx, invitationCode)
 	}
 
 	existsEmail, err := s.userRepo.ExistsByEmail(ctx, email)
@@ -252,6 +265,13 @@ func (s *AuthService) RegisterVerifiedOAuthEmailAccount(
 		RPMLimit:     defaultRPMLimit,
 		Status:       StatusActive,
 		SignupSource: signupSource,
+	}
+	if affiliation != nil {
+		user.InvitedByUserID = affiliation.InvitedByUserID
+		user.OwnerSalesID = affiliation.OwnerSalesID
+	}
+	if user.OwnerSalesID == nil {
+		user.OwnerSalesID = s.defaultSalesOwnerID(ctx)
 	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
