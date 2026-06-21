@@ -135,7 +135,9 @@ func (h *OpenAIGatewayHandler) Images(c *gin.Context) {
 	}
 
 	sessionHash := h.gatewayService.GenerateExplicitSessionHash(c, body)
-	requestCtx := service.WithOpenAIImageGenerationIntent(c.Request.Context())
+	// Detach from the client connection so that a client-side timeout or disconnect
+	// does not cancel the upstream call or the failover account-selection loop.
+	requestCtx := service.WithOpenAIImageGenerationIntent(context.WithoutCancel(c.Request.Context()))
 
 	maxAccountSwitches := h.maxAccountSwitches
 	switchCount := 0
