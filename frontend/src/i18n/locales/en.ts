@@ -7183,7 +7183,7 @@ export default {
       companyTaxNoHint: 'Company titles require a taxpayer ID.',
       email: 'Recipient Email',
       applicationEmail: 'Recipient Email',
-      emailPlaceholder: 'name@example.com',
+      emailPlaceholder: "name{'@'}example.com",
       addressPhone: 'Address and Phone',
       addressPhonePlaceholder: 'Registered address and contact phone',
       bankAccount: 'Bank and Account',

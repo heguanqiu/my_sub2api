@@ -4,12 +4,14 @@ import { announcementsAPI } from '@/api'
 import type { UserAnnouncement } from '@/types'
 
 const THROTTLE_MS = 20 * 60 * 1000 // 20 minutes
+const FAILURE_RETRY_MS = 60 * 1000
 
 export const useAnnouncementStore = defineStore('announcements', () => {
   // State
   const announcements = ref<UserAnnouncement[]>([])
   const loading = ref(false)
   const lastFetchTime = ref(0)
+  const retryAfter = ref(0)
   const popupQueue = ref<UserAnnouncement[]>([])
   const currentPopup = ref<UserAnnouncement | null>(null)
 
@@ -24,6 +26,12 @@ export const useAnnouncementStore = defineStore('announcements', () => {
   // Actions
   async function fetchAnnouncements(force = false) {
     const now = Date.now()
+    if (!localStorage.getItem('auth_token')) {
+      return
+    }
+    if (!force && retryAfter.value > now) {
+      return
+    }
     if (!force && lastFetchTime.value > 0 && now - lastFetchTime.value < THROTTLE_MS) {
       return
     }
@@ -35,10 +43,12 @@ export const useAnnouncementStore = defineStore('announcements', () => {
       loading.value = true
       const all = await announcementsAPI.list(false)
       announcements.value = all.slice(0, 20)
+      retryAfter.value = 0
       enqueueNewPopups()
     } catch (err: any) {
-      // Revert throttle timestamp on failure so retry is allowed
+      // Keep a short cooldown on transient failures to avoid retry loops from route changes.
       lastFetchTime.value = 0
+      retryAfter.value = Date.now() + FAILURE_RETRY_MS
       console.error('Failed to fetch announcements:', err)
     } finally {
       loading.value = false
@@ -120,6 +130,7 @@ export const useAnnouncementStore = defineStore('announcements', () => {
   function reset() {
     announcements.value = []
     lastFetchTime.value = 0
+    retryAfter.value = 0
     shownPopupIds = new Set()
     popupQueue.value = []
     currentPopup.value = null

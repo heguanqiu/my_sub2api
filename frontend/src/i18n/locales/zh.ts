@@ -7364,7 +7364,7 @@ export default {
       companyTaxNoHint: '企业抬头必须填写纳税人识别号。',
       email: '收票邮箱',
       applicationEmail: '收票邮箱',
-      emailPlaceholder: 'name@example.com',
+      emailPlaceholder: "name{'@'}example.com",
       addressPhone: '地址及电话',
       addressPhonePlaceholder: '注册地址及联系电话',
       bankAccount: '开户行及账号',
