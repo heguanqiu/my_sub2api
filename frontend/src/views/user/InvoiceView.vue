@@ -134,7 +134,7 @@
       </div>
     </div>
 
-    <BaseDialog :show="profileDialogOpen" :title="t('payment.invoice.profileDialogTitle')" width="wide" @close="closeProfileDialog">
+    <BaseDialog :show="profileDialogOpen" :title="t('payment.invoice.profileDialogTitle')" width="wide" :z-index="invoiceDialogZIndex" @close="closeProfileDialog">
       <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
         <div class="space-y-3">
           <div v-if="profiles.length === 0" class="rounded-lg border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500 dark:border-dark-600 dark:text-gray-400">
@@ -214,7 +214,7 @@
       </div>
     </BaseDialog>
 
-    <BaseDialog :show="applicationDialogOpen" :title="t('payment.invoice.applicationDialogTitle')" width="wide" @close="closeApplicationDialog">
+    <BaseDialog :show="applicationDialogOpen" :title="t('payment.invoice.applicationDialogTitle')" width="wide" :z-index="invoiceDialogZIndex" @close="closeApplicationDialog">
       <form class="space-y-5" @submit.prevent="submitApplication">
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div class="rounded-lg bg-gray-50 p-4 dark:bg-dark-800">
@@ -270,7 +270,7 @@
       </form>
     </BaseDialog>
 
-    <BaseDialog :show="!!deleteProfileTarget" :title="t('payment.invoice.deleteProfile')" width="narrow" @close="deleteProfileTarget = null">
+    <BaseDialog :show="!!deleteProfileTarget" :title="t('payment.invoice.deleteProfile')" width="narrow" :z-index="invoiceDialogZIndex" @close="deleteProfileTarget = null">
       <p class="text-sm text-gray-600 dark:text-gray-300">
         {{ t('payment.invoice.deleteProfileConfirm', { name: deleteProfileTarget?.name || '' }) }}
       </p>
@@ -292,6 +292,7 @@ import { useI18n } from 'vue-i18n'
 import { paymentAPI } from '@/api/payment'
 import { useAppStore } from '@/stores'
 import { extractI18nErrorMessage } from '@/utils/apiError'
+import type { BasePaginationResponse } from '@/types'
 import type { InvoiceProfile, InvoiceRequest, InvoiceSummary } from '@/types/payment'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
@@ -319,6 +320,7 @@ const editingProfileId = ref<number | null>(null)
 const deleteProfileTarget = ref<InvoiceProfile | null>(null)
 const applicationError = ref('')
 const pagination = reactive({ page: 1, page_size: 20, total: 0 })
+const invoiceDialogZIndex = 100000010
 
 const profileForm = reactive({
   title_type: 'personal',
@@ -446,14 +448,22 @@ function titleTypeLabel(type: string): string {
   return type === 'company' ? t('payment.invoice.titleTypes.company') : t('payment.invoice.titleTypes.personal')
 }
 
+function unwrapApiData<T>(response: unknown): T {
+  if (response && typeof response === 'object' && 'data' in response) {
+    return (response as { data: T }).data
+  }
+  return response as T
+}
+
 async function loadSummary() {
   const res = await paymentAPI.getInvoiceSummary()
-  summary.value = res.data
+  summary.value = unwrapApiData<InvoiceSummary>(res)
 }
 
 async function loadProfiles() {
   const res = await paymentAPI.getInvoiceProfiles()
-  profiles.value = res.data || []
+  const data = unwrapApiData<InvoiceProfile[]>(res)
+  profiles.value = Array.isArray(data) ? data : []
 }
 
 async function loadRequests() {
@@ -464,8 +474,9 @@ async function loadRequests() {
       page_size: pagination.page_size,
       status: currentStatus.value || undefined,
     })
-    requests.value = res.data.items || []
-    pagination.total = res.data.total || 0
+    const data = unwrapApiData<BasePaginationResponse<InvoiceRequest>>(res)
+    requests.value = Array.isArray(data?.items) ? data.items : []
+    pagination.total = Number(data?.total || 0)
   } catch (err: unknown) {
     appStore.showError(extractI18nErrorMessage(err, t, 'payment.invoice.errors', t('common.error')))
   } finally {
@@ -646,8 +657,9 @@ async function submitApplication() {
       email: applicationForm.email.trim(),
       remark: applicationForm.remark.trim(),
     })
+    const created = unwrapApiData<InvoiceRequest>(res)
     appStore.showSuccess(
-      res.data.status === 'ISSUED'
+      created.status === 'ISSUED'
         ? t('payment.invoice.submitSuccessIssued')
         : t('payment.invoice.submitSuccessPending'),
     )
