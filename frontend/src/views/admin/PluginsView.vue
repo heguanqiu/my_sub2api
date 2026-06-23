@@ -196,7 +196,30 @@
         </div>
 
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
+          <div class="md:col-span-2">
+            <label class="input-label">{{ t('admin.plugins.downloadSource') }}</label>
+            <div class="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-dark-600 dark:bg-dark-800">
+              <button
+                type="button"
+                :class="downloadSourceMode === 'upload' ? sourceModeActiveClass : sourceModeInactiveClass"
+                data-test="plugin-source-upload"
+                @click="setDownloadSourceMode('upload')"
+              >
+                {{ t('admin.plugins.sourceUpload') }}
+              </button>
+              <button
+                type="button"
+                :class="downloadSourceMode === 'remote' ? sourceModeActiveClass : sourceModeInactiveClass"
+                data-test="plugin-source-remote"
+                @click="setDownloadSourceMode('remote')"
+              >
+                {{ t('admin.plugins.sourceRemote') }}
+              </button>
+            </div>
+            <p class="input-hint">{{ t('admin.plugins.downloadSourceHint') }}</p>
+          </div>
+
+          <div v-if="downloadSourceMode === 'upload'">
             <label class="input-label">{{ t('admin.plugins.packageFile') }}</label>
             <input
               data-test="package-upload"
@@ -210,6 +233,43 @@
               {{ form.file_name || form.file_key || t('admin.plugins.uploadPackage') }}
               <span v-if="form.file_size">({{ formatBytes(form.file_size, 1) }})</span>
             </p>
+          </div>
+
+          <div v-else class="md:col-span-2">
+            <label class="input-label">{{ t('admin.plugins.resourceURL') }}</label>
+            <input
+              v-model.trim="form.file_key"
+              data-test="plugin-resource-url-input"
+              type="url"
+              class="input"
+              placeholder="https://example.com/plugin.zip"
+              @blur="syncRemoteFileName"
+            />
+            <p class="input-hint">{{ t('admin.plugins.resourceURLHint') }}</p>
+
+            <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label class="input-label">{{ t('admin.plugins.resourceFileName') }}</label>
+                <input
+                  v-model.trim="form.file_name"
+                  data-test="plugin-resource-filename-input"
+                  type="text"
+                  class="input"
+                  placeholder="plugin.zip"
+                />
+              </div>
+              <div>
+                <label class="input-label">{{ t('admin.plugins.resourceFileSize') }}</label>
+                <input
+                  v-model.number="form.file_size"
+                  data-test="plugin-resource-size-input"
+                  type="number"
+                  min="0"
+                  class="input"
+                  placeholder="0"
+                />
+              </div>
+            </div>
           </div>
 
           <div>
@@ -288,6 +348,7 @@ const loading = ref(false)
 const saving = ref(false)
 const uploadingPackage = ref(false)
 const uploadingIcon = ref(false)
+const downloadSourceMode = ref<'upload' | 'remote'>('upload')
 
 const filters = reactive({
   status: ''
@@ -323,6 +384,9 @@ const platformOptions = [
   { value: 'macos', label: 'macOS' },
   { value: 'linux', label: 'Linux' }
 ]
+
+const sourceModeActiveClass = 'rounded-md bg-white px-3 py-1.5 text-sm font-medium text-primary-600 shadow-sm dark:bg-dark-700 dark:text-primary-300'
+const sourceModeInactiveClass = 'rounded-md px-3 py-1.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700 dark:text-dark-300 dark:hover:text-white'
 
 const columns = computed<Column[]>(() => [
   { key: 'name', label: t('admin.plugins.name'), sortable: true },
@@ -444,6 +508,7 @@ function resetForm() {
   form.file_size = 0
   form.status = 'draft'
   form.sort_weight = 0
+  downloadSourceMode.value = 'upload'
 }
 
 function fillForm(row: AdminPlugin) {
@@ -458,6 +523,7 @@ function fillForm(row: AdminPlugin) {
   form.file_size = row.file_size
   form.status = row.status
   form.sort_weight = row.sort_weight
+  downloadSourceMode.value = isRemoteResource(row.file_key) ? 'remote' : 'upload'
 }
 
 function openCreateDialog() {
@@ -478,6 +544,10 @@ function closeEdit() {
 }
 
 function buildPayload(): SavePluginRequest {
+  const fileName = downloadSourceMode.value === 'remote'
+    ? form.file_name.trim() || deriveFileNameFromURL(form.file_key)
+    : form.file_name
+
   return {
     name: form.name,
     description: form.description,
@@ -486,7 +556,7 @@ function buildPayload(): SavePluginRequest {
     platform: form.platform,
     icon_key: form.icon_key,
     file_key: form.file_key,
-    file_name: form.file_name,
+    file_name: fileName,
     file_size: Number(form.file_size) || 0,
     status: form.status,
     sort_weight: Number(form.sort_weight) || 0
@@ -496,6 +566,10 @@ function buildPayload(): SavePluginRequest {
 async function handleSave() {
   saving.value = true
   try {
+    if (downloadSourceMode.value === 'remote' && form.file_key && !isRemoteResource(form.file_key)) {
+      appStore.showError(t('admin.plugins.resourceURLInvalid'))
+      return
+    }
     const payload = buildPayload()
     if (editingPlugin.value) {
       await adminAPI.plugins.update(editingPlugin.value.id, payload)
@@ -581,6 +655,40 @@ function rowToPayload(row: AdminPlugin): SavePluginRequest {
     file_size: row.file_size,
     status: row.status,
     sort_weight: row.sort_weight
+  }
+}
+
+function isRemoteResource(value: string): boolean {
+  return /^https?:\/\//i.test(String(value || '').trim())
+}
+
+function deriveFileNameFromURL(rawURL: string): string {
+  try {
+    const parsed = new URL(rawURL)
+    const name = parsed.pathname.split('/').filter(Boolean).pop()
+    return name || ''
+  } catch {
+    return ''
+  }
+}
+
+function syncRemoteFileName() {
+  if (downloadSourceMode.value !== 'remote' || form.file_name.trim()) return
+  form.file_name = deriveFileNameFromURL(form.file_key)
+}
+
+function setDownloadSourceMode(mode: 'upload' | 'remote') {
+  if (downloadSourceMode.value === mode) return
+  downloadSourceMode.value = mode
+  if (mode === 'upload' && isRemoteResource(form.file_key)) {
+    form.file_key = ''
+    form.file_name = ''
+    form.file_size = 0
+  }
+  if (mode === 'remote' && !isRemoteResource(form.file_key)) {
+    form.file_key = ''
+    form.file_name = ''
+    form.file_size = 0
   }
 }
 

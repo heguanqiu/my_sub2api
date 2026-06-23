@@ -187,6 +187,9 @@ func (s *PluginService) deleteObjectBestEffort(ctx context.Context, key string) 
 	if key == "" {
 		return
 	}
+	if isRemotePluginFileKey(key) {
+		return
+	}
 	store, err := s.storeProvider.Store(ctx)
 	if err != nil {
 		return
@@ -254,7 +257,7 @@ func (s *PluginService) OpenDownload(ctx context.Context, id int64) (*PluginDown
 
 	fileName := strings.TrimSpace(p.FileName)
 	if fileName == "" {
-		fileName = path.Base(p.FileKey)
+		fileName = pluginDownloadFileName(p.FileKey)
 	}
 	return &PluginDownload{
 		Body:          body,
@@ -267,7 +270,7 @@ func (s *PluginService) OpenDownload(ctx context.Context, id int64) (*PluginDown
 
 func (s *PluginService) openPluginFile(ctx context.Context, p *Plugin) (io.ReadCloser, string, int64, error) {
 	fileKey := strings.TrimSpace(p.FileKey)
-	if parsed, err := url.Parse(fileKey); err == nil && parsed.Scheme != "" && parsed.Host != "" {
+	if isRemotePluginFileKey(fileKey) {
 		return s.openPluginFileURL(ctx, fileKey)
 	}
 
@@ -280,6 +283,22 @@ func (s *PluginService) openPluginFile(ctx context.Context, p *Plugin) (io.ReadC
 		return nil, "", 0, fmt.Errorf("download object: %w", err)
 	}
 	return body, "", p.FileSize, nil
+}
+
+func isRemotePluginFileKey(key string) bool {
+	parsed, err := url.Parse(strings.TrimSpace(key))
+	return err == nil && (parsed.Scheme == "http" || parsed.Scheme == "https") && parsed.Host != ""
+}
+
+func pluginDownloadFileName(fileKey string) string {
+	trimmed := strings.TrimSpace(fileKey)
+	if parsed, err := url.Parse(trimmed); err == nil && parsed.Scheme != "" && parsed.Host != "" {
+		if base := path.Base(parsed.Path); base != "." && base != "/" {
+			return base
+		}
+		return ""
+	}
+	return path.Base(trimmed)
 }
 
 func (s *PluginService) openPluginFileURL(ctx context.Context, rawURL string) (io.ReadCloser, string, int64, error) {

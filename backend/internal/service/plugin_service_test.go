@@ -201,3 +201,22 @@ func TestPluginService_Delete_RemovesObjects(t *testing.T) {
 	require.Contains(t, store.deleted, "plugins/files/x-tool.zip")
 	require.Contains(t, store.deleted, "plugins/icons/y-logo.png")
 }
+
+func TestPluginService_Delete_SkipsRemoteFileKeyObjectDelete(t *testing.T) {
+	svc, _, store := newTestPluginService()
+	ctx := context.Background()
+
+	p, err := svc.Create(ctx, &CreatePluginInput{
+		Name: "P", Status: PluginStatusPublished,
+		FileKey: "https://downloads.example.com/tools/x-tool.zip?token=abc", IconKey: "plugins/icons/y-logo.png",
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, svc.Delete(ctx, p.ID))
+	require.NotContains(t, store.deleted, "https://downloads.example.com/tools/x-tool.zip?token=abc")
+	require.Contains(t, store.deleted, "plugins/icons/y-logo.png")
+}
+
+func TestPluginDownloadFileName_RemoteURLIgnoresQuery(t *testing.T) {
+	require.Equal(t, "x-tool.zip", pluginDownloadFileName("https://downloads.example.com/tools/x-tool.zip?token=abc"))
+}

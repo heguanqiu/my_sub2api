@@ -220,6 +220,41 @@ describe('admin PluginsView', () => {
     }))
   })
 
+  it('submits remote resource URL without uploading a package', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('[data-test="open-create-plugin"]').trigger('click')
+    await wrapper.get('[data-test="plugin-name-input"]').setValue('Remote Tool')
+    await wrapper.get('[data-test="plugin-source-remote"]').trigger('click')
+    await wrapper.get('[data-test="plugin-resource-url-input"]').setValue('https://downloads.example.com/tools/remote-tool.zip?token=abc')
+    await wrapper.get('[data-test="plugin-form"]').trigger('submit')
+    await flushPromises()
+
+    expect(uploadPlugin).not.toHaveBeenCalled()
+    expect(createPlugin).toHaveBeenCalledWith(expect.objectContaining({
+      name: 'Remote Tool',
+      file_key: 'https://downloads.example.com/tools/remote-tool.zip?token=abc',
+      file_name: 'remote-tool.zip',
+      file_size: 0
+    }))
+  })
+
+  it('rejects non-http remote resource URLs', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('[data-test="open-create-plugin"]').trigger('click')
+    await wrapper.get('[data-test="plugin-name-input"]').setValue('Remote Tool')
+    await wrapper.get('[data-test="plugin-source-remote"]').trigger('click')
+    await wrapper.get('[data-test="plugin-resource-url-input"]').setValue('ftp://downloads.example.com/tool.zip')
+    await wrapper.get('[data-test="plugin-form"]').trigger('submit')
+    await flushPromises()
+
+    expect(createPlugin).not.toHaveBeenCalled()
+    expect(showError).toHaveBeenCalledWith('admin.plugins.resourceURLInvalid')
+  })
+
   it('delete confirmation calls api', async () => {
     const wrapper = mountView()
     await flushPromises()
