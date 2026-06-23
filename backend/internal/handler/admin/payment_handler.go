@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
+	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 
@@ -14,6 +15,12 @@ import (
 type PaymentHandler struct {
 	paymentService *service.PaymentService
 	configService  *service.PaymentConfigService
+}
+
+type adminSalesCustomerSummaryResponse struct {
+	User                 *dto.User `json:"user"`
+	TotalOrders          int       `json:"total_orders"`
+	CompletedOrderAmount float64   `json:"completed_order_amount"`
 }
 
 // NewPaymentHandler creates a new admin PaymentHandler.
@@ -68,6 +75,109 @@ func (h *PaymentHandler) ListOrders(c *gin.Context) {
 		return
 	}
 	response.Paginated(c, sanitizeAdminPaymentOrdersForResponse(orders), int64(total), page, pageSize)
+}
+
+// GetSalesDashboard returns dashboard statistics for a target sales account.
+// GET /api/v1/admin/payment/sales/:sales_id/dashboard
+func (h *PaymentHandler) GetSalesDashboard(c *gin.Context) {
+	salesID, ok := parseIDParam(c, "sales_id")
+	if !ok {
+		return
+	}
+	stats, err := h.paymentService.GetSalesDashboard(c.Request.Context(), salesID, c.Query("range"))
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, stats)
+}
+
+// ListSalesCustomers returns customers currently assigned to a target sales account.
+// GET /api/v1/admin/payment/sales/:sales_id/customers
+func (h *PaymentHandler) ListSalesCustomers(c *gin.Context) {
+	salesID, ok := parseIDParam(c, "sales_id")
+	if !ok {
+		return
+	}
+	page, pageSize := response.ParsePagination(c)
+	items, total, err := h.paymentService.ListSalesCustomers(c.Request.Context(), salesID, page, pageSize, c.Query("search"), c.Query("status"))
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	out := make([]adminSalesCustomerSummaryResponse, 0, len(items))
+	for _, item := range items {
+		out = append(out, adminSalesCustomerSummaryResponse{
+			User:                 dto.UserFromServiceShallow(item.User),
+			TotalOrders:          item.TotalOrders,
+			CompletedOrderAmount: item.CompletedOrderAmount,
+		})
+	}
+	response.Paginated(c, out, int64(total), page, pageSize)
+}
+
+// GetSalesCustomer returns a customer assigned to a target sales account.
+// GET /api/v1/admin/payment/sales/:sales_id/customers/:customer_id
+func (h *PaymentHandler) GetSalesCustomer(c *gin.Context) {
+	salesID, ok := parseIDParam(c, "sales_id")
+	if !ok {
+		return
+	}
+	customerID, ok := parseIDParam(c, "customer_id")
+	if !ok {
+		return
+	}
+	item, err := h.paymentService.GetSalesCustomer(c.Request.Context(), salesID, customerID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, dto.UserFromServiceShallow(item))
+}
+
+// GetSalesOrders returns payment orders for customers currently assigned to a target sales account.
+// GET /api/v1/admin/payment/sales/:sales_id/orders
+func (h *PaymentHandler) GetSalesOrders(c *gin.Context) {
+	salesID, ok := parseIDParam(c, "sales_id")
+	if !ok {
+		return
+	}
+	page, pageSize := response.ParsePagination(c)
+	items, total, err := h.paymentService.ListSalesOrders(c.Request.Context(), salesID, service.OrderListParams{
+		Page:        page,
+		PageSize:    pageSize,
+		Status:      c.Query("status"),
+		PaymentType: c.Query("payment_type"),
+	})
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Paginated(c, sanitizeAdminPaymentOrdersForResponse(items), int64(total), page, pageSize)
+}
+
+// GetSalesCustomerOrders returns payment orders for a customer assigned to a target sales account.
+// GET /api/v1/admin/payment/sales/:sales_id/customers/:customer_id/orders
+func (h *PaymentHandler) GetSalesCustomerOrders(c *gin.Context) {
+	salesID, ok := parseIDParam(c, "sales_id")
+	if !ok {
+		return
+	}
+	customerID, ok := parseIDParam(c, "customer_id")
+	if !ok {
+		return
+	}
+	page, pageSize := response.ParsePagination(c)
+	items, total, err := h.paymentService.GetSalesCustomerOrders(c.Request.Context(), salesID, customerID, service.OrderListParams{
+		Page:     page,
+		PageSize: pageSize,
+		Status:   c.Query("status"),
+	})
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Paginated(c, sanitizeAdminPaymentOrdersForResponse(items), int64(total), page, pageSize)
 }
 
 // GetOrderDetail returns detailed information about a single order.

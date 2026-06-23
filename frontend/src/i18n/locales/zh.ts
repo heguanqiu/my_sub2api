@@ -377,6 +377,7 @@ export default {
   nav: {
     dashboard: '仪表盘',
     announcements: '公告',
+    plugins: '插件中心',
     apiKeys: 'API 密钥',
     playground: '演武场',
     usage: '使用记录',
@@ -416,6 +417,7 @@ export default {
     salesOrders: '充值记录',
     orderManagement: '订单管理',
     paymentDashboard: '支付概览',
+    adminSales: '销售数据',
     paymentConfig: '支付配置',
     paymentPlans: '订阅套餐',
     channelManagement: '渠道管理',
@@ -1921,6 +1923,22 @@ export default {
         availableQuota: '可提余额',
         historyQuota: '历史返利'
       }
+    },
+
+    // Sales Data
+    sales: {
+      title: '销售数据',
+      description: '按销售账号查看客户、充值订单和统计汇总',
+      salesAccount: '销售账号',
+      range: '统计范围',
+      emptySales: '暂无可查看的销售账号',
+      noSalesOptions: '暂无销售账号',
+      customersTab: '客户',
+      ordersTab: '充值订单',
+      customerOrdersTab: '客户订单',
+      searchCustomers: '搜索客户邮箱 / 用户名',
+      customer: '客户',
+      currentCustomer: '当前客户'
     },
 
     // Users Management
@@ -4777,6 +4795,31 @@ export default {
       deleteConfirm: '确定要删除该公告吗？此操作无法撤销。'
     },
 
+    // Plugins
+    plugins: {
+      title: '插件中心',
+      description: '维护可供用户下载的插件',
+      searchPlaceholder: '搜索插件名称/描述',
+      create: '新增插件',
+      edit: '编辑插件',
+      name: '名称',
+      version: '版本',
+      category: '分类',
+      platform: '平台',
+      status: '状态',
+      statusDraft: '草稿',
+      statusPublished: '已发布',
+      sortWeight: '排序权重',
+      downloadCount: '下载次数',
+      packageFile: '插件包',
+      icon: '图标',
+      uploadPackage: '上传插件包',
+      uploadIcon: '上传图标',
+      deleteConfirm: '确定删除该插件？文件也会一并删除。',
+      saved: '已保存',
+      deleted: '已删除'
+    },
+
     // Promo Codes
     promo: {
       title: '优惠码管理',
@@ -7003,6 +7046,15 @@ export default {
     emptyDescription: '暂时没有任何系统公告',
     readStatus: '您已阅读此公告',
     markReadHint: '点击"已读"标记此公告'
+  },
+
+  pluginCenter: {
+    title: '插件中心',
+    subtitle: '下载我们提供的插件，提升你的工作流',
+    all: '全部',
+    download: '下载',
+    downloads: '已下载 {count} 次',
+    empty: '暂无插件'
   },
 
   // User Subscriptions Page

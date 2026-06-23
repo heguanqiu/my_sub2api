@@ -11,7 +11,8 @@ import type {
   SubscriptionPlan,
   ProviderInstance
 } from '@/types/payment'
-import type { BasePaginationResponse } from '@/types'
+import type { BasePaginationResponse, User } from '@/types'
+import type { SalesDashboardRange, SalesDashboardSummary, SalesCustomerSummary } from '@/api/sales'
 
 /** Admin-facing payment config returned by GET /admin/payment/config */
 export interface AdminPaymentConfig {
@@ -120,6 +121,33 @@ export const adminPaymentAPI = {
     return apiClient.get<DashboardStats>('/admin/payment/dashboard', {
       params: days ? { days } : undefined
     })
+  },
+
+  // ==================== Sales Data ====================
+
+  /** Get dashboard statistics for a target sales account */
+  getSalesDashboard(salesId: number, params?: { range?: SalesDashboardRange }) {
+    return apiClient.get<SalesDashboardSummary>(`/admin/payment/sales/${salesId}/dashboard`, { params })
+  },
+
+  /** Get customers currently assigned to a target sales account */
+  getSalesCustomers(salesId: number, params?: { page?: number; page_size?: number; search?: string; status?: string }) {
+    return apiClient.get<BasePaginationResponse<SalesCustomerSummary>>(`/admin/payment/sales/${salesId}/customers`, { params })
+  },
+
+  /** Get recharge orders for customers currently assigned to a target sales account */
+  getSalesOrders(salesId: number, params?: { page?: number; page_size?: number; status?: string; payment_type?: string }) {
+    return apiClient.get<BasePaginationResponse<PaymentOrder>>(`/admin/payment/sales/${salesId}/orders`, { params })
+  },
+
+  /** Get one customer under a target sales account */
+  getSalesCustomer(salesId: number, customerId: number) {
+    return apiClient.get<User>(`/admin/payment/sales/${salesId}/customers/${customerId}`)
+  },
+
+  /** Get recharge orders for one customer under a target sales account */
+  getSalesCustomerOrders(salesId: number, customerId: number, params?: { page?: number; page_size?: number; status?: string }) {
+    return apiClient.get<BasePaginationResponse<PaymentOrder>>(`/admin/payment/sales/${salesId}/customers/${customerId}/orders`, { params })
   },
 
   // ==================== Orders ====================

@@ -1221,6 +1221,44 @@ var (
 			},
 		},
 	}
+	// PluginsColumns holds the columns for the "plugins" table.
+	PluginsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "name", Type: field.TypeString, Size: 200},
+		{Name: "description", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "version", Type: field.TypeString, Size: 50, Default: ""},
+		{Name: "category", Type: field.TypeString, Size: 50, Default: ""},
+		{Name: "platform", Type: field.TypeString, Size: 50, Default: "all"},
+		{Name: "icon_key", Type: field.TypeString, Default: ""},
+		{Name: "file_key", Type: field.TypeString, Default: ""},
+		{Name: "file_name", Type: field.TypeString, Default: ""},
+		{Name: "file_size", Type: field.TypeInt64, Default: 0},
+		{Name: "download_count", Type: field.TypeInt64, Default: 0},
+		{Name: "status", Type: field.TypeString, Size: 20, Default: "draft"},
+		{Name: "sort_weight", Type: field.TypeInt, Default: 0},
+		{Name: "created_by", Type: field.TypeInt64, Nullable: true},
+		{Name: "updated_by", Type: field.TypeInt64, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+	}
+	// PluginsTable holds the schema information for the "plugins" table.
+	PluginsTable = &schema.Table{
+		Name:       "plugins",
+		Columns:    PluginsColumns,
+		PrimaryKey: []*schema.Column{PluginsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "plugin_status_sort_weight_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{PluginsColumns[11], PluginsColumns[12], PluginsColumns[15]},
+			},
+			{
+				Name:    "plugin_category",
+				Unique:  false,
+				Columns: []*schema.Column{PluginsColumns[4]},
+			},
+		},
+	}
 	// PromoCodesColumns holds the columns for the "promo_codes" table.
 	PromoCodesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -2021,6 +2059,7 @@ var (
 		PaymentOrdersTable,
 		PaymentProviderInstancesTable,
 		PendingAuthSessionsTable,
+		PluginsTable,
 		PromoCodesTable,
 		PromoCodeUsagesTable,
 		ProxiesTable,
@@ -2125,6 +2164,9 @@ func init() {
 	PendingAuthSessionsTable.ForeignKeys[0].RefTable = UsersTable
 	PendingAuthSessionsTable.Annotation = &entsql.Annotation{
 		Table: "pending_auth_sessions",
+	}
+	PluginsTable.Annotation = &entsql.Annotation{
+		Table: "plugins",
 	}
 	PromoCodesTable.Annotation = &entsql.Annotation{
 		Table: "promo_codes",

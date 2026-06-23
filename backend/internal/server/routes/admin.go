@@ -38,6 +38,9 @@ func RegisterAdminRoutes(
 		// 公告管理
 		registerAnnouncementRoutes(admin, h)
 
+		// 插件中心管理
+		registerPluginRoutes(admin, h)
+
 		// OpenAI OAuth
 		registerOpenAIOAuthRoutes(admin, h)
 
@@ -355,6 +358,18 @@ func registerAnnouncementRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		announcements.PUT("/:id", h.Admin.Announcement.Update)
 		announcements.DELETE("/:id", h.Admin.Announcement.Delete)
 		announcements.GET("/:id/read-status", h.Admin.Announcement.ListReadStatus)
+	}
+}
+
+func registerPluginRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	plugins := admin.Group("/plugins")
+	{
+		plugins.GET("", h.Admin.Plugin.List)
+		plugins.POST("", h.Admin.Plugin.Create)
+		plugins.POST("/upload", h.Admin.Plugin.Upload)
+		plugins.GET("/:id", h.Admin.Plugin.GetByID)
+		plugins.PUT("/:id", h.Admin.Plugin.Update)
+		plugins.DELETE("/:id", h.Admin.Plugin.Delete)
 	}
 }
 

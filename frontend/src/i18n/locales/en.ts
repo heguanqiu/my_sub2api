@@ -377,6 +377,7 @@ export default {
   nav: {
     dashboard: 'Dashboard',
     announcements: 'Announcements',
+    plugins: 'Plugin Center',
     apiKeys: 'API Keys',
     playground: 'Playground',
     usage: 'Usage',
@@ -416,6 +417,7 @@ export default {
     salesOrders: 'Recharge Records',
     orderManagement: 'Orders',
     paymentDashboard: 'Payment Dashboard',
+    adminSales: 'Sales Data',
     paymentConfig: 'Payment Config',
     paymentPlans: 'Plans',
     channelManagement: 'Channels',
@@ -1900,6 +1902,22 @@ export default {
         availableQuota: 'Available Quota',
         historyQuota: 'Historical Rebate'
       }
+    },
+
+    // Sales Data
+    sales: {
+      title: 'Sales Data',
+      description: 'View customers, recharge orders, and summaries by sales account',
+      salesAccount: 'Sales Account',
+      range: 'Range',
+      emptySales: 'No sales accounts available',
+      noSalesOptions: 'No sales accounts',
+      customersTab: 'Customers',
+      ordersTab: 'Recharge Orders',
+      customerOrdersTab: 'Customer Orders',
+      searchCustomers: 'Search customer email / username',
+      customer: 'Customer',
+      currentCustomer: 'Current Customer'
     },
 
     // Users
@@ -4624,6 +4642,31 @@ export default {
       deleteConfirm: 'Are you sure you want to delete this announcement? This action cannot be undone.'
     },
 
+    // Plugins
+    plugins: {
+      title: 'Plugin Center',
+      description: 'Manage downloadable plugins for users',
+      searchPlaceholder: 'Search name/description',
+      create: 'New Plugin',
+      edit: 'Edit Plugin',
+      name: 'Name',
+      version: 'Version',
+      category: 'Category',
+      platform: 'Platform',
+      status: 'Status',
+      statusDraft: 'Draft',
+      statusPublished: 'Published',
+      sortWeight: 'Sort Weight',
+      downloadCount: 'Downloads',
+      packageFile: 'Package',
+      icon: 'Icon',
+      uploadPackage: 'Upload Package',
+      uploadIcon: 'Upload Icon',
+      deleteConfirm: 'Delete this plugin? Its files will be removed too.',
+      saved: 'Saved',
+      deleted: 'Deleted'
+    },
+
     // Promo Codes
     promo: {
       title: 'Promo Code Management',
@@ -6848,6 +6891,15 @@ export default {
     emptyDescription: 'There are no system announcements at this time',
     readStatus: 'You have read this announcement',
     markReadHint: 'Click "Mark as read" to mark this announcement'
+  },
+
+  pluginCenter: {
+    title: 'Plugin Center',
+    subtitle: 'Download our plugins to boost your workflow',
+    all: 'All',
+    download: 'Download',
+    downloads: '{count} downloads',
+    empty: 'No plugins yet'
   },
 
   // User Subscriptions Page

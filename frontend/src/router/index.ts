@@ -50,6 +50,16 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/plugins',
+    name: 'PluginCenter',
+    component: () => import('@/views/public/PluginCenterView.vue'),
+    meta: {
+      requiresAuth: false,
+      title: 'Plugin Center',
+      titleKey: 'pluginCenter.title'
+    }
+  },
+  {
     path: '/login',
     name: 'Login',
     component: () => import('@/views/auth/LoginView.vue'),
@@ -592,6 +602,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/plugins',
+    name: 'AdminPlugins',
+    component: () => import('@/views/admin/PluginsView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Plugin Center',
+      titleKey: 'admin.plugins.title',
+      descriptionKey: 'admin.plugins.description'
+    }
+  },
+  {
     path: '/admin/proxies',
     name: 'AdminProxies',
     component: () => import('@/views/admin/ProxiesView.vue'),
@@ -715,6 +737,19 @@ const routes: RouteRecordRaw[] = [
       requiresAdmin: true,
       title: 'Payment Dashboard',
       titleKey: 'nav.paymentDashboard',
+      requiresPayment: true
+    }
+  },
+  {
+    path: '/admin/orders/sales',
+    name: 'AdminSales',
+    component: () => import('@/views/admin/AdminSalesView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Sales Data',
+      titleKey: 'admin.sales.title',
+      descriptionKey: 'admin.sales.description',
       requiresPayment: true
     }
   },

@@ -512,6 +512,29 @@ func ProvideAPIKeyService(
 	return svc
 }
 
+// ProvideRedeemService wires RedeemService with the optional affiliate integration.
+func ProvideRedeemService(
+	redeemRepo RedeemCodeRepository,
+	userRepo UserRepository,
+	subscriptionService *SubscriptionService,
+	cache RedeemCache,
+	billingCacheService *BillingCacheService,
+	entClient *dbent.Client,
+	authCacheInvalidator APIKeyAuthCacheInvalidator,
+	affiliateService *AffiliateService,
+) *RedeemService {
+	return NewRedeemService(
+		redeemRepo,
+		userRepo,
+		subscriptionService,
+		cache,
+		billingCacheService,
+		entClient,
+		authCacheInvalidator,
+		affiliateService,
+	)
+}
+
 // ProviderSet is the Wire provider set for all services
 var ProviderSet = wire.NewSet(
 	// Core services
@@ -523,14 +546,17 @@ var ProviderSet = wire.NewSet(
 	NewGroupService,
 	NewAccountService,
 	NewProxyService,
-	NewRedeemService,
+	ProvideRedeemService,
 	NewPromoService,
+	NewAffiliateService,
 	NewUsageService,
 	NewDashboardService,
 	ProvidePricingService,
 	NewBillingService,
 	ProvideBillingCacheService,
 	NewAnnouncementService,
+	NewPluginService,
+	NewPluginStoreProvider,
 	NewAdminService,
 	NewGatewayService,
 	NewOpenAIGatewayService,
@@ -603,6 +629,7 @@ var ProviderSet = wire.NewSet(
 	ProvidePaymentService,
 	ProvidePaymentOrderExpiryService,
 	ProvideBalanceNotifyService,
+	NewContentModerationService,
 	ProvideChannelMonitorService,
 	ProvideChannelMonitorRunner,
 	NewChannelMonitorRequestTemplateService,

@@ -448,10 +448,20 @@ function syncAffiliateReferralCode(): string {
   return code
 }
 
+function syncInvitationCodeFromRoute(): void {
+  const code = typeof route.query.invitation_code === 'string' ? route.query.invitation_code.trim() : ''
+  if (!code || formData.invitation_code.trim() === code) {
+    return
+  }
+  formData.invitation_code = code
+  handleInvitationCodeInput()
+}
+
 // ==================== Lifecycle ====================
 
 onMounted(async () => {
   syncAffiliateReferralCode()
+  syncInvitationCodeFromRoute()
 
   try {
     const settings = await getPublicSettings()
@@ -483,6 +493,7 @@ onMounted(async () => {
       }
     }
     syncAffiliateReferralCode()
+    syncInvitationCodeFromRoute()
   } catch (error) {
     console.error('Failed to load public settings:', error)
     loginAgreementEnabled.value = false
@@ -493,9 +504,10 @@ onMounted(async () => {
 })
 
 watch(
-  () => [route.query.aff, route.query.aff_code],
+  () => [route.query.aff, route.query.aff_code, route.query.invitation_code],
   () => {
     syncAffiliateReferralCode()
+    syncInvitationCodeFromRoute()
   }
 )
 

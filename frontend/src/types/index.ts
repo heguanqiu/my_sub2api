@@ -365,6 +365,60 @@ export interface AnnouncementUserReadStatus {
   read_at?: string
 }
 
+// ==================== Plugin Types ====================
+
+export interface AdminPlugin {
+  id: number
+  name: string
+  description: string
+  version: string
+  category: string
+  platform: string
+  icon_key: string
+  file_key: string
+  file_name: string
+  file_size: number
+  download_count: number
+  status: 'draft' | 'published'
+  sort_weight: number
+  created_at: string
+  updated_at: string
+}
+
+export interface PublicPlugin {
+  id: number
+  name: string
+  description: string
+  version: string
+  category: string
+  platform: string
+  icon_url: string
+  file_name: string
+  file_size: number
+  download_count: number
+  download_url: string
+}
+
+export interface PluginUploadResult {
+  key: string
+  file_name: string
+  size: number
+}
+
+export interface SavePluginRequest {
+  name: string
+  description?: string
+  version?: string
+  category?: string
+  platform?: string
+  icon_key?: string
+  file_key?: string
+  file_name?: string
+  file_size?: number
+  status?: 'draft' | 'published'
+  sort_weight?: number
+}
+
 // ==================== Proxy Node Types ====================
 
 export interface ProxyNode {
