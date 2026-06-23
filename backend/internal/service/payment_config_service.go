@@ -38,6 +38,24 @@ const (
 	SettingCancelWindowUnit    = "CANCEL_RATE_LIMIT_UNIT"
 	SettingCancelWindowMode    = "CANCEL_RATE_LIMIT_WINDOW_MODE"
 	SettingAlipayForceQRCode   = "ALIPAY_FORCE_QRCODE"
+
+	SettingInvoiceEnabled            = "payment_invoice_enabled"
+	SettingInvoiceMinAmount          = "payment_invoice_min_amount"
+	SettingInvoiceSDKBaseURL         = "payment_invoice_sdk_base_url"
+	SettingInvoiceSDKAppKey          = "payment_invoice_sdk_app_key"
+	SettingInvoiceSDKAppSecret       = "payment_invoice_sdk_app_secret"
+	SettingInvoiceTaxpayerID         = "payment_invoice_taxpayer_id"
+	SettingInvoiceSellerName         = "payment_invoice_seller_name"
+	SettingInvoiceSellerAddressPhone = "payment_invoice_seller_address_phone"
+	SettingInvoiceSellerBankAccount  = "payment_invoice_seller_bank_account"
+	SettingInvoiceUsername           = "payment_invoice_username"
+	SettingInvoicePassword           = "payment_invoice_password"
+	SettingInvoiceAccountType        = "payment_invoice_account_type"
+	SettingInvoiceDebug              = "payment_invoice_debug"
+	SettingInvoiceDefaultContent     = "payment_invoice_default_content"
+	SettingInvoiceTaxRate            = "payment_invoice_tax_rate"
+	SettingInvoiceTaxCode            = "payment_invoice_tax_code"
+	SettingInvoiceTypeCode           = "payment_invoice_type_code"
 )
 
 // Default values for payment configuration settings.
@@ -50,6 +68,16 @@ const (
 const (
 	InviteRewardTriggerFirstBalanceOrder = "first_balance_order"
 	InviteRewardTriggerEveryBalanceOrder = "every_balance_order"
+)
+
+const (
+	defaultInvoiceSDKBaseURL     = "https://api.fa-piao.com"
+	defaultInvoiceAccountType    = "6"
+	defaultInvoiceContent        = "*信息技术服务*软件开发服务"
+	defaultInvoiceTaxRate        = 0.01
+	defaultInvoiceTaxCode        = "3040201010000000000"
+	defaultInvoiceTypeCode       = "82"
+	defaultInvoicePaymentCurrency = payment.DefaultPaymentCurrency
 )
 
 // PaymentConfig holds the payment system configuration.
@@ -164,6 +192,50 @@ type UpdateProviderInstanceRequest struct {
 	RefundEnabled   *bool             `json:"refund_enabled"`
 	AllowUserRefund *bool             `json:"allow_user_refund"`
 }
+
+// InvoiceConfig holds admin-only settings for the fapiao SDK integration.
+type InvoiceConfig struct {
+	Enabled                bool    `json:"enabled"`
+	MinAmount              float64 `json:"min_amount"`
+	SDKBaseURL             string  `json:"sdk_base_url"`
+	SDKAppKey              string  `json:"sdk_app_key"`
+	SDKAppSecret           string  `json:"-"`
+	SDKAppSecretConfigured bool    `json:"sdk_app_secret_configured"`
+	TaxpayerID             string  `json:"taxpayer_id"`
+	SellerName             string  `json:"seller_name"`
+	SellerAddressPhone     string  `json:"seller_address_phone"`
+	SellerBankAccount      string  `json:"seller_bank_account"`
+	Username               string  `json:"username"`
+	Password               string  `json:"-"`
+	PasswordConfigured     bool    `json:"password_configured"`
+	AccountType            string  `json:"account_type"`
+	Debug                  bool    `json:"debug"`
+	DefaultContent         string  `json:"default_content"`
+	TaxRate                float64 `json:"tax_rate"`
+	TaxCode                string  `json:"tax_code"`
+	TypeCode               string  `json:"type_code"`
+	Currency               string  `json:"currency"`
+}
+
+type UpdateInvoiceConfigRequest struct {
+	Enabled            *bool    `json:"enabled"`
+	MinAmount          *float64 `json:"min_amount"`
+	SDKBaseURL         *string  `json:"sdk_base_url"`
+	SDKAppKey          *string  `json:"sdk_app_key"`
+	SDKAppSecret       string   `json:"sdk_app_secret"`
+	TaxpayerID         *string  `json:"taxpayer_id"`
+	SellerName         *string  `json:"seller_name"`
+	SellerAddressPhone *string  `json:"seller_address_phone"`
+	SellerBankAccount  *string  `json:"seller_bank_account"`
+	Username           *string  `json:"username"`
+	Password           string   `json:"password"`
+	AccountType        *string  `json:"account_type"`
+	Debug              *bool    `json:"debug"`
+	DefaultContent     *string  `json:"default_content"`
+	TaxRate            *float64 `json:"tax_rate"`
+	TaxCode            *string  `json:"tax_code"`
+	TypeCode           *string  `json:"type_code"`
+}
 type CreatePlanRequest struct {
 	GroupID       int64    `json:"group_id"`
 	Name          string   `json:"name"`
@@ -237,6 +309,89 @@ func (s *PaymentConfigService) GetPaymentConfig(ctx context.Context) (*PaymentCo
 	// Load Stripe publishable key from the first enabled Stripe provider instance
 	cfg.StripePublishableKey = s.getStripePublishableKey(ctx)
 	return cfg, nil
+}
+
+// GetInvoiceConfig returns the admin-only fapiao SDK configuration.
+func (s *PaymentConfigService) GetInvoiceConfig(ctx context.Context) (*InvoiceConfig, error) {
+	keys := invoiceConfigSettingKeys()
+	vals, err := s.settingRepo.GetMultiple(ctx, keys)
+	if err != nil {
+		return nil, fmt.Errorf("get invoice config settings: %w", err)
+	}
+	return parseInvoiceConfig(vals), nil
+}
+
+func invoiceConfigSettingKeys() []string {
+	return []string{
+		SettingInvoiceEnabled,
+		SettingInvoiceMinAmount,
+		SettingInvoiceSDKBaseURL,
+		SettingInvoiceSDKAppKey,
+		SettingInvoiceSDKAppSecret,
+		SettingInvoiceTaxpayerID,
+		SettingInvoiceSellerName,
+		SettingInvoiceSellerAddressPhone,
+		SettingInvoiceSellerBankAccount,
+		SettingInvoiceUsername,
+		SettingInvoicePassword,
+		SettingInvoiceAccountType,
+		SettingInvoiceDebug,
+		SettingInvoiceDefaultContent,
+		SettingInvoiceTaxRate,
+		SettingInvoiceTaxCode,
+		SettingInvoiceTypeCode,
+	}
+}
+
+func parseInvoiceConfig(vals map[string]string) *InvoiceConfig {
+	baseURL := strings.TrimSpace(vals[SettingInvoiceSDKBaseURL])
+	if baseURL == "" {
+		baseURL = defaultInvoiceSDKBaseURL
+	}
+	accountType := strings.TrimSpace(vals[SettingInvoiceAccountType])
+	if accountType == "" {
+		accountType = defaultInvoiceAccountType
+	}
+	content := strings.TrimSpace(vals[SettingInvoiceDefaultContent])
+	if content == "" {
+		content = defaultInvoiceContent
+	}
+	taxRate := pcParseFloat(vals[SettingInvoiceTaxRate], defaultInvoiceTaxRate)
+	if taxRate < 0 {
+		taxRate = defaultInvoiceTaxRate
+	}
+	taxCode := strings.TrimSpace(vals[SettingInvoiceTaxCode])
+	if taxCode == "" {
+		taxCode = defaultInvoiceTaxCode
+	}
+	typeCode := strings.TrimSpace(vals[SettingInvoiceTypeCode])
+	if typeCode == "" {
+		typeCode = defaultInvoiceTypeCode
+	}
+	appSecret := vals[SettingInvoiceSDKAppSecret]
+	password := vals[SettingInvoicePassword]
+	return &InvoiceConfig{
+		Enabled:                vals[SettingInvoiceEnabled] == "true",
+		MinAmount:              pcParseFloat(vals[SettingInvoiceMinAmount], 0),
+		SDKBaseURL:             baseURL,
+		SDKAppKey:              strings.TrimSpace(vals[SettingInvoiceSDKAppKey]),
+		SDKAppSecret:           appSecret,
+		SDKAppSecretConfigured: strings.TrimSpace(appSecret) != "",
+		TaxpayerID:             strings.TrimSpace(vals[SettingInvoiceTaxpayerID]),
+		SellerName:             strings.TrimSpace(vals[SettingInvoiceSellerName]),
+		SellerAddressPhone:     strings.TrimSpace(vals[SettingInvoiceSellerAddressPhone]),
+		SellerBankAccount:      strings.TrimSpace(vals[SettingInvoiceSellerBankAccount]),
+		Username:               strings.TrimSpace(vals[SettingInvoiceUsername]),
+		Password:               password,
+		PasswordConfigured:     strings.TrimSpace(password) != "",
+		AccountType:            accountType,
+		Debug:                  vals[SettingInvoiceDebug] == "true",
+		DefaultContent:         content,
+		TaxRate:                taxRate,
+		TaxCode:                taxCode,
+		TypeCode:               typeCode,
+		Currency:               defaultInvoicePaymentCurrency,
+	}
 }
 
 func (s *PaymentConfigService) parsePaymentConfig(vals map[string]string) *PaymentConfig {
@@ -377,6 +532,49 @@ func (s *PaymentConfigService) UpdatePaymentConfig(ctx context.Context, req Upda
 		m[SettingEnabledPaymentTypes] = strings.Join(req.EnabledTypes, ",")
 	} else {
 		m[SettingEnabledPaymentTypes] = ""
+	}
+	return s.settingRepo.SetMultiple(ctx, m)
+}
+
+func (s *PaymentConfigService) UpdateInvoiceConfig(ctx context.Context, req UpdateInvoiceConfigRequest) error {
+	m := map[string]string{}
+	setStr := func(key string, value *string) {
+		if value != nil {
+			m[key] = strings.TrimSpace(*value)
+		}
+	}
+	setFloat := func(key string, value *float64) {
+		if value != nil {
+			m[key] = formatNonNegativeFloat(value)
+		}
+	}
+	if req.Enabled != nil {
+		m[SettingInvoiceEnabled] = formatBoolOrEmpty(req.Enabled)
+	}
+	setFloat(SettingInvoiceMinAmount, req.MinAmount)
+	setStr(SettingInvoiceSDKBaseURL, req.SDKBaseURL)
+	setStr(SettingInvoiceSDKAppKey, req.SDKAppKey)
+	setStr(SettingInvoiceTaxpayerID, req.TaxpayerID)
+	setStr(SettingInvoiceSellerName, req.SellerName)
+	setStr(SettingInvoiceSellerAddressPhone, req.SellerAddressPhone)
+	setStr(SettingInvoiceSellerBankAccount, req.SellerBankAccount)
+	setStr(SettingInvoiceUsername, req.Username)
+	setStr(SettingInvoiceAccountType, req.AccountType)
+	if req.Debug != nil {
+		m[SettingInvoiceDebug] = formatBoolOrEmpty(req.Debug)
+	}
+	setStr(SettingInvoiceDefaultContent, req.DefaultContent)
+	setFloat(SettingInvoiceTaxRate, req.TaxRate)
+	setStr(SettingInvoiceTaxCode, req.TaxCode)
+	setStr(SettingInvoiceTypeCode, req.TypeCode)
+	if strings.TrimSpace(req.SDKAppSecret) != "" {
+		m[SettingInvoiceSDKAppSecret] = strings.TrimSpace(req.SDKAppSecret)
+	}
+	if strings.TrimSpace(req.Password) != "" {
+		m[SettingInvoicePassword] = strings.TrimSpace(req.Password)
+	}
+	if len(m) == 0 {
+		return nil
 	}
 	return s.settingRepo.SetMultiple(ctx, m)
 }

@@ -22,6 +22,10 @@ export type PaymentType = 'alipay' | 'wxpay' | 'alipay_direct' | 'wxpay_direct' 
 
 export type OrderType = 'balance' | 'subscription'
 
+export type InvoiceStatus = 'PENDING' | 'ISSUING' | 'ISSUED' | 'REQUIRES_AUTH' | 'FAILED'
+
+export type InvoiceTitleType = 'personal' | 'company'
+
 // ==================== Configuration ====================
 
 export interface PaymentConfig {
@@ -137,6 +141,79 @@ export interface PaymentChannel {
   models: string[]
   features: string[]
   enabled: boolean
+}
+
+// ==================== Invoices ====================
+
+export interface InvoiceSummary {
+  total_paid: number
+  invoiced_amount: number
+  reserved_amount: number
+  available_amount: number
+  min_amount: number
+  currency: string
+  enabled: boolean
+}
+
+export interface InvoiceProfile {
+  id: number
+  title_type: InvoiceTitleType | string
+  name: string
+  tax_no: string
+  address_phone: string
+  bank_account: string
+  email: string
+  is_default: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface InvoiceRequest {
+  id: number
+  profile_id?: number
+  status: InvoiceStatus | string
+  amount: number
+  paid_total: number
+  invoiced_total: number
+  reserved_total: number
+  available_amount: number
+  currency: string
+  title_type: InvoiceTitleType | string
+  title_name: string
+  tax_no: string
+  address_phone: string
+  bank_account: string
+  email: string
+  content: string
+  remark: string
+  sdk_code?: number
+  sdk_message: string
+  invoice_no: string
+  invoice_date: string
+  pdf_url: string
+  ofd_url: string
+  xml_url: string
+  issued_at?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface InvoiceProfilePayload {
+  title_type: InvoiceTitleType | string
+  name: string
+  tax_no?: string
+  address_phone?: string
+  bank_account?: string
+  email?: string
+  is_default?: boolean
+}
+
+export interface CreateInvoiceRequestPayload {
+  profile_id: number
+  amount: number
+  content: string
+  email: string
+  remark?: string
 }
 
 // ==================== Providers ====================

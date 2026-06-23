@@ -870,6 +870,109 @@ var (
 			},
 		},
 	}
+	// InvoiceProfilesColumns holds the columns for the "invoice_profiles" table.
+	InvoiceProfilesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "user_id", Type: field.TypeInt64},
+		{Name: "title_type", Type: field.TypeString, Size: 20, Default: "personal"},
+		{Name: "name", Type: field.TypeString, Size: 255},
+		{Name: "tax_no", Type: field.TypeString, Size: 64, Default: ""},
+		{Name: "address_phone", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "bank_account", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "email", Type: field.TypeString, Size: 255, Default: ""},
+		{Name: "is_default", Type: field.TypeBool, Default: false},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+	}
+	// InvoiceProfilesTable holds the schema information for the "invoice_profiles" table.
+	InvoiceProfilesTable = &schema.Table{
+		Name:       "invoice_profiles",
+		Columns:    InvoiceProfilesColumns,
+		PrimaryKey: []*schema.Column{InvoiceProfilesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "invoiceprofile_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{InvoiceProfilesColumns[1]},
+			},
+			{
+				Name:    "invoiceprofile_user_id_is_default",
+				Unique:  false,
+				Columns: []*schema.Column{InvoiceProfilesColumns[1], InvoiceProfilesColumns[8]},
+			},
+			{
+				Name:    "invoiceprofile_deleted_at",
+				Unique:  false,
+				Columns: []*schema.Column{InvoiceProfilesColumns[11]},
+			},
+		},
+	}
+	// InvoiceRequestsColumns holds the columns for the "invoice_requests" table.
+	InvoiceRequestsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "user_id", Type: field.TypeInt64},
+		{Name: "profile_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "status", Type: field.TypeString, Size: 30, Default: "PENDING"},
+		{Name: "amount", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "decimal(20,2)"}},
+		{Name: "paid_total", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,2)"}},
+		{Name: "invoiced_total", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,2)"}},
+		{Name: "reserved_total", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,2)"}},
+		{Name: "available_amount", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,2)"}},
+		{Name: "currency", Type: field.TypeString, Size: 10, Default: "CNY"},
+		{Name: "title_type", Type: field.TypeString, Size: 20, Default: "personal"},
+		{Name: "title_name", Type: field.TypeString, Size: 255},
+		{Name: "tax_no", Type: field.TypeString, Size: 64, Default: ""},
+		{Name: "address_phone", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "bank_account", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "email", Type: field.TypeString, Size: 255},
+		{Name: "content", Type: field.TypeString, Size: 255},
+		{Name: "remark", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "sdk_code", Type: field.TypeInt, Nullable: true},
+		{Name: "sdk_message", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "sdk_response", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "invoice_no", Type: field.TypeString, Size: 64, Default: ""},
+		{Name: "invoice_date", Type: field.TypeString, Size: 32, Default: ""},
+		{Name: "pdf_url", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "ofd_url", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "xml_url", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "issued_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+	}
+	// InvoiceRequestsTable holds the schema information for the "invoice_requests" table.
+	InvoiceRequestsTable = &schema.Table{
+		Name:       "invoice_requests",
+		Columns:    InvoiceRequestsColumns,
+		PrimaryKey: []*schema.Column{InvoiceRequestsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "invoicerequest_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{InvoiceRequestsColumns[1]},
+			},
+			{
+				Name:    "invoicerequest_profile_id",
+				Unique:  false,
+				Columns: []*schema.Column{InvoiceRequestsColumns[2]},
+			},
+			{
+				Name:    "invoicerequest_status",
+				Unique:  false,
+				Columns: []*schema.Column{InvoiceRequestsColumns[3]},
+			},
+			{
+				Name:    "invoicerequest_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{InvoiceRequestsColumns[27]},
+			},
+			{
+				Name:    "invoicerequest_user_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{InvoiceRequestsColumns[1], InvoiceRequestsColumns[3]},
+			},
+		},
+	}
 	// PaymentAuditLogsColumns holds the columns for the "payment_audit_logs" table.
 	PaymentAuditLogsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -1912,6 +2015,8 @@ var (
 		IdentityAdoptionDecisionsTable,
 		InviteLinksTable,
 		InviteRewardLedgerTable,
+		InvoiceProfilesTable,
+		InvoiceRequestsTable,
 		PaymentAuditLogsTable,
 		PaymentOrdersTable,
 		PaymentProviderInstancesTable,
@@ -2000,6 +2105,12 @@ func init() {
 	}
 	InviteRewardLedgerTable.Annotation = &entsql.Annotation{
 		Table: "invite_reward_ledger",
+	}
+	InvoiceProfilesTable.Annotation = &entsql.Annotation{
+		Table: "invoice_profiles",
+	}
+	InvoiceRequestsTable.Annotation = &entsql.Annotation{
+		Table: "invoice_requests",
 	}
 	PaymentAuditLogsTable.Annotation = &entsql.Annotation{
 		Table: "payment_audit_logs",

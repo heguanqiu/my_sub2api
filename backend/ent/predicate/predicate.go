@@ -57,6 +57,12 @@ type InviteLink func(*sql.Selector)
 // InviteRewardLedger is the predicate function for inviterewardledger builders.
 type InviteRewardLedger func(*sql.Selector)
 
+// InvoiceProfile is the predicate function for invoiceprofile builders.
+type InvoiceProfile func(*sql.Selector)
+
+// InvoiceRequest is the predicate function for invoicerequest builders.
+type InvoiceRequest func(*sql.Selector)
+
 // PaymentAuditLog is the predicate function for paymentauditlog builders.
 type PaymentAuditLog func(*sql.Selector)
 

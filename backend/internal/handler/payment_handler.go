@@ -422,6 +422,147 @@ func (h *PaymentHandler) GetRefundEligibleProviders(c *gin.Context) {
 	response.Success(c, gin.H{"provider_instance_ids": ids})
 }
 
+// GetInvoiceSummary returns the authenticated user's invoice quota summary.
+// GET /api/v1/payment/invoices/summary
+func (h *PaymentHandler) GetInvoiceSummary(c *gin.Context) {
+	subject, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+
+	summary, err := h.paymentService.GetUserInvoiceSummary(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, summary)
+}
+
+// ListInvoiceProfiles returns the authenticated user's invoice titles.
+// GET /api/v1/payment/invoices/profiles
+func (h *PaymentHandler) ListInvoiceProfiles(c *gin.Context) {
+	subject, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+
+	profiles, err := h.paymentService.ListUserInvoiceProfiles(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, profiles)
+}
+
+// CreateInvoiceProfile creates an invoice title for the authenticated user.
+// POST /api/v1/payment/invoices/profiles
+func (h *PaymentHandler) CreateInvoiceProfile(c *gin.Context) {
+	subject, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+
+	var req service.InvoiceProfileInput
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	profile, err := h.paymentService.CreateUserInvoiceProfile(c.Request.Context(), subject.UserID, req)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Created(c, profile)
+}
+
+// UpdateInvoiceProfile updates one of the authenticated user's invoice titles.
+// PUT /api/v1/payment/invoices/profiles/:id
+func (h *PaymentHandler) UpdateInvoiceProfile(c *gin.Context) {
+	subject, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+	profileID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		response.BadRequest(c, "Invalid profile ID")
+		return
+	}
+
+	var req service.InvoiceProfileInput
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	profile, err := h.paymentService.UpdateUserInvoiceProfile(c.Request.Context(), subject.UserID, profileID, req)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, profile)
+}
+
+// DeleteInvoiceProfile soft-deletes one of the authenticated user's invoice titles.
+// DELETE /api/v1/payment/invoices/profiles/:id
+func (h *PaymentHandler) DeleteInvoiceProfile(c *gin.Context) {
+	subject, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+	profileID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		response.BadRequest(c, "Invalid profile ID")
+		return
+	}
+
+	if err := h.paymentService.DeleteUserInvoiceProfile(c.Request.Context(), subject.UserID, profileID); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"message": "deleted"})
+}
+
+// ListInvoiceRequests returns the authenticated user's invoice application history.
+// GET /api/v1/payment/invoices/requests
+func (h *PaymentHandler) ListInvoiceRequests(c *gin.Context) {
+	subject, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+
+	page, pageSize := response.ParsePagination(c)
+	requests, total, err := h.paymentService.ListUserInvoiceRequests(c.Request.Context(), subject.UserID, service.OrderListParams{
+		Page:     page,
+		PageSize: pageSize,
+		Status:   c.Query("status"),
+	})
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Paginated(c, requests, int64(total), page, pageSize)
+}
+
+// CreateInvoiceRequest submits a new invoice application.
+// POST /api/v1/payment/invoices/requests
+func (h *PaymentHandler) CreateInvoiceRequest(c *gin.Context) {
+	subject, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+
+	var req service.CreateInvoiceApplicationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	invoiceRequest, err := h.paymentService.CreateUserInvoiceRequest(c.Request.Context(), subject.UserID, req)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Created(c, invoiceRequest)
+}
+
 // VerifyOrderRequest is the request body for verifying a payment order.
 type VerifyOrderRequest struct {
 	OutTradeNo string `json:"out_trade_no" binding:"required"`

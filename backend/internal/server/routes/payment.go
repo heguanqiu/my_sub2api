@@ -41,6 +41,17 @@ func RegisterPaymentRoutes(
 			orders.POST("/:id/refund-request", paymentHandler.RequestRefund)
 			orders.GET("/refund-eligible-providers", paymentHandler.GetRefundEligibleProviders)
 		}
+
+		invoices := authenticated.Group("/invoices")
+		{
+			invoices.GET("/summary", paymentHandler.GetInvoiceSummary)
+			invoices.GET("/requests", paymentHandler.ListInvoiceRequests)
+			invoices.POST("/requests", paymentHandler.CreateInvoiceRequest)
+			invoices.GET("/profiles", paymentHandler.ListInvoiceProfiles)
+			invoices.POST("/profiles", paymentHandler.CreateInvoiceProfile)
+			invoices.PUT("/profiles/:id", paymentHandler.UpdateInvoiceProfile)
+			invoices.DELETE("/profiles/:id", paymentHandler.DeleteInvoiceProfile)
+		}
 	}
 
 	sales := v1.Group("/sales")
@@ -87,6 +98,8 @@ func RegisterPaymentRoutes(
 		// Config
 		adminGroup.GET("/config", adminPaymentHandler.GetConfig)
 		adminGroup.PUT("/config", adminPaymentHandler.UpdateConfig)
+		adminGroup.GET("/invoice-config", adminPaymentHandler.GetInvoiceConfig)
+		adminGroup.PUT("/invoice-config", adminPaymentHandler.UpdateInvoiceConfig)
 
 		// Orders
 		adminOrders := adminGroup.Group("/orders")

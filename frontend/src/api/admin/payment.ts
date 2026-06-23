@@ -49,6 +49,47 @@ export interface UpdatePaymentConfigRequest {
   help_text?: string
 }
 
+export interface AdminInvoiceConfig {
+  enabled: boolean
+  min_amount: number
+  currency: string
+  sdk_base_url: string
+  sdk_app_key: string
+  sdk_app_secret_configured: boolean
+  taxpayer_id: string
+  seller_name: string
+  seller_address_phone: string
+  seller_bank_account: string
+  username: string
+  password_configured: boolean
+  account_type: string
+  debug: boolean
+  default_content: string
+  tax_rate: number
+  tax_code: string
+  type_code: string
+}
+
+export interface UpdateInvoiceConfigRequest {
+  enabled?: boolean
+  min_amount?: number
+  sdk_base_url?: string
+  sdk_app_key?: string
+  sdk_app_secret?: string
+  taxpayer_id?: string
+  seller_name?: string
+  seller_address_phone?: string
+  seller_bank_account?: string
+  username?: string
+  password?: string
+  account_type?: string
+  debug?: boolean
+  default_content?: string
+  tax_rate?: number
+  tax_code?: string
+  type_code?: string
+}
+
 export const adminPaymentAPI = {
   // ==================== Config ====================
 
@@ -60,6 +101,16 @@ export const adminPaymentAPI = {
   /** Update payment configuration */
   updateConfig(data: UpdatePaymentConfigRequest) {
     return apiClient.put('/admin/payment/config', data)
+  },
+
+  /** Get fapiao SDK configuration */
+  getInvoiceConfig() {
+    return apiClient.get<AdminInvoiceConfig>('/admin/payment/invoice-config')
+  },
+
+  /** Update fapiao SDK configuration */
+  updateInvoiceConfig(data: UpdateInvoiceConfigRequest) {
+    return apiClient.put('/admin/payment/invoice-config', data)
   },
 
   // ==================== Dashboard ====================

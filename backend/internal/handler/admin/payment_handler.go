@@ -342,3 +342,29 @@ func (h *PaymentHandler) UpdateConfig(c *gin.Context) {
 	}
 	response.Success(c, gin.H{"message": "updated"})
 }
+
+// GetInvoiceConfig returns the fapiao SDK configuration (admin view).
+// GET /api/v1/admin/payment/invoice-config
+func (h *PaymentHandler) GetInvoiceConfig(c *gin.Context) {
+	cfg, err := h.configService.GetInvoiceConfig(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, cfg)
+}
+
+// UpdateInvoiceConfig updates the fapiao SDK configuration.
+// PUT /api/v1/admin/payment/invoice-config
+func (h *PaymentHandler) UpdateInvoiceConfig(c *gin.Context) {
+	var req service.UpdateInvoiceConfigRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	if err := h.configService.UpdateInvoiceConfig(c.Request.Context(), req); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"message": "updated"})
+}

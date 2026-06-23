@@ -6457,6 +6457,147 @@
             </div>
           </div>
 
+          <!-- Invoice SDK Settings -->
+          <div class="card" @keydown.enter.stop.prevent>
+            <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    {{ t("admin.settings.payment.invoice.title") }}
+                  </h2>
+                  <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.payment.invoice.description") }}
+                  </p>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="text-xs text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.payment.invoice.currency", { currency: invoiceForm.currency || "CNY" }) }}
+                  </span>
+                  <Toggle v-model="invoiceForm.enabled" />
+                </div>
+              </div>
+            </div>
+            <div class="space-y-5 p-6">
+              <div v-if="invoiceConfigLoading" class="flex items-center justify-center py-8 text-sm text-gray-500 dark:text-gray-400">
+                <Icon name="refresh" size="md" class="mr-2 animate-spin" />
+                {{ t("common.loading") }}
+              </div>
+              <template v-else>
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div>
+                    <label class="input-label">{{ t("admin.settings.payment.invoice.minAmount") }}</label>
+                    <input v-model.number="invoiceForm.min_amount" type="number" min="0" step="0.01" class="input" />
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t("admin.settings.payment.invoice.minAmountHint") }}
+                    </p>
+                  </div>
+                  <div>
+                    <label class="input-label">{{ t("admin.settings.payment.invoice.sdkBaseUrl") }}</label>
+                    <input v-model.trim="invoiceForm.sdk_base_url" type="url" class="input" placeholder="https://api.fa-piao.com" />
+                  </div>
+                  <div>
+                    <label class="input-label">{{ t("admin.settings.payment.invoice.sdkAppKey") }}</label>
+                    <input v-model.trim="invoiceForm.sdk_app_key" type="text" class="input" autocomplete="off" />
+                  </div>
+                  <div>
+                    <label class="input-label">{{ t("admin.settings.payment.invoice.sdkAppSecret") }}</label>
+                    <input v-model.trim="invoiceForm.sdk_app_secret" type="password" class="input" autocomplete="new-password" />
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {{
+                        invoiceForm.sdk_app_secret_configured
+                          ? t("admin.settings.payment.invoice.secretConfigured")
+                          : t("admin.settings.payment.invoice.secretNotConfigured")
+                      }}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div>
+                    <label class="input-label">{{ t("admin.settings.payment.invoice.taxpayerId") }}</label>
+                    <input v-model.trim="invoiceForm.taxpayer_id" type="text" class="input" />
+                  </div>
+                  <div>
+                    <label class="input-label">{{ t("admin.settings.payment.invoice.sellerName") }}</label>
+                    <input v-model.trim="invoiceForm.seller_name" type="text" class="input" />
+                  </div>
+                  <div>
+                    <label class="input-label">{{ t("admin.settings.payment.invoice.sellerAddressPhone") }}</label>
+                    <input v-model.trim="invoiceForm.seller_address_phone" type="text" class="input" />
+                  </div>
+                  <div>
+                    <label class="input-label">{{ t("admin.settings.payment.invoice.sellerBankAccount") }}</label>
+                    <input v-model.trim="invoiceForm.seller_bank_account" type="text" class="input" />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div>
+                    <label class="input-label">{{ t("admin.settings.payment.invoice.username") }}</label>
+                    <input v-model.trim="invoiceForm.username" type="text" class="input" autocomplete="off" />
+                  </div>
+                  <div>
+                    <label class="input-label">{{ t("admin.settings.payment.invoice.password") }}</label>
+                    <input v-model.trim="invoiceForm.password" type="password" class="input" autocomplete="new-password" />
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {{
+                        invoiceForm.password_configured
+                          ? t("admin.settings.payment.invoice.secretConfigured")
+                          : t("admin.settings.payment.invoice.secretNotConfigured")
+                      }}
+                    </p>
+                  </div>
+                  <div>
+                    <label class="input-label">{{ t("admin.settings.payment.invoice.accountType") }}</label>
+                    <input v-model.trim="invoiceForm.account_type" type="text" class="input" placeholder="6" />
+                  </div>
+                  <div class="flex items-end">
+                    <label class="flex min-h-[44px] items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+                      <Toggle v-model="invoiceForm.debug" />
+                      <span>{{ t("admin.settings.payment.invoice.debug") }}</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div class="xl:col-span-2">
+                    <label class="input-label">{{ t("admin.settings.payment.invoice.defaultContent") }}</label>
+                    <input v-model.trim="invoiceForm.default_content" type="text" class="input" placeholder="*信息技术服务*软件开发服务" />
+                  </div>
+                  <div>
+                    <label class="input-label">{{ t("admin.settings.payment.invoice.taxRate") }}</label>
+                    <input v-model.number="invoiceForm.tax_rate" type="number" min="0" step="0.01" class="input" />
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t("admin.settings.payment.invoice.taxRateHint") }}
+                    </p>
+                  </div>
+                  <div>
+                    <label class="input-label">{{ t("admin.settings.payment.invoice.taxCode") }}</label>
+                    <input v-model.trim="invoiceForm.tax_code" type="text" class="input" />
+                  </div>
+                  <div>
+                    <label class="input-label">{{ t("admin.settings.payment.invoice.typeCode") }}</label>
+                    <input v-model.trim="invoiceForm.type_code" type="text" class="input" />
+                  </div>
+                </div>
+
+                <div class="flex flex-col gap-3 border-t border-gray-100 pt-4 dark:border-dark-700 sm:flex-row sm:items-center sm:justify-between">
+                  <p class="text-xs text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.payment.invoice.requiredHint") }}
+                  </p>
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    :disabled="invoiceConfigSaving"
+                    @click="saveInvoiceConfig"
+                  >
+                    {{ invoiceConfigSaving ? t("common.processing") : t("common.save") }}
+                  </button>
+                </div>
+              </template>
+            </div>
+          </div>
+
           <!-- Provider Management -->
           <PaymentProviderList
             v-if="form.payment_enabled"
@@ -6977,6 +7118,7 @@
 import { ref, reactive, computed, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { adminAPI } from "@/api";
+import type { AdminInvoiceConfig, UpdateInvoiceConfigRequest } from "@/api/admin/payment";
 import {
   appendAuthSourceDefaultsToUpdateRequest,
   buildAuthSourceDefaultsState,
@@ -7886,6 +8028,31 @@ const authSourceDefaults = reactive<AuthSourceDefaultsState>(
   buildAuthSourceDefaultsState({}),
 );
 
+const invoiceConfigLoading = ref(false);
+const invoiceConfigSaving = ref(false);
+const invoiceForm = reactive<AdminInvoiceConfig & { sdk_app_secret: string; password: string }>({
+  enabled: false,
+  min_amount: 0,
+  currency: "CNY",
+  sdk_base_url: "https://api.fa-piao.com",
+  sdk_app_key: "",
+  sdk_app_secret: "",
+  sdk_app_secret_configured: false,
+  taxpayer_id: "",
+  seller_name: "",
+  seller_address_phone: "",
+  seller_bank_account: "",
+  username: "",
+  password: "",
+  password_configured: false,
+  account_type: "6",
+  debug: false,
+  default_content: "*信息技术服务*软件开发服务",
+  tax_rate: 0.01,
+  tax_code: "3040201010000000000",
+  type_code: "82",
+});
+
 const authSourceDefaultsMeta = computed(() => [
   {
     source: "email" as AuthSourceType,
@@ -8622,6 +8789,62 @@ async function loadSubscriptionGroups() {
     );
   } catch (_error: unknown) {
     subscriptionGroups.value = [];
+  }
+}
+
+async function loadInvoiceConfig() {
+  invoiceConfigLoading.value = true;
+  try {
+    const res = await adminAPI.payment.getInvoiceConfig();
+    Object.assign(invoiceForm, {
+      ...res.data,
+      sdk_app_secret: "",
+      password: "",
+    });
+  } catch (error: unknown) {
+    appStore.showError(
+      extractApiErrorMessage(error, t("admin.settings.payment.invoice.loadFailed")),
+    );
+  } finally {
+    invoiceConfigLoading.value = false;
+  }
+}
+
+async function saveInvoiceConfig() {
+  invoiceConfigSaving.value = true;
+  try {
+    const payload: UpdateInvoiceConfigRequest = {
+      enabled: invoiceForm.enabled,
+      min_amount: Math.max(0, Number(invoiceForm.min_amount) || 0),
+      sdk_base_url: invoiceForm.sdk_base_url.trim(),
+      sdk_app_key: invoiceForm.sdk_app_key.trim(),
+      taxpayer_id: invoiceForm.taxpayer_id.trim(),
+      seller_name: invoiceForm.seller_name.trim(),
+      seller_address_phone: invoiceForm.seller_address_phone.trim(),
+      seller_bank_account: invoiceForm.seller_bank_account.trim(),
+      username: invoiceForm.username.trim(),
+      account_type: invoiceForm.account_type.trim() || "6",
+      debug: invoiceForm.debug,
+      default_content: invoiceForm.default_content.trim(),
+      tax_rate: Math.max(0, Number(invoiceForm.tax_rate) || 0),
+      tax_code: invoiceForm.tax_code.trim(),
+      type_code: invoiceForm.type_code.trim(),
+    };
+    if (invoiceForm.sdk_app_secret.trim()) {
+      payload.sdk_app_secret = invoiceForm.sdk_app_secret.trim();
+    }
+    if (invoiceForm.password.trim()) {
+      payload.password = invoiceForm.password.trim();
+    }
+    await adminAPI.payment.updateInvoiceConfig(payload);
+    appStore.showSuccess(t("common.saved"));
+    await loadInvoiceConfig();
+  } catch (error: unknown) {
+    appStore.showError(
+      extractApiErrorMessage(error, t("admin.settings.payment.invoice.saveFailed")),
+    );
+  } finally {
+    invoiceConfigSaving.value = false;
   }
 }
 
@@ -9968,6 +10191,7 @@ onMounted(() => {
   loadRectifierSettings();
   loadBetaPolicySettings();
   loadProviders();
+  loadInvoiceConfig();
 });
 
 // =========================

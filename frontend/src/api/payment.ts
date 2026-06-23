@@ -12,7 +12,12 @@ import type {
   CheckoutInfoResponse,
   CreateOrderRequest,
   CreateOrderResult,
-  PaymentOrder
+  PaymentOrder,
+  InvoiceSummary,
+  InvoiceProfile,
+  InvoiceRequest,
+  InvoiceProfilePayload,
+  CreateInvoiceRequestPayload
 } from '@/types/payment'
 import type { BasePaginationResponse } from '@/types'
 
@@ -85,5 +90,40 @@ export const paymentAPI = {
   /** Get provider instance IDs that allow user refund */
   getRefundEligibleProviders() {
     return apiClient.get<{ provider_instance_ids: string[] }>('/payment/orders/refund-eligible-providers')
+  },
+
+  /** Get current user's invoice quota summary */
+  getInvoiceSummary() {
+    return apiClient.get<InvoiceSummary>('/payment/invoices/summary')
+  },
+
+  /** Get current user's invoice application history */
+  getInvoiceRequests(params?: { page?: number; page_size?: number; status?: string }) {
+    return apiClient.get<BasePaginationResponse<InvoiceRequest>>('/payment/invoices/requests', { params })
+  },
+
+  /** Submit a new invoice application */
+  createInvoiceRequest(data: CreateInvoiceRequestPayload) {
+    return apiClient.post<InvoiceRequest>('/payment/invoices/requests', data)
+  },
+
+  /** Get current user's invoice titles */
+  getInvoiceProfiles() {
+    return apiClient.get<InvoiceProfile[]>('/payment/invoices/profiles')
+  },
+
+  /** Create an invoice title */
+  createInvoiceProfile(data: InvoiceProfilePayload) {
+    return apiClient.post<InvoiceProfile>('/payment/invoices/profiles', data)
+  },
+
+  /** Update an invoice title */
+  updateInvoiceProfile(id: number, data: InvoiceProfilePayload) {
+    return apiClient.put<InvoiceProfile>(`/payment/invoices/profiles/${id}`, data)
+  },
+
+  /** Delete an invoice title */
+  deleteInvoiceProfile(id: number) {
+    return apiClient.delete(`/payment/invoices/profiles/${id}`)
   }
 }
