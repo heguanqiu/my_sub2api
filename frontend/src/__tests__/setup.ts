@@ -57,6 +57,46 @@ if (typeof globalThis.cancelIdleCallback === 'undefined') {
   }) as unknown as typeof cancelIdleCallback
 }
 
+// Mock requestAnimationFrame for jsdom. Some view animations can complete after
+// a spec teardown, so keep a stable global fallback in the shared setup.
+if (typeof globalThis.requestAnimationFrame === 'undefined') {
+  Object.defineProperty(globalThis, 'requestAnimationFrame', {
+    configurable: true,
+    writable: true,
+    value: ((callback: FrameRequestCallback) => {
+      return window.setTimeout(() => callback(performance.now()), 16)
+    }) as typeof requestAnimationFrame,
+  })
+}
+
+if (typeof globalThis.cancelAnimationFrame === 'undefined') {
+  Object.defineProperty(globalThis, 'cancelAnimationFrame', {
+    configurable: true,
+    writable: true,
+    value: ((id: number) => {
+      window.clearTimeout(id)
+    }) as typeof cancelAnimationFrame,
+  })
+}
+
+if (typeof window !== 'undefined') {
+  if (typeof window.requestAnimationFrame === 'undefined') {
+    Object.defineProperty(window, 'requestAnimationFrame', {
+      configurable: true,
+      writable: true,
+      value: globalThis.requestAnimationFrame,
+    })
+  }
+
+  if (typeof window.cancelAnimationFrame === 'undefined') {
+    Object.defineProperty(window, 'cancelAnimationFrame', {
+      configurable: true,
+      writable: true,
+      value: globalThis.cancelAnimationFrame,
+    })
+  }
+}
+
 const evaluateMediaQuery = (query: string): boolean => {
   const normalizedQuery = query.replace(/\s+/g, '').toLowerCase()
   const viewportWidth = window.innerWidth || 1024
