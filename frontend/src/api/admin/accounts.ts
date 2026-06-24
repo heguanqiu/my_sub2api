@@ -115,6 +115,19 @@ export async function listWithEtag(
   }
 }
 
+export async function errorItems(
+  page: number = 1,
+  pageSize: number = 100
+): Promise<PaginatedResponse<Account>> {
+  const { data } = await apiClient.get<PaginatedResponse<Account>>('/admin/accounts/error-items', {
+    params: {
+      page,
+      page_size: pageSize
+    }
+  })
+  return data
+}
+
 /**
  * Get account by ID
  * @param id - Account ID
@@ -778,6 +791,7 @@ export async function resetOpenAIQuota(id: number): Promise<OpenAIQuotaResetResu
 export const accountsAPI = {
   list,
   listWithEtag,
+  errorItems,
   getById,
   create,
   update,

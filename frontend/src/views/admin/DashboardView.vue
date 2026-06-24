@@ -46,9 +46,14 @@
                   <span class="text-green-600 dark:text-green-400"
                     >{{ stats.normal_accounts }} {{ t('common.active') }}</span
                   >
-                  <span v-if="stats.error_accounts > 0" class="ml-1 text-red-500"
-                    >{{ stats.error_accounts }} {{ t('common.error') }}</span
+                  <button
+                    v-if="stats.error_accounts > 0"
+                    type="button"
+                    class="ml-1 rounded px-1 text-red-500 transition-colors hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 dark:hover:bg-red-900/20"
+                    @click="openErrorAccountsDialog"
                   >
+                    {{ stats.error_accounts }} {{ t('common.error') }}
+                  </button>
                 </p>
               </div>
             </div>
@@ -289,6 +294,94 @@
         </div>
       </template>
     </div>
+
+    <BaseDialog
+      :show="showErrorAccountsDialog"
+      :title="t('admin.dashboard.errorAccountsTitle', '错误账号与上游 key')"
+      width="wide"
+      @close="closeErrorAccountsDialog"
+    >
+      <div class="space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <p class="text-sm text-gray-600 dark:text-gray-300">
+            {{ t('admin.dashboard.errorAccountsHint', '这些项目来自仪表盘账号错误统计，可直接删除无效账号或上游 key 运行时账号。') }}
+          </p>
+          <button
+            type="button"
+            class="btn btn-secondary btn-sm"
+            :disabled="errorAccountsLoading"
+            @click="loadErrorAccounts"
+          >
+            <Icon name="refresh" size="sm" />
+            {{ t('common.refresh') }}
+          </button>
+        </div>
+
+        <div v-if="errorAccountsLoading" class="flex items-center justify-center py-10">
+          <LoadingSpinner />
+        </div>
+
+        <div
+          v-else-if="errorAccounts.length === 0"
+          class="rounded-lg border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-500 dark:border-dark-700 dark:text-dark-400"
+        >
+          {{ t('admin.dashboard.noErrorAccounts', '暂无错误账号或上游 key') }}
+        </div>
+
+        <div v-else class="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+          <div
+            v-for="account in errorAccounts"
+            :key="account.id"
+            class="rounded-lg border border-gray-200 p-3 dark:border-dark-700"
+          >
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                    {{ account.name }}
+                  </span>
+                  <span :class="['badge', isUpstreamRuntimeAccount(account) ? 'badge-primary' : 'badge-gray']">
+                    {{ errorAccountKindLabel(account) }}
+                  </span>
+                  <span class="badge badge-danger">{{ t('common.error') }}</span>
+                </div>
+                <div class="mt-1 flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
+                  <span>#{{ account.id }}</span>
+                  <span>{{ account.platform }} / {{ account.type }}</span>
+                  <span v-if="upstreamRuntimeLabel(account)">{{ upstreamRuntimeLabel(account) }}</span>
+                </div>
+                <p
+                  v-if="account.error_message"
+                  class="mt-2 line-clamp-3 rounded bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-900/20 dark:text-red-200"
+                >
+                  {{ account.error_message }}
+                </p>
+              </div>
+              <button
+                type="button"
+                class="btn btn-danger btn-sm"
+                :disabled="deletingErrorAccountId === account.id"
+                @click="askDeleteErrorAccount(account)"
+              >
+                <Icon name="trash" size="sm" />
+                {{ deletingErrorAccountId === account.id ? t('common.deleting', '删除中') : t('common.delete') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </BaseDialog>
+
+    <ConfirmDialog
+      :show="!!deletingErrorAccount"
+      :title="t('admin.dashboard.deleteErrorAccountTitle', '删除错误项目')"
+      :message="deleteErrorAccountMessage"
+      :confirm-text="t('common.delete')"
+      :cancel-text="t('common.cancel')"
+      danger
+      @confirm="confirmDeleteErrorAccount"
+      @cancel="deletingErrorAccount = null"
+    />
   </AppLayout>
 </template>
 
@@ -305,13 +398,16 @@ import type {
   TrendDataPoint,
   ModelStat,
   UserUsageTrendPoint,
-  UserSpendingRankingItem
+  UserSpendingRankingItem,
+  Account
 } from '@/types'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import Icon from '@/components/icons/Icon.vue'
 import DateRangePicker from '@/components/common/DateRangePicker.vue'
 import Select from '@/components/common/Select.vue'
+import BaseDialog from '@/components/common/BaseDialog.vue'
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import ModelDistributionChart from '@/components/charts/ModelDistributionChart.vue'
 import TokenUsageTrend from '@/components/charts/TokenUsageTrend.vue'
 
@@ -355,6 +451,11 @@ const rankingItems = ref<UserSpendingRankingItem[]>([])
 const rankingTotalActualCost = ref(0)
 const rankingTotalRequests = ref(0)
 const rankingTotalTokens = ref(0)
+const showErrorAccountsDialog = ref(false)
+const errorAccountsLoading = ref(false)
+const errorAccounts = ref<Account[]>([])
+const deletingErrorAccount = ref<Account | null>(null)
+const deletingErrorAccountId = ref<number | null>(null)
 let chartLoadSeq = 0
 let usersTrendLoadSeq = 0
 let rankingLoadSeq = 0
@@ -565,6 +666,84 @@ const goToUserUsage = (item: UserSpendingRankingItem) => {
       end_date: endDate.value
     }
   })
+}
+
+const isUpstreamRuntimeAccount = (account: Account): boolean => {
+  return account.extra?.upstream_runtime_managed === true ||
+    account.extra?.upstream_runtime_managed === 'true'
+}
+
+const errorAccountKindLabel = (account: Account): string => {
+  return isUpstreamRuntimeAccount(account)
+    ? t('admin.dashboard.upstreamKeyRuntime', '上游 key')
+    : t('admin.dashboard.localAccount', '账号')
+}
+
+const upstreamRuntimeLabel = (account: Account): string => {
+  if (!isUpstreamRuntimeAccount(account)) return ''
+  const upstreamName = String(account.extra?.upstream_name || '').trim()
+  const remoteKeyName = String(account.extra?.upstream_remote_api_key_name || '').trim()
+  const remoteKeyID = String(account.extra?.upstream_remote_api_key_id || '').trim()
+  const keyLabel = remoteKeyName || remoteKeyID
+  if (upstreamName && keyLabel) return `${upstreamName} / ${keyLabel}`
+  return upstreamName || keyLabel
+}
+
+const deleteErrorAccountMessage = computed(() => {
+  if (!deletingErrorAccount.value) return ''
+  const kind = errorAccountKindLabel(deletingErrorAccount.value)
+  return t('admin.dashboard.deleteErrorAccountConfirm', {
+    kind,
+    name: deletingErrorAccount.value.name
+  }, `确认删除${kind}「${deletingErrorAccount.value.name}」？`)
+})
+
+const openErrorAccountsDialog = async () => {
+  showErrorAccountsDialog.value = true
+  await loadErrorAccounts()
+}
+
+const closeErrorAccountsDialog = () => {
+  showErrorAccountsDialog.value = false
+  deletingErrorAccount.value = null
+}
+
+const loadErrorAccounts = async () => {
+  errorAccountsLoading.value = true
+  try {
+    const response = await adminAPI.accounts.errorItems(1, 100)
+    errorAccounts.value = response.items || []
+  } catch (error) {
+    console.error('Error loading error accounts:', error)
+    appStore.showError(t('admin.dashboard.errorAccountsLoadFailed', '加载错误账号失败'))
+  } finally {
+    errorAccountsLoading.value = false
+  }
+}
+
+const askDeleteErrorAccount = (account: Account) => {
+  deletingErrorAccount.value = account
+}
+
+const confirmDeleteErrorAccount = async () => {
+  if (!deletingErrorAccount.value) return
+  const id = deletingErrorAccount.value.id
+  deletingErrorAccountId.value = id
+  try {
+    await adminAPI.accounts.delete(id)
+    errorAccounts.value = errorAccounts.value.filter((account) => account.id !== id)
+    deletingErrorAccount.value = null
+    appStore.showSuccess(t('admin.dashboard.errorAccountDeleted', '已删除错误项目'))
+    await loadDashboardSnapshot(true)
+    if (errorAccounts.value.length === 0) {
+      await loadErrorAccounts()
+    }
+  } catch (error) {
+    console.error('Error deleting error account:', error)
+    appStore.showError(t('admin.dashboard.errorAccountDeleteFailed', '删除错误项目失败'))
+  } finally {
+    deletingErrorAccountId.value = null
+  }
 }
 
 // Date range change handler
