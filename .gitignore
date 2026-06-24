@@ -85,6 +85,8 @@ temp/
 *.temp
 *.log
 *.bak
+/backups_*.sql
+/backups_*.sql.gz
 .cache/
 .dev/
 .serena/
