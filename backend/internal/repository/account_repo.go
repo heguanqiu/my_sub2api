@@ -469,6 +469,13 @@ func (r *accountRepository) List(ctx context.Context, params pagination.Paginati
 
 func (r *accountRepository) ListWithFilters(ctx context.Context, params pagination.PaginationParams, platform, accountType, status, search string, groupID int64, privacyMode string) ([]service.Account, *pagination.PaginationResult, error) {
 	q := r.client.Account.Query()
+	q = q.Where(dbpredicate.Account(func(s *entsql.Selector) {
+		path := sqljson.Path("upstream_runtime_managed")
+		s.Where(entsql.Or(
+			entsql.Not(sqljson.HasKey(dbaccount.FieldExtra, path)),
+			sqljson.ValueEQ(dbaccount.FieldExtra, false, path),
+		))
+	}))
 
 	if platform != "" {
 		q = q.Where(dbaccount.PlatformEQ(platform))
@@ -584,6 +591,31 @@ func (r *accountRepository) ListWithFilters(ctx context.Context, params paginati
 	return outAccounts, paginationResultFromTotal(int64(total), params), nil
 }
 
+func (r *accountRepository) ListDashboardErrorItems(ctx context.Context, params pagination.PaginationParams) ([]service.Account, *pagination.PaginationResult, error) {
+	q := r.client.Account.Query().
+		Where(dbaccount.StatusEQ(service.StatusError))
+
+	total, err := q.Count(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	accounts, err := q.
+		Offset(params.Offset()).
+		Limit(params.Limit()).
+		Order(dbent.Desc(dbaccount.FieldUpdatedAt), dbent.Desc(dbaccount.FieldID)).
+		All(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	outAccounts, err := r.accountsToService(ctx, accounts)
+	if err != nil {
+		return nil, nil, err
+	}
+	return outAccounts, paginationResultFromTotal(int64(total), params), nil
+}
+
 func accountListOrder(params pagination.PaginationParams) []func(*entsql.Selector) {
 	sortBy := strings.ToLower(strings.TrimSpace(params.SortBy))
 	sortOrder := params.NormalizedSortOrder(pagination.SortOrderAsc)
@@ -616,6 +648,9 @@ func accountListOrder(params pagination.PaginationParams) []func(*entsql.Selecto
 		defaultOrder = false
 	case "created_at":
 		field = dbaccount.FieldCreatedAt
+		defaultOrder = false
+	case "updated_at":
+		field = dbaccount.FieldUpdatedAt
 		defaultOrder = false
 	}
 

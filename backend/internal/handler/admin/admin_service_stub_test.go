@@ -333,6 +333,16 @@ func (s *stubAdminService) ListAccounts(ctx context.Context, page, pageSize int,
 	return s.accounts, int64(len(s.accounts)), nil
 }
 
+func (s *stubAdminService) ListDashboardErrorItems(ctx context.Context, page, pageSize int) ([]service.Account, int64, error) {
+	out := make([]service.Account, 0, len(s.accounts))
+	for _, account := range s.accounts {
+		if account.Status == service.StatusError {
+			out = append(out, account)
+		}
+	}
+	return out, int64(len(out)), nil
+}
+
 func (s *stubAdminService) GetAccount(ctx context.Context, id int64) (*service.Account, error) {
 	account := service.Account{ID: id, Name: "account", Status: service.StatusActive}
 	return &account, nil

@@ -1,0 +1,198 @@
+package service
+
+import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
+
+func TestParseUpstreamGroupsFromSub2APIPaginatedResponse(t *testing.T) {
+	raw := []byte(`{
+		"code": 0,
+		"message": "success",
+		"data": {
+			"items": [
+				{"id": 36, "name": "default", "rate_multiplier": 1.25, "status": "active"},
+				{"id": 38, "name": "vip", "rate_multiplier": "2"}
+			],
+			"total": 2
+		}
+	}`)
+
+	groups := parseUpstreamGroups(raw)
+	if len(groups) != 2 {
+		t.Fatalf("len(groups) = %d, want 2", len(groups))
+	}
+	if groups[0].RemoteGroupID != "36" || groups[0].RemoteGroupName != "default" || groups[0].RateMultiplier != 1.25 {
+		t.Fatalf("groups[0] = %#v", groups[0])
+	}
+	if groups[1].RemoteGroupID != "38" || groups[1].RateMultiplier != 2 {
+		t.Fatalf("groups[1] = %#v", groups[1])
+	}
+}
+
+func TestParseUpstreamGroupsFromNewAPIUsableGroupsAndRatios(t *testing.T) {
+	raw := []byte(`{
+		"success": true,
+		"data": {
+			"default": {"ratio": 1, "desc": "Default"},
+			"vip": {"ratio": 2.5, "desc": "VIP"}
+		}
+	}`)
+
+	groups := parseUpstreamGroups(raw)
+	if len(groups) != 2 {
+		t.Fatalf("len(groups) = %d, want 2", len(groups))
+	}
+	byID := map[string]*UpstreamRemoteGroup{}
+	for _, group := range groups {
+		byID[group.RemoteGroupID] = group
+	}
+	if byID["default"].RateMultiplier != 1 || byID["default"].RemoteGroupName != "Default" {
+		t.Fatalf("default group = %#v", byID["default"])
+	}
+	if byID["vip"].RateMultiplier != 2.5 || byID["vip"].RemoteGroupName != "VIP" {
+		t.Fatalf("vip group = %#v", byID["vip"])
+	}
+}
+
+func TestParseUpstreamGroupsFromNewAPIPricingResponse(t *testing.T) {
+	raw := []byte(`{
+		"success": true,
+		"group_ratio": {"default": 1, "vip": 1.8},
+		"usable_group": {"default": "Default", "vip": "VIP"}
+	}`)
+
+	groups := parseUpstreamGroups(raw)
+	if len(groups) != 2 {
+		t.Fatalf("len(groups) = %d, want 2", len(groups))
+	}
+	byID := map[string]*UpstreamRemoteGroup{}
+	for _, group := range groups {
+		byID[group.RemoteGroupID] = group
+	}
+	if byID["vip"].RateMultiplier != 1.8 {
+		t.Fatalf("vip rate = %v, want 1.8", byID["vip"].RateMultiplier)
+	}
+}
+
+func TestParseUpstreamAPIKeysFromNewAPITokenResponse(t *testing.T) {
+	raw := []byte(`{
+		"success": true,
+		"data": {
+			"items": [
+				{"id": 7, "name": "main", "key": "sk-abcdef123456", "group": "vip", "status": 1, "remain_quota": 100, "used_quota": 20}
+			],
+			"total": 1
+		}
+	}`)
+
+	keys := parseUpstreamAPIKeys(raw)
+	if len(keys) != 1 {
+		t.Fatalf("len(keys) = %d, want 1", len(keys))
+	}
+	key := keys[0]
+	if key.RemoteAPIKeyID != "7" || key.RemoteAPIKeyName != "main" || key.RemoteGroupID != "vip" {
+		t.Fatalf("key = %#v", key)
+	}
+	if key.Status != "active" {
+		t.Fatalf("status = %q, want active", key.Status)
+	}
+	if key.Quota == nil || *key.Quota != 100 || key.UsedQuota == nil || *key.UsedQuota != 20 {
+		t.Fatalf("quota = %v used = %v", key.Quota, key.UsedQuota)
+	}
+	if key.APIKey != "" || key.APIKeyConfigured {
+		t.Fatalf("synced remote API key should not be stored as a forwarding secret: key=%q configured=%v", key.APIKey, key.APIKeyConfigured)
+	}
+	if key.MaskedKey == "" {
+		t.Fatal("masked key should be kept for display")
+	}
+	if key.RawSnapshot["key"] == "sk-abcdef123456" {
+		t.Fatal("raw snapshot should not contain the full api key")
+	}
+}
+
+func TestHTTPUpstreamAdminAdapterNewAPILoginFetchesAccessTokenWithSession(t *testing.T) {
+	var sawCookie bool
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/user/login":
+			http.SetCookie(w, &http.Cookie{Name: "session", Value: "ok", Path: "/"})
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"success":true,"data":{"id":42,"username":"up"}}`))
+		case "/api/user/token":
+			if _, err := r.Cookie("session"); err == nil {
+				sawCookie = true
+			}
+			if got := r.Header.Get("New-Api-User"); got != "42" {
+				t.Fatalf("New-Api-User = %q, want 42", got)
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"success":true,"data":"access-token"}`))
+		default:
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	adapter := NewHTTPUpstreamAdminAdapter()
+	session, err := adapter.Login(context.Background(), &Upstream{
+		BaseURL: server.URL,
+		AdminAuth: &UpstreamAdminAuth{
+			AuthMode: UpstreamAdminAuthPassword,
+			Username: "up",
+			Password: "password",
+			LoginURL: server.URL + "/api/user/login",
+		},
+	})
+	if err != nil {
+		t.Fatalf("Login returned error: %v", err)
+	}
+	if session.AccessToken != "access-token" || session.UserID != "42" {
+		t.Fatalf("session = %#v", session)
+	}
+	if !sawCookie {
+		t.Fatal("expected /api/user/token to receive login cookie")
+	}
+}
+
+func TestHTTPUpstreamAdminAdapterListGroupsUsesNewAPIHeaders(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/user/self/groups" {
+			http.NotFound(w, r)
+			return
+		}
+		if got := r.Header.Get("Authorization"); got != "Bearer access-token" {
+			t.Fatalf("Authorization = %q", got)
+		}
+		if got := r.Header.Get("New-Api-User"); got != "42" {
+			t.Fatalf("New-Api-User = %q", got)
+		}
+		_, _ = w.Write([]byte(`{"success":true,"data":{"vip":{"ratio":2,"desc":"VIP"}}}`))
+	}))
+	defer server.Close()
+
+	adapter := NewHTTPUpstreamAdminAdapter()
+	groups, err := adapter.ListGroups(context.Background(), &Upstream{BaseURL: server.URL}, &UpstreamAdminSession{
+		AccessToken: "access-token",
+		UserID:      "42",
+	})
+	if err != nil {
+		t.Fatalf("ListGroups returned error: %v", err)
+	}
+	if len(groups) != 1 || groups[0].RemoteGroupID != "vip" {
+		t.Fatalf("groups = %#v", groups)
+	}
+}
+
+func TestJoinUpstreamURLPreservesQueryAndTrailingSlash(t *testing.T) {
+	got := joinUpstreamURL("https://example.com/root/", "/api/token/?p=0&page_size=1000")
+	if !strings.HasPrefix(got, "https://example.com/root/api/token/?") {
+		t.Fatalf("got %q", got)
+	}
+	if !strings.Contains(got, "p=0") || !strings.Contains(got, "page_size=1000") {
+		t.Fatalf("query missing from %q", got)
+	}
+}

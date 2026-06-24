@@ -1380,11 +1380,15 @@ func (s *OpenAIGatewayService) isOpenAIAccountTransportCompatible(account *Accou
 }
 
 func (s *OpenAIGatewayService) ReportOpenAIAccountScheduleResult(accountID int64, success bool, firstTokenMs *int) {
+	s.ReportOpenAIAccountScheduleEvent(context.Background(), accountID, success, firstTokenMs, 0, 0, "", false, "")
+}
+
+func (s *OpenAIGatewayService) ReportOpenAIAccountScheduleEvent(ctx context.Context, accountID int64, success bool, firstTokenMs *int, duration time.Duration, statusCode int, errorMessage string, ignored bool, reason string) {
 	scheduler := s.getOpenAIAccountScheduler(context.Background())
-	if scheduler == nil {
-		return
+	if scheduler != nil {
+		scheduler.ReportResult(accountID, success, firstTokenMs)
 	}
-	scheduler.ReportResult(accountID, success, firstTokenMs)
+	s.reportUpstreamRuntimeEvent(ctx, accountID, success, firstTokenMs, duration, statusCode, errorMessage, ignored, reason)
 }
 
 func (s *OpenAIGatewayService) RecordOpenAIAccountSwitch() {

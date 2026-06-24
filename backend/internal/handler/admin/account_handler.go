@@ -222,6 +222,25 @@ func (h *AccountHandler) buildAccountResponseWithRuntime(ctx context.Context, ac
 	return item
 }
 
+func (h *AccountHandler) ErrorItems(c *gin.Context) {
+	page, pageSize := response.ParsePagination(c)
+	accounts, total, err := h.adminService.ListDashboardErrorItems(c.Request.Context(), page, pageSize)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	result := make([]AccountWithConcurrency, len(accounts))
+	for i := range accounts {
+		result[i] = AccountWithConcurrency{
+			Account:            dto.AccountFromService(&accounts[i]),
+			CurrentConcurrency: 0,
+		}
+	}
+
+	response.Paginated(c, result, total, page, pageSize)
+}
+
 // List handles listing all accounts with pagination
 // GET /api/v1/admin/accounts
 func (h *AccountHandler) List(c *gin.Context) {

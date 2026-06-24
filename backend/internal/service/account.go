@@ -88,6 +88,34 @@ func (a *Account) IsActive() bool {
 	return a.Status == StatusActive
 }
 
+func (a *Account) IsUpstreamRuntimeManaged() bool {
+	if a == nil || a.Extra == nil {
+		return false
+	}
+	switch v := a.Extra["upstream_runtime_managed"].(type) {
+	case bool:
+		return v
+	case string:
+		return strings.EqualFold(strings.TrimSpace(v), "true")
+	default:
+		return false
+	}
+}
+
+func (a *Account) UpstreamRuntimeUpstreamID() int64 {
+	if a == nil || a.Extra == nil {
+		return 0
+	}
+	return parseAnyInt64(a.Extra["upstream_id"])
+}
+
+func (a *Account) UpstreamRuntimeRemoteAPIKeyID() string {
+	if a == nil || a.Extra == nil {
+		return ""
+	}
+	return strings.TrimSpace(anyToString(a.Extra["upstream_remote_api_key_id"]))
+}
+
 // BillingRateMultiplier 返回账号计费倍率。
 // - nil 表示未配置/旧缓存缺字段，按 1.0 处理
 // - 允许 0，表示该账号计费为 0

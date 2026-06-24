@@ -82,6 +82,7 @@ type AdminService interface {
 
 	// Account management
 	ListAccounts(ctx context.Context, page, pageSize int, platform, accountType, status, search string, groupID int64, privacyMode string, sortBy, sortOrder string) ([]Account, int64, error)
+	ListDashboardErrorItems(ctx context.Context, page, pageSize int) ([]Account, int64, error)
 	GetAccount(ctx context.Context, id int64) (*Account, error)
 	GetAccountsByIDs(ctx context.Context, ids []int64) ([]*Account, error)
 	CreateAccount(ctx context.Context, input *CreateAccountInput) (*Account, error)
@@ -549,6 +550,7 @@ type adminServiceImpl struct {
 	userRepo             UserRepository
 	groupRepo            GroupRepository
 	accountRepo          AccountRepository
+	upstreamRepo         UpstreamRepository
 	proxyRepo            ProxyRepository
 	apiKeyRepo           APIKeyRepository
 	redeemCodeRepo       RedeemCodeRepository
@@ -575,6 +577,7 @@ func NewAdminService(
 	userRepo UserRepository,
 	groupRepo GroupRepository,
 	accountRepo AccountRepository,
+	upstreamRepo UpstreamRepository,
 	proxyRepo ProxyRepository,
 	apiKeyRepo APIKeyRepository,
 	redeemCodeRepo RedeemCodeRepository,
@@ -595,6 +598,7 @@ func NewAdminService(
 		userRepo:             userRepo,
 		groupRepo:            groupRepo,
 		accountRepo:          accountRepo,
+		upstreamRepo:         upstreamRepo,
 		proxyRepo:            proxyRepo,
 		apiKeyRepo:           apiKeyRepo,
 		redeemCodeRepo:       redeemCodeRepo,
@@ -2567,6 +2571,27 @@ func (s *adminServiceImpl) ListAccounts(ctx context.Context, page, pageSize int,
 	return accounts, result.Total, nil
 }
 
+type dashboardErrorItemLister interface {
+	ListDashboardErrorItems(ctx context.Context, params pagination.PaginationParams) ([]Account, *pagination.PaginationResult, error)
+}
+
+func (s *adminServiceImpl) ListDashboardErrorItems(ctx context.Context, page, pageSize int) ([]Account, int64, error) {
+	params := pagination.PaginationParams{Page: page, PageSize: pageSize, SortBy: "updated_at", SortOrder: "desc"}
+	if repo, ok := s.accountRepo.(dashboardErrorItemLister); ok {
+		accounts, result, err := repo.ListDashboardErrorItems(ctx, params)
+		if err != nil {
+			return nil, 0, err
+		}
+		return accounts, result.Total, nil
+	}
+
+	accounts, result, err := s.accountRepo.ListWithFilters(ctx, params, "", "", StatusError, "", 0, "")
+	if err != nil {
+		return nil, 0, err
+	}
+	return accounts, result.Total, nil
+}
+
 func (s *adminServiceImpl) GetAccount(ctx context.Context, id int64) (*Account, error) {
 	return s.accountRepo.GetByID(ctx, id)
 }
@@ -3003,10 +3028,32 @@ func (s *adminServiceImpl) resolveBulkUpdateTargetIDs(ctx context.Context, filte
 }
 
 func (s *adminServiceImpl) DeleteAccount(ctx context.Context, id int64) error {
+	if err := s.clearUpstreamRuntimeAccountConfig(ctx, id); err != nil {
+		return err
+	}
 	if err := s.accountRepo.Delete(ctx, id); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (s *adminServiceImpl) clearUpstreamRuntimeAccountConfig(ctx context.Context, id int64) error {
+	if s == nil || s.upstreamRepo == nil {
+		return nil
+	}
+	account, err := s.accountRepo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if account == nil || !account.IsUpstreamRuntimeManaged() {
+		return nil
+	}
+	upstreamID := account.UpstreamRuntimeUpstreamID()
+	remoteAPIKeyID := account.UpstreamRuntimeRemoteAPIKeyID()
+	if upstreamID <= 0 || strings.TrimSpace(remoteAPIKeyID) == "" {
+		return nil
+	}
+	return s.upstreamRepo.ClearRemoteAPIKeyLocalConfig(ctx, upstreamID, remoteAPIKeyID)
 }
 
 func (s *adminServiceImpl) RefreshAccountCredentials(ctx context.Context, id int64) (*Account, error) {

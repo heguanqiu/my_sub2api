@@ -101,6 +101,9 @@ func RegisterAdminRoutes(
 		// 渠道监控
 		registerChannelMonitorRoutes(admin, h)
 
+		// 上游管理
+		registerUpstreamRoutes(admin, h)
+
 		// 风控中心
 		registerContentModerationRoutes(admin, h)
 
@@ -299,6 +302,7 @@ func registerAccountRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	accounts := admin.Group("/accounts")
 	{
 		accounts.GET("", h.Admin.Account.List)
+		accounts.GET("/error-items", h.Admin.Account.ErrorItems)
 		accounts.GET("/:id", h.Admin.Account.GetByID)
 		accounts.POST("", h.Admin.Account.Create)
 		accounts.POST("/check-mixed-channel", h.Admin.Account.CheckMixedChannel)
@@ -662,6 +666,33 @@ func registerChannelMonitorRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		templates.DELETE("/:id", h.Admin.ChannelMonitorTemplate.Delete)
 		templates.GET("/:id/monitors", h.Admin.ChannelMonitorTemplate.AssociatedMonitors)
 		templates.POST("/:id/apply", h.Admin.ChannelMonitorTemplate.Apply)
+	}
+}
+
+func registerUpstreamRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	upstreams := admin.Group("/upstreams")
+	{
+		upstreams.GET("", h.Admin.Upstream.List)
+		upstreams.POST("", h.Admin.Upstream.Create)
+		upstreams.POST("/schedule-preview", h.Admin.Upstream.SchedulePreview)
+		upstreams.GET("/:id", h.Admin.Upstream.Get)
+		upstreams.PUT("/:id", h.Admin.Upstream.Update)
+		upstreams.DELETE("/:id", h.Admin.Upstream.Delete)
+		upstreams.GET("/:id/health", h.Admin.Upstream.Health)
+		upstreams.GET("/:id/events", h.Admin.Upstream.Events)
+		upstreams.POST("/:id/sync", h.Admin.Upstream.Sync)
+		upstreams.POST("/:id/sync-preview", h.Admin.Upstream.SyncPreview)
+		upstreams.POST("/:id/sync-preview/apply", h.Admin.Upstream.ApplySyncPreview)
+		upstreams.POST("/:id/test-login", h.Admin.Upstream.TestLogin)
+		upstreams.POST("/:id/probe", h.Admin.Upstream.Probe)
+		upstreams.GET("/:id/policy", h.Admin.Upstream.GetPolicy)
+		upstreams.PUT("/:id/policy", h.Admin.Upstream.UpdatePolicy)
+		upstreams.GET("/:id/alerts", h.Admin.Upstream.Alerts)
+		upstreams.PUT("/:id/alerts/:alert_type/resolve", h.Admin.Upstream.ResolveAlert)
+		upstreams.GET("/:id/cost-report", h.Admin.Upstream.CostReport)
+		upstreams.GET("/:id/remote-groups", h.Admin.Upstream.Groups)
+		upstreams.GET("/:id/remote-api-keys", h.Admin.Upstream.APIKeys)
+		upstreams.PUT("/:id/remote-api-keys/:remote_key_id", h.Admin.Upstream.UpdateAPIKeyConfig)
 	}
 }
 

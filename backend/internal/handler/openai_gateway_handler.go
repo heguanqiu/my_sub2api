@@ -422,7 +422,7 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 						h.handleFailoverExhausted(c, failoverErr, true)
 						return
 					}
-					h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, false, nil)
+					h.reportOpenAIRuntimeResult(c, account, result, false, time.Duration(forwardDurationMs)*time.Millisecond, failoverErr.StatusCode, err, false, "failover")
 					// 池模式：同账号重试
 					if failoverErr.RetryableOnSameAccount {
 						retryLimit := account.GetPoolModeRetryCount()
@@ -462,7 +462,7 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 					)
 					continue
 				}
-				h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, false, nil)
+				h.reportOpenAIRuntimeResult(c, account, result, false, time.Duration(forwardDurationMs)*time.Millisecond, 0, err, false, "forward_error")
 				upstreamErrorAlreadyCommunicated := openAIForwardErrorAlreadyCommunicated(c, writerSizeBeforeForward, err)
 				wroteFallback := false
 				if !upstreamErrorAlreadyCommunicated {
@@ -486,9 +486,9 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 			if account.Type == service.AccountTypeOAuth {
 				h.gatewayService.UpdateCodexUsageSnapshotFromHeaders(c.Request.Context(), account.ID, result.ResponseHeaders)
 			}
-			h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, true, result.FirstTokenMs)
+			h.reportOpenAIRuntimeResult(c, account, result, true, result.Duration, 0, nil, false, "success")
 		} else {
-			h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, true, nil)
+			h.reportOpenAIRuntimeResult(c, account, nil, true, time.Duration(forwardDurationMs)*time.Millisecond, 0, nil, false, "success")
 		}
 
 		// 捕获请求信息（用于异步记录，避免在 goroutine 中访问 gin.Context）
@@ -834,7 +834,7 @@ func (h *OpenAIGatewayHandler) Messages(c *gin.Context) {
 						h.handleAnthropicFailoverExhausted(c, failoverErr, true)
 						return
 					}
-					h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, false, nil)
+					h.reportOpenAIRuntimeResult(c, account, result, false, time.Duration(forwardDurationMs)*time.Millisecond, failoverErr.StatusCode, err, false, "failover")
 					// 池模式：同账号重试
 					if failoverErr.RetryableOnSameAccount {
 						retryLimit := account.GetPoolModeRetryCount()
@@ -875,13 +875,14 @@ func (h *OpenAIGatewayHandler) Messages(c *gin.Context) {
 					continue
 				}
 				if result != nil && result.ClientDisconnect {
+					h.reportOpenAIRuntimeResult(c, account, result, true, result.Duration, 0, err, true, "client_disconnect")
 					reqLog.Info("openai_messages.client_disconnected",
 						zap.Int64("account_id", account.ID),
 						zap.Error(err),
 					)
 					return
 				}
-				h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, false, nil)
+				h.reportOpenAIRuntimeResult(c, account, result, false, time.Duration(forwardDurationMs)*time.Millisecond, 0, err, false, "forward_error")
 				wroteFallback := h.ensureAnthropicErrorResponse(c, streamStarted)
 				reqLog.Warn("openai_messages.forward_failed",
 					zap.Int64("account_id", account.ID),
@@ -892,9 +893,9 @@ func (h *OpenAIGatewayHandler) Messages(c *gin.Context) {
 			}
 		}
 		if result != nil {
-			h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, true, result.FirstTokenMs)
+			h.reportOpenAIRuntimeResult(c, account, result, true, result.Duration, 0, nil, false, "success")
 		} else {
-			h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, true, nil)
+			h.reportOpenAIRuntimeResult(c, account, nil, true, time.Duration(forwardDurationMs)*time.Millisecond, 0, nil, false, "success")
 		}
 
 		userAgent := c.GetHeader("User-Agent")
@@ -1494,7 +1495,7 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 				if account.Type == service.AccountTypeOAuth {
 					h.gatewayService.UpdateCodexUsageSnapshotFromHeaders(ctx, account.ID, result.ResponseHeaders)
 				}
-				h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, true, result.FirstTokenMs)
+				h.reportOpenAIRuntimeResult(c, account, result, true, result.Duration, 0, nil, false, "websocket_success")
 				inboundEndpoint := GetInboundEndpoint(c)
 				upstreamEndpoint := resolveOpenAIUpstreamEndpoint(c, account)
 				cyberBlocked := service.GetOpsCyberPolicy(c) != nil
@@ -1548,7 +1549,7 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 		if err := h.gatewayService.ProxyResponsesWebSocketFromClient(ctx, c, wsConn, account, token, wsFirstMessage, hooks); err != nil {
 			var failoverErr *service.UpstreamFailoverError
 			if errors.As(err, &failoverErr) {
-				h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, false, nil)
+				h.reportOpenAIRuntimeResult(c, account, nil, false, 0, failoverErr.StatusCode, failoverErr, false, "websocket_failover")
 				releaseAccountSlot()
 				failedAccountIDs[account.ID] = struct{}{}
 				lastFailoverErr = failoverErr
@@ -1574,7 +1575,7 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 				continue
 			}
 
-			h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, false, nil)
+			h.reportOpenAIRuntimeResult(c, account, nil, false, 0, 0, err, false, "websocket_error")
 			closeStatus, closeReason := summarizeWSCloseErrorForLog(err)
 			reqLog.Warn("openai.websocket_proxy_failed",
 				zap.Int64("account_id", account.ID),
@@ -1940,6 +1941,31 @@ func openAIForwardErrorAlreadyCommunicated(c *gin.Context, writerSizeBeforeForwa
 		}
 	}
 	return false
+}
+
+func (h *OpenAIGatewayHandler) reportOpenAIRuntimeResult(c *gin.Context, account *service.Account, result *service.OpenAIForwardResult, success bool, duration time.Duration, statusCode int, err error, ignored bool, reason string) {
+	if h == nil || h.gatewayService == nil || account == nil {
+		return
+	}
+	var firstTokenMs *int
+	if result != nil {
+		firstTokenMs = result.FirstTokenMs
+		if result.ClientDisconnect {
+			ignored = true
+			if reason == "" {
+				reason = "client_disconnect"
+			}
+		}
+	}
+	errorMessage := ""
+	if err != nil {
+		errorMessage = err.Error()
+	}
+	ctx := context.Background()
+	if c != nil && c.Request != nil {
+		ctx = c.Request.Context()
+	}
+	h.gatewayService.ReportOpenAIAccountScheduleEvent(ctx, account.ID, success, firstTokenMs, duration, statusCode, errorMessage, ignored, reason)
 }
 
 // errorResponse returns OpenAI API format error response

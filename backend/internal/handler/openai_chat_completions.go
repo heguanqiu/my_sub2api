@@ -237,7 +237,7 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 						h.handleFailoverExhausted(c, failoverErr, true)
 						return
 					}
-					h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, false, nil)
+					h.reportOpenAIRuntimeResult(c, account, result, false, time.Duration(forwardDurationMs)*time.Millisecond, failoverErr.StatusCode, err, false, "failover")
 					// Pool mode: retry on the same account
 					if failoverErr.RetryableOnSameAccount {
 						retryLimit := account.GetPoolModeRetryCount()
@@ -277,7 +277,7 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 					)
 					continue
 				}
-				h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, false, nil)
+				h.reportOpenAIRuntimeResult(c, account, result, false, time.Duration(forwardDurationMs)*time.Millisecond, 0, err, false, "forward_error")
 				upstreamErrorAlreadyCommunicated := openAIForwardErrorAlreadyCommunicated(c, writerSizeBeforeForward, err)
 				wroteFallback := false
 				if !upstreamErrorAlreadyCommunicated {
@@ -293,9 +293,9 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 			}
 		}
 		if result != nil {
-			h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, true, result.FirstTokenMs)
+			h.reportOpenAIRuntimeResult(c, account, result, true, result.Duration, 0, nil, false, "success")
 		} else {
-			h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, true, nil)
+			h.reportOpenAIRuntimeResult(c, account, nil, true, time.Duration(forwardDurationMs)*time.Millisecond, 0, nil, false, "success")
 		}
 
 		userAgent := c.GetHeader("User-Agent")
