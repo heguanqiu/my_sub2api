@@ -251,9 +251,9 @@ func (s *UpstreamService) SyncRemoteResources(ctx context.Context, id int64) (*U
 		_ = s.recordFailedSync(ctx, id, started, err)
 		return nil, ErrUpstreamSyncFailed.WithCause(err)
 	}
-	keys, err := s.adapter.ListAPIKeys(ctx, upstream, session)
-	if err != nil {
-		keys = []*UpstreamRemoteAPIKey{}
+	keys, keyErr := s.adapter.ListAPIKeys(ctx, upstream, session)
+	if keyErr != nil {
+		keys = nil
 	}
 
 	now := time.Now().UTC()
@@ -308,9 +308,9 @@ func (s *UpstreamService) SyncRemoteResources(ctx context.Context, id int64) (*U
 			"api_keys_count": len(keys),
 		},
 	}
-	if err != nil {
-		run.Message = "sync completed without remote api keys: " + err.Error()
-		run.RawResult["api_keys_error"] = err.Error()
+	if keyErr != nil {
+		run.Message = "sync completed without remote api keys: " + keyErr.Error()
+		run.RawResult["api_keys_error"] = keyErr.Error()
 	}
 	if err := s.repo.ReplaceRemoteResources(ctx, id, groups, keys, run); err != nil {
 		return nil, err

@@ -306,6 +306,9 @@ func (r *upstreamRepository) ReplaceRemoteResources(ctx context.Context, upstrea
 			group.UpstreamID = upstreamID
 		}
 		for _, key := range keys {
+			if key == nil {
+				continue
+			}
 			if key.LastSyncedAt.IsZero() {
 				key.LastSyncedAt = now
 			}
@@ -353,6 +356,34 @@ func (r *upstreamRepository) ReplaceRemoteResources(ctx context.Context, upstrea
 			}
 			key.UpstreamID = upstreamID
 			key.APIKeyConfigured = strings.TrimSpace(key.APIKey) != ""
+		}
+		if keys != nil {
+			syncedKeyIDs := make([]string, 0, len(keys))
+			for _, key := range keys {
+				if key == nil {
+					continue
+				}
+				if id := strings.TrimSpace(key.RemoteAPIKeyID); id != "" {
+					syncedKeyIDs = append(syncedKeyIDs, id)
+				}
+			}
+			syncedKeyIDs = uniqueStrings(syncedKeyIDs)
+			var err error
+			if len(syncedKeyIDs) == 0 {
+				_, err = tx.ExecContext(ctx, `
+					DELETE FROM upstream_remote_api_keys
+					WHERE upstream_id = $1
+				`, upstreamID)
+			} else {
+				_, err = tx.ExecContext(ctx, `
+					DELETE FROM upstream_remote_api_keys
+					WHERE upstream_id = $1
+					  AND remote_api_key_id <> ALL($2::text[])
+				`, upstreamID, pq.Array(syncedKeyIDs))
+			}
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -1051,15 +1082,22 @@ func (r *upstreamRepository) GetCostReport(ctx context.Context, upstreamID int64
 	dimension = normalizeCostDimension(dimension)
 	selectExpr, groupExpr, orderExpr := upstreamCostDimensionSQL(dimension)
 	args := []any{upstreamID, start, end}
+	costMultiplierExpr := upstreamCostMultiplierSQL()
 	query := `
 		SELECT ` + selectExpr + `,
 		       COUNT(*) AS request_count,
 		       COALESCE(SUM(ul.actual_cost), 0) AS local_billed_cost,
-		       COALESCE(SUM(COALESCE(ul.account_stats_cost, ul.total_cost) * COALESCE(ul.account_rate_multiplier, 1)), 0) AS upstream_cost,
-		       COALESCE(AVG(COALESCE(ul.account_rate_multiplier, 1)), 1) AS avg_multiplier
+		       COALESCE(SUM(COALESCE(ul.account_stats_cost, ul.total_cost) * ` + costMultiplierExpr + `), 0) AS upstream_cost,
+		       COALESCE(AVG(` + costMultiplierExpr + `), 1) AS avg_multiplier
 		FROM usage_logs ul
 		JOIN accounts a ON a.id = ul.account_id
 		JOIN upstreams u ON (a.extra->>'upstream_id')::bigint = u.id
+		LEFT JOIN upstream_remote_api_keys urak
+		  ON urak.upstream_id = u.id
+		 AND urak.remote_api_key_id = COALESCE(a.extra->>'upstream_remote_api_key_id', '')
+		LEFT JOIN upstream_remote_groups urg
+		  ON urg.upstream_id = u.id
+		 AND urg.remote_group_id = ` + upstreamCostRemoteGroupSQL() + `
 		WHERE (a.extra->>'upstream_runtime_managed') = 'true'
 		  AND u.id = $1
 		  AND ul.created_at >= $2 AND ul.created_at < $3
@@ -1465,8 +1503,9 @@ func upstreamCostDimensionSQL(dimension string) (selectExpr, groupExpr, orderExp
 	base := "u.id AS upstream_id, u.name AS upstream_name"
 	switch normalizeCostDimension(dimension) {
 	case "remote_group":
-		return base + ", COALESCE(a.extra->>'upstream_remote_group_id', '') AS remote_group_id",
-			"GROUP BY u.id, u.name, COALESCE(a.extra->>'upstream_remote_group_id', '')",
+		remoteGroupExpr := upstreamCostRemoteGroupSQL()
+		return base + ", " + remoteGroupExpr + " AS remote_group_id",
+			"GROUP BY u.id, u.name, " + remoteGroupExpr,
 			"upstream_cost DESC"
 	case "api_key":
 		return base + ", COALESCE(a.extra->>'upstream_remote_api_key_id', '') AS remote_api_key_id",
@@ -1487,6 +1526,18 @@ func upstreamCostDimensionSQL(dimension string) (selectExpr, groupExpr, orderExp
 	default:
 		return base, "GROUP BY u.id, u.name", "upstream_cost DESC"
 	}
+}
+
+func upstreamCostRemoteGroupSQL() string {
+	return "COALESCE(NULLIF(urak.remote_group_id, ''), NULLIF(urak.synced_remote_group_id, ''), NULLIF(a.extra->>'upstream_remote_group_id', ''), '')"
+}
+
+func upstreamCostMultiplierSQL() string {
+	return `CASE
+			WHEN urg.rate_multiplier IS NOT NULL AND urg.rate_multiplier > 0 THEN urg.rate_multiplier
+			WHEN ul.account_rate_multiplier IS NOT NULL AND ul.account_rate_multiplier > 0 THEN ul.account_rate_multiplier
+			ELSE 1
+		END`
 }
 
 func scanCostDimension(row scanner, upstreamID int64, dimension string) (service.UpstreamCostDimension, error) {

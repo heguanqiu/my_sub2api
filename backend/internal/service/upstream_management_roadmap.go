@@ -180,7 +180,7 @@ func (s *UpstreamService) fetchRemoteResources(ctx context.Context, id int64) (*
 	}
 	keys, keyErr := s.adapter.ListAPIKeys(ctx, upstream, session)
 	if keyErr != nil {
-		keys = []*UpstreamRemoteAPIKey{}
+		keys = nil
 	}
 	if err := s.prepareRemoteResources(id, groups, keys); err != nil {
 		return nil, nil, nil, err
@@ -269,70 +269,72 @@ func BuildUpstreamSyncDiff(currentGroups []*UpstreamRemoteGroup, currentKeys []*
 		}
 	}
 
-	curKeys := map[string]*UpstreamRemoteAPIKey{}
-	nextKeyMap := map[string]*UpstreamRemoteAPIKey{}
-	for _, key := range currentKeys {
-		if key != nil && strings.TrimSpace(key.RemoteAPIKeyID) != "" {
-			curKeys[key.RemoteAPIKeyID] = key
-		}
-	}
-	for _, key := range nextKeys {
-		if key != nil && strings.TrimSpace(key.RemoteAPIKeyID) != "" {
-			nextKeyMap[key.RemoteAPIKeyID] = key
-		}
-	}
-	affected := map[int64]struct{}{}
-	for id, key := range nextKeyMap {
-		before := curKeys[id]
-		if before == nil {
-			diff.AddedAPIKeys = append(diff.AddedAPIKeys, syncDiffItem("api_key", id, key.RemoteAPIKeyName, nil, apiKeyMap(key), "new upstream API key", key.LocalGroupIDs))
-			continue
-		}
-		beforeMap := map[string]any{}
-		changed := map[string]any{}
-		if before.RemoteAPIKeyName != key.RemoteAPIKeyName {
-			beforeMap["name"] = before.RemoteAPIKeyName
-			changed["name"] = key.RemoteAPIKeyName
-		}
-		if before.SyncedRemoteGroupID != key.SyncedRemoteGroupID {
-			beforeMap["synced_remote_group_id"] = before.SyncedRemoteGroupID
-			changed["synced_remote_group_id"] = key.SyncedRemoteGroupID
-			for _, gid := range before.LocalGroupIDs {
-				affected[gid] = struct{}{}
+	if nextKeys != nil {
+		curKeys := map[string]*UpstreamRemoteAPIKey{}
+		nextKeyMap := map[string]*UpstreamRemoteAPIKey{}
+		for _, key := range currentKeys {
+			if key != nil && strings.TrimSpace(key.RemoteAPIKeyID) != "" {
+				curKeys[key.RemoteAPIKeyID] = key
 			}
 		}
-		if before.Status != key.Status {
-			beforeMap["status"] = before.Status
-			changed["status"] = key.Status
-		}
-		if len(changed) > 0 {
-			diff.ChangedAPIKeys = append(diff.ChangedAPIKeys, syncDiffItem("api_key", id, key.RemoteAPIKeyName, beforeMap, changed, "API key metadata changed", before.LocalGroupIDs))
-		}
-	}
-	for id, key := range curKeys {
-		if nextKeyMap[id] == nil {
-			diff.RemovedAPIKeys = append(diff.RemovedAPIKeys, syncDiffItem("api_key", id, key.RemoteAPIKeyName, apiKeyMap(key), nil, "API key missing from upstream", key.LocalGroupIDs))
-			diff.UnschedulableAPIKeyIDs = append(diff.UnschedulableAPIKeyIDs, id)
-			for _, gid := range key.LocalGroupIDs {
-				affected[gid] = struct{}{}
+		for _, key := range nextKeys {
+			if key != nil && strings.TrimSpace(key.RemoteAPIKeyID) != "" {
+				nextKeyMap[key.RemoteAPIKeyID] = key
 			}
 		}
-	}
-	for _, key := range nextKeys {
-		if key == nil {
-			continue
+		affected := map[int64]struct{}{}
+		for id, key := range nextKeyMap {
+			before := curKeys[id]
+			if before == nil {
+				diff.AddedAPIKeys = append(diff.AddedAPIKeys, syncDiffItem("api_key", id, key.RemoteAPIKeyName, nil, apiKeyMap(key), "new upstream API key", key.LocalGroupIDs))
+				continue
+			}
+			beforeMap := map[string]any{}
+			changed := map[string]any{}
+			if before.RemoteAPIKeyName != key.RemoteAPIKeyName {
+				beforeMap["name"] = before.RemoteAPIKeyName
+				changed["name"] = key.RemoteAPIKeyName
+			}
+			if before.SyncedRemoteGroupID != key.SyncedRemoteGroupID {
+				beforeMap["synced_remote_group_id"] = before.SyncedRemoteGroupID
+				changed["synced_remote_group_id"] = key.SyncedRemoteGroupID
+				for _, gid := range before.LocalGroupIDs {
+					affected[gid] = struct{}{}
+				}
+			}
+			if before.Status != key.Status {
+				beforeMap["status"] = before.Status
+				changed["status"] = key.Status
+			}
+			if len(changed) > 0 {
+				diff.ChangedAPIKeys = append(diff.ChangedAPIKeys, syncDiffItem("api_key", id, key.RemoteAPIKeyName, beforeMap, changed, "API key metadata changed", before.LocalGroupIDs))
+			}
 		}
-		if strings.TrimSpace(key.RemoteGroupID) == "" || nextGroupMap[strings.TrimSpace(key.RemoteGroupID)] == nil || len(uniquePositiveInt64sLocal(key.LocalGroupIDs)) == 0 {
-			diff.UnschedulableAPIKeyIDs = append(diff.UnschedulableAPIKeyIDs, strings.TrimSpace(key.RemoteAPIKeyID))
+		for id, key := range curKeys {
+			if nextKeyMap[id] == nil {
+				diff.RemovedAPIKeys = append(diff.RemovedAPIKeys, syncDiffItem("api_key", id, key.RemoteAPIKeyName, apiKeyMap(key), nil, "API key missing from upstream", key.LocalGroupIDs))
+				diff.UnschedulableAPIKeyIDs = append(diff.UnschedulableAPIKeyIDs, id)
+				for _, gid := range key.LocalGroupIDs {
+					affected[gid] = struct{}{}
+				}
+			}
 		}
-	}
-	for id := range affected {
-		if id > 0 {
-			diff.AffectedLocalGroupIDs = append(diff.AffectedLocalGroupIDs, id)
+		for _, key := range nextKeys {
+			if key == nil {
+				continue
+			}
+			if strings.TrimSpace(key.RemoteGroupID) == "" || nextGroupMap[strings.TrimSpace(key.RemoteGroupID)] == nil || len(uniquePositiveInt64sLocal(key.LocalGroupIDs)) == 0 {
+				diff.UnschedulableAPIKeyIDs = append(diff.UnschedulableAPIKeyIDs, strings.TrimSpace(key.RemoteAPIKeyID))
+			}
 		}
+		for id := range affected {
+			if id > 0 {
+				diff.AffectedLocalGroupIDs = append(diff.AffectedLocalGroupIDs, id)
+			}
+		}
+		sort.Slice(diff.AffectedLocalGroupIDs, func(i, j int) bool { return diff.AffectedLocalGroupIDs[i] < diff.AffectedLocalGroupIDs[j] })
+		diff.UnschedulableAPIKeyIDs = uniqueStringsService(diff.UnschedulableAPIKeyIDs)
 	}
-	sort.Slice(diff.AffectedLocalGroupIDs, func(i, j int) bool { return diff.AffectedLocalGroupIDs[i] < diff.AffectedLocalGroupIDs[j] })
-	diff.UnschedulableAPIKeyIDs = uniqueStringsService(diff.UnschedulableAPIKeyIDs)
 	return diff
 }
 

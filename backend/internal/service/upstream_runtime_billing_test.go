@@ -25,6 +25,35 @@ func TestAccountRateMultiplierForUsageUsesMappedRemoteGroupRate(t *testing.T) {
 	}
 }
 
+func TestAccountRateMultiplierForUsageUsesSyncedUpstreamGroupRate(t *testing.T) {
+	localGroupID := int64(36)
+	upstream := &Upstream{
+		ID:      9,
+		Name:    "north",
+		Type:    UpstreamTypeSub2API,
+		BaseURL: "https://upstream.example.com",
+		Status:  UpstreamStatusActive,
+		Weight:  100,
+		RemoteGroups: []*UpstreamRemoteGroup{
+			{RemoteGroupID: "vip", RateMultiplier: 3.25},
+		},
+	}
+	remoteKey := &UpstreamRemoteAPIKey{
+		RemoteAPIKeyID:   "key-1",
+		RemoteAPIKeyName: "VIP key",
+		APIKey:           "sk-forward",
+		RemoteGroupID:    "vip",
+		Status:           UpstreamStatusActive,
+		LocalGroupIDs:    []int64{localGroupID},
+	}
+	account := buildRuntimeAccountFromUpstreamAPIKey(upstream, remoteKey, nil, PlatformOpenAI)
+
+	got := accountRateMultiplierForUsage(account, &localGroupID)
+	if got != 3.25 {
+		t.Fatalf("multiplier = %v, want 3.25", got)
+	}
+}
+
 func TestAccountRateMultiplierForUsageFallsBackForNormalAccount(t *testing.T) {
 	base := 1.2
 	groupID := int64(30)
