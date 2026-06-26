@@ -85,6 +85,7 @@ func TestReportUpstreamRuntimeEventRefreshesHiddenAccountSchedulingFields(t *tes
 		nil,
 		nil,
 		nil,
+		nil,
 		upstreamRepo,
 	)
 
