@@ -94,12 +94,12 @@ func (r *userRepository) Create(ctx context.Context, userIn *service.User) error
 		SetSignupSource(userSignupSourceOrDefault(userIn.SignupSource)).
 		SetNillableLastLoginAt(userIn.LastLoginAt).
 		SetNillableLastActiveAt(userIn.LastActiveAt).
-			SetNillableInvitedByUserID(userIn.InvitedByUserID).
-			SetNillableOwnerSalesID(userIn.OwnerSalesID).
-			SetNillableFirstPaidOrderID(userIn.FirstPaidOrderID).
-			SetNillableFirstPaidAt(userIn.FirstPaidAt).
-			SetRpmLimit(userIn.RPMLimit).
-			Save(txCtx)
+		SetNillableInvitedByUserID(userIn.InvitedByUserID).
+		SetNillableOwnerSalesID(userIn.OwnerSalesID).
+		SetNillableFirstPaidOrderID(userIn.FirstPaidOrderID).
+		SetNillableFirstPaidAt(userIn.FirstPaidAt).
+		SetRpmLimit(userIn.RPMLimit).
+		Save(txCtx)
 	if err != nil {
 		return translatePersistenceError(err, nil, service.ErrEmailExists)
 	}
@@ -765,6 +765,17 @@ func (r *userRepository) UpdateBalance(ctx context.Context, id int64, amount flo
 func (r *userRepository) DeductBalance(ctx context.Context, id int64, amount float64) error {
 	client := clientFromContext(ctx, r.client)
 	n, err := client.User.Update().
+		Where(dbuser.IDEQ(id), dbuser.BalanceGTE(amount)).
+		AddBalance(-amount).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if n > 0 {
+		return nil
+	}
+
+	n, err = client.User.Update().
 		Where(dbuser.IDEQ(id)).
 		AddBalance(-amount).
 		Save(ctx)

@@ -48,6 +48,25 @@ func TestBuildUpstreamSyncDiffCapturesGroupsKeysAndCostChanges(t *testing.T) {
 	}
 }
 
+func TestBuildUpstreamSyncDiffSkipsAPIKeysWhenNextListUnknown(t *testing.T) {
+	diff := BuildUpstreamSyncDiff(
+		[]*UpstreamRemoteGroup{{RemoteGroupID: "default", RemoteGroupName: "Default", RateMultiplier: 1, Status: UpstreamStatusActive}},
+		[]*UpstreamRemoteAPIKey{{RemoteAPIKeyID: "key-old", RemoteAPIKeyName: "Old", SyncedRemoteGroupID: "default", RemoteGroupID: "default", LocalGroupIDs: []int64{11}}},
+		[]*UpstreamRemoteGroup{{RemoteGroupID: "default", RemoteGroupName: "Default", RateMultiplier: 1, Status: UpstreamStatusActive}},
+		nil,
+	)
+
+	if got := len(diff.RemovedAPIKeys); got != 0 {
+		t.Fatalf("RemovedAPIKeys len = %d, want 0", got)
+	}
+	if got := len(diff.UnschedulableAPIKeyIDs); got != 0 {
+		t.Fatalf("UnschedulableAPIKeyIDs len = %d, want 0", got)
+	}
+	if got := len(diff.AffectedLocalGroupIDs); got != 0 {
+		t.Fatalf("AffectedLocalGroupIDs len = %d, want 0", got)
+	}
+}
+
 func TestNormalizeGovernancePolicyDefaultsAndDeduplicatesCodes(t *testing.T) {
 	policy := normalizeGovernancePolicy(UpstreamGovernancePolicy{
 		IgnoredStatusCodes:          []int{429, 0, 429, 529},

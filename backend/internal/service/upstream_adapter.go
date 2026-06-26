@@ -200,24 +200,49 @@ func (a *HTTPUpstreamAdminAdapter) ListAPIKeys(ctx context.Context, upstream *Up
 }
 
 func (a *HTTPUpstreamAdminAdapter) GetAccountBalance(ctx context.Context, upstream *Upstream, session *UpstreamAdminSession) (*UpstreamAccountBalanceResult, error) {
-	raw, err := a.getJSON(ctx, upstream, session, "/api/user/self")
-	if err != nil {
-		return nil, err
-	}
-	result := parseNewAPIAccountBalance(raw)
-	now := time.Now().UTC()
-	result.UpstreamID = upstream.ID
-	result.Source = "/api/user/self"
-	result.CheckedAt = now
-	result.HasBalance = result.Balance != nil || result.Quota != nil || result.UsedQuota != nil || result.RemainingQuota != nil
-	if result.Message == "" {
-		if result.HasBalance {
-			result.Message = "account balance refreshed"
-		} else {
-			result.Message = "upstream /api/user/self did not include quota fields"
+	paths := accountBalancePaths(upstream)
+	errs := make([]error, 0, len(paths))
+	for _, p := range paths {
+		raw, err := a.getJSON(ctx, upstream, session, p)
+		if err != nil {
+			errs = append(errs, err)
+			continue
 		}
+		result := parseUpstreamAccountBalance(raw)
+		now := time.Now().UTC()
+		result.UpstreamID = upstream.ID
+		result.Source = p
+		result.CheckedAt = now
+		result.HasBalance = result.Balance != nil || result.Quota != nil || result.UsedQuota != nil || result.RemainingQuota != nil
+		if result.Message == "" {
+			if result.HasBalance {
+				result.Message = "account balance refreshed"
+			} else {
+				result.Message = "upstream " + p + " did not include balance or quota fields"
+			}
+		}
+		return result, nil
 	}
-	return result, nil
+	return nil, upstreamDiscoveryError("account balance", errs, nil)
+}
+
+func accountBalancePaths(upstream *Upstream) []string {
+	sub2apiPaths := []string{
+		"/api/v1/auth/me",
+		"/api/v1/user/profile",
+		"/api/v1/users/me",
+		"/api/user/self",
+	}
+	newAPIPaths := []string{
+		"/api/user/self",
+		"/api/v1/auth/me",
+		"/api/v1/user/profile",
+		"/api/v1/users/me",
+	}
+	if upstream != nil && strings.TrimSpace(upstream.Type) == UpstreamTypeNewAPI {
+		return newAPIPaths
+	}
+	return sub2apiPaths
 }
 
 func (a *HTTPUpstreamAdminAdapter) getJSON(ctx context.Context, upstream *Upstream, session *UpstreamAdminSession, relPath string) ([]byte, error) {
@@ -398,31 +423,37 @@ func parseUpstreamAPIKeys(raw []byte) []*UpstreamRemoteAPIKey {
 	return out
 }
 
-func parseNewAPIAccountBalance(raw []byte) *UpstreamAccountBalanceResult {
+func parseUpstreamAccountBalance(raw []byte) *UpstreamAccountBalanceResult {
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.UseNumber()
 	var decoded any
 	if err := decoder.Decode(&decoded); err != nil {
-		return &UpstreamAccountBalanceResult{Message: "invalid /api/user/self response"}
+		return &UpstreamAccountBalanceResult{Message: "invalid account balance response"}
 	}
 	root, ok := decoded.(map[string]any)
 	if !ok {
-		return &UpstreamAccountBalanceResult{Message: "invalid /api/user/self response"}
+		return &UpstreamAccountBalanceResult{Message: "invalid account balance response"}
 	}
 	payload := root
 	if data, ok := root["data"].(map[string]any); ok {
 		payload = data
 	}
 
-	quota := optionalObjectFloat(payload, "quota")
-	usedQuota := optionalObjectFloat(payload, "used_quota")
+	balance := optionalObjectFloat(payload, "balance")
+	quota := optionalObjectFloat(payload, "quota", "total_quota", "total_granted")
+	usedQuota := optionalObjectFloat(payload, "used_quota", "quota_used", "used_amount", "used", "total_used")
+	remainingQuota := optionalObjectFloat(payload, "remaining_quota", "remain_quota")
 	result := &UpstreamAccountBalanceResult{
-		Quota:     quota,
-		UsedQuota: usedQuota,
+		Balance:        balance,
+		Quota:          quota,
+		UsedQuota:      usedQuota,
+		RemainingQuota: remainingQuota,
 	}
-	if quota != nil {
+	if result.Balance == nil && quota != nil {
 		// new-api stores current usable account balance in user.quota.
 		result.Balance = quota
+	}
+	if result.RemainingQuota == nil && quota != nil {
 		result.RemainingQuota = quota
 	}
 	return result

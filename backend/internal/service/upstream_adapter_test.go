@@ -187,6 +187,69 @@ func TestHTTPUpstreamAdminAdapterListGroupsUsesNewAPIHeaders(t *testing.T) {
 	}
 }
 
+func TestHTTPUpstreamAdminAdapterGetAccountBalanceUsesSub2APIProfileEndpoint(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/auth/me" {
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+		if got := r.Header.Get("Authorization"); got != "Bearer access-token" {
+			t.Fatalf("Authorization = %q", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"code":0,"message":"success","data":{"id":42,"balance":12.34}}`))
+	}))
+	defer server.Close()
+
+	adapter := NewHTTPUpstreamAdminAdapter()
+	result, err := adapter.GetAccountBalance(context.Background(), &Upstream{
+		ID:      1,
+		Type:    UpstreamTypeSub2API,
+		BaseURL: server.URL,
+	}, &UpstreamAdminSession{AccessToken: "access-token"})
+	if err != nil {
+		t.Fatalf("GetAccountBalance returned error: %v", err)
+	}
+	if result.Source != "/api/v1/auth/me" {
+		t.Fatalf("source = %q, want /api/v1/auth/me", result.Source)
+	}
+	if result.Balance == nil || *result.Balance != 12.34 || !result.HasBalance {
+		t.Fatalf("result = %#v", result)
+	}
+}
+
+func TestHTTPUpstreamAdminAdapterGetAccountBalanceKeepsNewAPIPathFirst(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/user/self" {
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+		if got := r.Header.Get("New-Api-User"); got != "42" {
+			t.Fatalf("New-Api-User = %q", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"success":true,"data":{"quota":99,"used_quota":10}}`))
+	}))
+	defer server.Close()
+
+	adapter := NewHTTPUpstreamAdminAdapter()
+	result, err := adapter.GetAccountBalance(context.Background(), &Upstream{
+		ID:      1,
+		Type:    UpstreamTypeNewAPI,
+		BaseURL: server.URL,
+	}, &UpstreamAdminSession{AccessToken: "access-token", UserID: "42"})
+	if err != nil {
+		t.Fatalf("GetAccountBalance returned error: %v", err)
+	}
+	if result.Source != "/api/user/self" {
+		t.Fatalf("source = %q, want /api/user/self", result.Source)
+	}
+	if result.Balance == nil || *result.Balance != 99 || result.RemainingQuota == nil || *result.RemainingQuota != 99 {
+		t.Fatalf("result = %#v", result)
+	}
+	if result.UsedQuota == nil || *result.UsedQuota != 10 {
+		t.Fatalf("used quota = %v, want 10", result.UsedQuota)
+	}
+}
+
 func TestJoinUpstreamURLPreservesQueryAndTrailingSlash(t *testing.T) {
 	got := joinUpstreamURL("https://example.com/root/", "/api/token/?p=0&page_size=1000")
 	if !strings.HasPrefix(got, "https://example.com/root/api/token/?") {
