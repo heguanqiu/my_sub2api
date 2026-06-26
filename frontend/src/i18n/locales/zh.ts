@@ -1438,12 +1438,14 @@ export default {
 
   sales: {
     totalCustomers: '客户总数',
+    monthlyCustomers: '当月新增客户',
     totalOrders: '订单总数',
     completedOrders: '已完成订单',
     totalOrderAmount: '充值金额',
     rangeToday: '今天',
     range7d: '7 天',
     range30d: '30 天',
+    month: '月份',
     completedOrderAmount: '完成金额',
     orders: '订单',
     referralTitle: '销售专属邀请注册链接',

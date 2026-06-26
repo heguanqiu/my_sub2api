@@ -43,14 +43,14 @@ func (s *UpstreamService) syncRuntimeAccount(ctx context.Context, upstream *Upst
 		return err
 	}
 
-	existingByRemoteKeyID := make(map[string]*Account, len(accounts))
+	existingByRuntimeKey := make(map[string]*Account, len(accounts))
 	for i := range accounts {
 		account := accounts[i]
 		remoteAPIKeyID := accountUpstreamRemoteAPIKeyID(&account)
 		if remoteAPIKeyID == "" {
 			continue
 		}
-		existingByRemoteKeyID[remoteAPIKeyID] = &accounts[i]
+		existingByRuntimeKey[upstreamRuntimeAccountKey(remoteAPIKeyID, account.Platform)] = &accounts[i]
 	}
 
 	keptAccountIDs := make(map[int64]bool)
@@ -59,30 +59,38 @@ func (s *UpstreamService) syncRuntimeAccount(ctx context.Context, upstream *Upst
 			continue
 		}
 		remoteKey.LocalGroupIDs = uniquePositiveInt64sLocal(remoteKey.LocalGroupIDs)
-		groupIDs, err := s.validateRuntimeLocalGroupIDs(ctx, remoteKey.LocalGroupIDs)
+		groupIDsByPlatform, err := s.validateRuntimeLocalGroupIDsByPlatform(ctx, remoteKey.LocalGroupIDs)
 		if err != nil {
 			return err
 		}
-		existing := existingByRemoteKeyID[strings.TrimSpace(remoteKey.RemoteAPIKeyID)]
-		if existing == nil && !remoteAPIKeyHasRuntimeConfig(remoteKey) {
-			continue
-		}
+		for _, platform := range []string{PlatformOpenAI, PlatformAnthropic} {
+			groupIDs := groupIDsByPlatform[platform]
+			existing := existingByRuntimeKey[upstreamRuntimeAccountKey(remoteKey.RemoteAPIKeyID, platform)]
+			if len(groupIDs) == 0 {
+				continue
+			}
+			if existing == nil && !remoteAPIKeyHasRuntimeConfig(remoteKey) {
+				continue
+			}
 
-		built := buildRuntimeAccountFromUpstreamAPIKey(upstream, remoteKey, existing)
-		if existing == nil {
-			if err := s.accountRepo.Create(ctx, built); err != nil {
-				return fmt.Errorf("create upstream runtime account: %w", err)
+			platformKey := *remoteKey
+			platformKey.LocalGroupIDs = append([]int64(nil), groupIDs...)
+			built := buildRuntimeAccountFromUpstreamAPIKey(upstream, &platformKey, existing, platform)
+			if existing == nil {
+				if err := s.accountRepo.Create(ctx, built); err != nil {
+					return fmt.Errorf("create upstream runtime account: %w", err)
+				}
+			} else {
+				built.ID = existing.ID
+				if err := s.accountRepo.Update(ctx, built); err != nil {
+					return fmt.Errorf("update upstream runtime account: %w", err)
+				}
 			}
-		} else {
-			built.ID = existing.ID
-			if err := s.accountRepo.Update(ctx, built); err != nil {
-				return fmt.Errorf("update upstream runtime account: %w", err)
+			if err := s.accountRepo.BindGroups(ctx, built.ID, groupIDs); err != nil {
+				return fmt.Errorf("bind upstream runtime account groups: %w", err)
 			}
+			keptAccountIDs[built.ID] = true
 		}
-		if err := s.accountRepo.BindGroups(ctx, built.ID, groupIDs); err != nil {
-			return fmt.Errorf("bind upstream runtime account groups: %w", err)
-		}
-		keptAccountIDs[built.ID] = true
 	}
 
 	for i := range accounts {
@@ -149,6 +157,10 @@ func accountUpstreamRemoteAPIKeyID(account *Account) string {
 	return strings.TrimSpace(anyToString(account.Extra["upstream_remote_api_key_id"]))
 }
 
+func upstreamRuntimeAccountKey(remoteAPIKeyID, platform string) string {
+	return strings.TrimSpace(remoteAPIKeyID) + "\x00" + strings.TrimSpace(platform)
+}
+
 func buildRuntimeAccountFromUpstream(upstream *Upstream, existing *Account) *Account {
 	remoteKey := &UpstreamRemoteAPIKey{
 		RemoteAPIKeyID:      "default",
@@ -163,7 +175,7 @@ func buildRuntimeAccountFromUpstream(upstream *Upstream, existing *Account) *Acc
 		remoteKey.APIKeyConfigured = strings.TrimSpace(remoteKey.APIKey) != ""
 		remoteKey.MaskedKey = maskSecret(remoteKey.APIKey)
 	}
-	return buildRuntimeAccountFromUpstreamAPIKey(upstream, remoteKey, existing)
+	return buildRuntimeAccountFromUpstreamAPIKey(upstream, remoteKey, existing, PlatformOpenAI)
 }
 
 func firstLegacyRuntimeRemoteGroupID(upstream *Upstream) string {
@@ -182,8 +194,9 @@ func firstLegacyRuntimeRemoteGroupID(upstream *Upstream) string {
 	return ""
 }
 
-func buildRuntimeAccountFromUpstreamAPIKey(upstream *Upstream, remoteKey *UpstreamRemoteAPIKey, existing *Account) *Account {
+func buildRuntimeAccountFromUpstreamAPIKey(upstream *Upstream, remoteKey *UpstreamRemoteAPIKey, existing *Account, platform string) *Account {
 	attachUpstreamMetadata(upstream)
+	platform = normalizeUpstreamRuntimePlatform(platform)
 	account := &Account{}
 	if existing != nil {
 		*account = *existing
@@ -194,8 +207,8 @@ func buildRuntimeAccountFromUpstreamAPIKey(upstream *Upstream, remoteKey *Upstre
 	if keyName == "" {
 		keyName = strings.TrimSpace(remoteKey.RemoteAPIKeyID)
 	}
-	account.Name = fmt.Sprintf("[Upstream] %s / %s", upstream.Name, keyName)
-	account.Platform = PlatformOpenAI
+	account.Name = fmt.Sprintf("[Upstream] %s / %s / %s", upstream.Name, keyName, platform)
+	account.Platform = platform
 	account.Type = AccountTypeAPIKey
 	account.Status = StatusActive
 	account.Schedulable = upstreamRemoteAPIKeyRuntimeSchedulable(upstream, remoteKey)
@@ -212,23 +225,44 @@ func buildRuntimeAccountFromUpstreamAPIKey(upstream *Upstream, remoteKey *Upstre
 	account.LoadFactor = &loadFactor
 	account.ExpiresAt = upstreamRuntimeExpiresAt(upstream)
 
-	account.Credentials = upstreamRuntimeCredentials(upstream, remoteKey, account.Credentials)
-	account.Extra = upstreamRuntimeExtra(upstream, remoteKey, account.Extra)
+	account.Credentials = upstreamRuntimeCredentials(upstream, remoteKey, platform, account.Credentials)
+	account.Extra = upstreamRuntimeExtra(upstream, remoteKey, platform, account.Extra)
 	return account
 }
 
-func upstreamRuntimeCredentials(upstream *Upstream, remoteKey *UpstreamRemoteAPIKey, existing map[string]any) map[string]any {
+func normalizeUpstreamRuntimePlatform(platform string) string {
+	switch strings.TrimSpace(platform) {
+	case PlatformAnthropic:
+		return PlatformAnthropic
+	default:
+		return PlatformOpenAI
+	}
+}
+
+func upstreamRuntimeCredentials(upstream *Upstream, remoteKey *UpstreamRemoteAPIKey, platform string, existing map[string]any) map[string]any {
 	out := copyAnyMap(existing)
 	if out == nil {
 		out = map[string]any{}
 	}
 	out["api_key"] = strings.TrimSpace(remoteKey.APIKey)
-	out["base_url"] = upstreamRuntimeOpenAIAPIBaseURL(upstream)
-	out["pool_mode"] = true
-	out["pool_mode_retry_count"] = upstreamRuntimeRetryCount(upstream)
-	out["openai_capabilities"] = []string{
-		string(OpenAIEndpointCapabilityChatCompletions),
-		string(OpenAIEndpointCapabilityEmbeddings),
+	if platform == PlatformAnthropic {
+		out["base_url"] = upstreamRuntimeAnthropicAPIBaseURL(upstream)
+		delete(out, "openai_capabilities")
+		delete(out, "openai_image_capabilities")
+		delete(out, "pool_mode")
+		delete(out, "pool_mode_retry_count")
+		delete(out, openai_compat.ExtraKeyResponsesMode)
+		delete(out, openai_compat.ExtraKeyResponsesSupported)
+		delete(out, "openai_apikey_responses_websockets_v2_mode")
+		delete(out, "openai_compact_mode")
+	} else {
+		out["base_url"] = upstreamRuntimeOpenAIAPIBaseURL(upstream)
+		out["pool_mode"] = true
+		out["pool_mode_retry_count"] = upstreamRuntimeRetryCount(upstream)
+		out["openai_capabilities"] = []string{
+			string(OpenAIEndpointCapabilityChatCompletions),
+			string(OpenAIEndpointCapabilityEmbeddings),
+		}
 	}
 	if upstream.ForwardCredential != nil {
 		if upstream.ForwardCredential.Metadata != nil {
@@ -245,6 +279,33 @@ func upstreamRuntimeCredentials(upstream *Upstream, remoteKey *UpstreamRemoteAPI
 		out["model_mapping"] = map[string]any{}
 	}
 	return out
+}
+
+func upstreamRuntimeAnthropicAPIBaseURL(upstream *Upstream) string {
+	if upstream == nil {
+		return ""
+	}
+	if upstream.Metadata != nil {
+		for _, key := range []string{"anthropic_api_base_url", "base_url", "forward_base_url"} {
+			if v := strings.TrimRight(strings.TrimSpace(anyToString(upstream.Metadata[key])), "/"); v != "" {
+				return v
+			}
+		}
+	}
+	return inferAnthropicAPIBaseURLFromUpstreamBase(upstream.BaseURL)
+}
+
+func inferAnthropicAPIBaseURLFromUpstreamBase(raw string) string {
+	trimmed := strings.TrimRight(strings.TrimSpace(raw), "/")
+	if trimmed == "" {
+		return ""
+	}
+	for _, suffix := range []string{"/v1/messages/count_tokens", "/v1/messages", "/v1"} {
+		if strings.HasSuffix(trimmed, suffix) {
+			return strings.TrimRight(strings.TrimSuffix(trimmed, suffix), "/")
+		}
+	}
+	return trimmed
 }
 
 func upstreamRuntimeOpenAIAPIBaseURL(upstream *Upstream) string {
@@ -296,7 +357,7 @@ func copyKnownRuntimeCredentialMetadata(out, metadata map[string]any) {
 	}
 }
 
-func upstreamRuntimeExtra(upstream *Upstream, remoteKey *UpstreamRemoteAPIKey, existing map[string]any) map[string]any {
+func upstreamRuntimeExtra(upstream *Upstream, remoteKey *UpstreamRemoteAPIKey, platform string, existing map[string]any) map[string]any {
 	out := copyAnyMap(existing)
 	if out == nil {
 		out = map[string]any{}
@@ -322,11 +383,21 @@ func upstreamRuntimeExtra(upstream *Upstream, remoteKey *UpstreamRemoteAPIKey, e
 	out["upstream_local_group_ids"] = int64SliceToAny(remoteKey.LocalGroupIDs)
 	out["hidden"] = true
 	out["managed_by"] = "upstream_management"
-	out["openai_passthrough"] = true
-	out[openai_compat.ExtraKeyResponsesMode] = string(openai_compat.ResponsesSupportModeForceResponses)
-	out[openai_compat.ExtraKeyResponsesSupported] = true
-	out["openai_apikey_responses_websockets_v2_mode"] = "off"
-	out["openai_compact_mode"] = OpenAICompactModeForceOn
+	if platform == PlatformAnthropic {
+		out["anthropic_passthrough"] = true
+		delete(out, "openai_passthrough")
+		delete(out, openai_compat.ExtraKeyResponsesMode)
+		delete(out, openai_compat.ExtraKeyResponsesSupported)
+		delete(out, "openai_apikey_responses_websockets_v2_mode")
+		delete(out, "openai_compact_mode")
+	} else {
+		out["openai_passthrough"] = true
+		delete(out, "anthropic_passthrough")
+		out[openai_compat.ExtraKeyResponsesMode] = string(openai_compat.ResponsesSupportModeForceResponses)
+		out[openai_compat.ExtraKeyResponsesSupported] = true
+		out["openai_apikey_responses_websockets_v2_mode"] = "off"
+		out["openai_compact_mode"] = OpenAICompactModeForceOn
+	}
 	out["privacy_mode"] = PrivacyModeTrainingOff
 	return out
 }
@@ -526,25 +597,50 @@ func upstreamRuntimeExpiresAt(upstream *Upstream) *time.Time {
 }
 
 func (s *UpstreamService) validateRuntimeLocalGroupIDs(ctx context.Context, groupIDs []int64) ([]int64, error) {
-	groupIDs = uniquePositiveInt64sLocal(groupIDs)
-	if len(groupIDs) == 0 || s.groupRepo == nil {
-		return groupIDs, nil
+	byPlatform, err := s.validateRuntimeLocalGroupIDsByPlatform(ctx, groupIDs)
+	if err != nil {
+		return nil, err
 	}
 	out := make([]int64, 0, len(groupIDs))
+	for _, platform := range []string{PlatformOpenAI, PlatformAnthropic} {
+		out = append(out, byPlatform[platform]...)
+	}
+	return out, nil
+}
+
+func (s *UpstreamService) validateRuntimeLocalGroupIDsByPlatform(ctx context.Context, groupIDs []int64) (map[string][]int64, error) {
+	groupIDs = uniquePositiveInt64sLocal(groupIDs)
+	out := map[string][]int64{
+		PlatformOpenAI:    {},
+		PlatformAnthropic: {},
+	}
+	if len(groupIDs) == 0 || s.groupRepo == nil {
+		out[PlatformOpenAI] = groupIDs
+		return out, nil
+	}
 	for _, id := range groupIDs {
 		group, err := s.groupRepo.GetByID(ctx, id)
 		if err != nil {
 			return nil, err
 		}
-		if group.Platform != PlatformOpenAI {
-			return nil, ErrUpstreamInvalidInput.WithMetadata(map[string]string{"field": "local_group_ids", "reason": "group platform must be openai"})
+		if !upstreamRuntimeGroupPlatformSupported(group.Platform) {
+			return nil, ErrUpstreamInvalidInput.WithMetadata(map[string]string{"field": "local_group_ids", "reason": "group platform must be openai or anthropic"})
 		}
 		if group.RequireOAuthOnly {
 			return nil, ErrUpstreamInvalidInput.WithMetadata(map[string]string{"field": "local_group_ids", "reason": "group requires oauth only"})
 		}
-		out = append(out, id)
+		out[group.Platform] = append(out[group.Platform], id)
 	}
 	return out, nil
+}
+
+func upstreamRuntimeGroupPlatformSupported(platform string) bool {
+	switch platform {
+	case PlatformOpenAI, PlatformAnthropic:
+		return true
+	default:
+		return false
+	}
 }
 
 func normalizeUpstreamMetadata(upstream *Upstream) {

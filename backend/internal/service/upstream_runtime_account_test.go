@@ -65,7 +65,7 @@ func TestBuildRuntimeAccountFromUpstreamStoresLocalRemoteGroupMappingAndRates(t 
 		LocalGroupIDs:    []int64{10, 20},
 	}
 
-	account := buildRuntimeAccountFromUpstreamAPIKey(upstream, remoteKey, nil)
+	account := buildRuntimeAccountFromUpstreamAPIKey(upstream, remoteKey, nil, PlatformOpenAI)
 	mapping, ok := account.Credentials["upstream_group_mapping"].(map[string]any)
 	if !ok {
 		t.Fatalf("upstream_group_mapping type = %T", account.Credentials["upstream_group_mapping"])
@@ -127,7 +127,7 @@ func TestBuildRuntimeAccountFromUpstreamAPIKeyStoresLocalGroupsInExtra(t *testin
 		LocalGroupIDs:       []int64{36, 38},
 	}
 
-	account := buildRuntimeAccountFromUpstreamAPIKey(upstream, remoteKey, nil)
+	account := buildRuntimeAccountFromUpstreamAPIKey(upstream, remoteKey, nil, PlatformOpenAI)
 
 	mapping, ok := account.Credentials["upstream_group_mapping"].(map[string]any)
 	if !ok {
@@ -187,7 +187,7 @@ func TestBuildRuntimeAccountFromUpstreamAPIKeyDoesNotRequireRemoteGroup(t *testi
 		LocalGroupIDs:    []int64{36},
 	}
 
-	account := buildRuntimeAccountFromUpstreamAPIKey(upstream, remoteKey, nil)
+	account := buildRuntimeAccountFromUpstreamAPIKey(upstream, remoteKey, nil, PlatformOpenAI)
 
 	if !account.Schedulable {
 		t.Fatalf("account should be schedulable, error = %q", account.ErrorMessage)
@@ -201,6 +201,44 @@ func TestBuildRuntimeAccountFromUpstreamAPIKeyDoesNotRequireRemoteGroup(t *testi
 	}
 	if got := mapping["gpt-4.1-*"]; got != "gpt-4.1-*" {
 		t.Fatalf("model_mapping[gpt-4.1-*] = %v, want gpt-4.1-*", got)
+	}
+}
+
+func TestBuildRuntimeAccountFromUpstreamAPIKeyAnthropicPassthrough(t *testing.T) {
+	upstream := &Upstream{
+		ID:          9,
+		Name:        "north",
+		Type:        UpstreamTypeNewAPI,
+		BaseURL:     "https://upstream.example.com/",
+		Status:      UpstreamStatusActive,
+		Priority:    100,
+		Weight:      100,
+		RoutingMode: UpstreamRoutingBalanced,
+	}
+	remoteKey := &UpstreamRemoteAPIKey{
+		RemoteAPIKeyID:   "5798",
+		RemoteAPIKeyName: "pro",
+		APIKey:           "sk-forward",
+		Status:           "active",
+		LocalGroupIDs:    []int64{36},
+	}
+
+	account := buildRuntimeAccountFromUpstreamAPIKey(upstream, remoteKey, nil, PlatformAnthropic)
+
+	if account.Platform != PlatformAnthropic {
+		t.Fatalf("platform = %q, want %q", account.Platform, PlatformAnthropic)
+	}
+	if got := account.Credentials["base_url"]; got != "https://upstream.example.com" {
+		t.Fatalf("base_url = %v, want upstream root", got)
+	}
+	if got := account.Extra["anthropic_passthrough"]; got != true {
+		t.Fatalf("anthropic_passthrough = %v, want true", got)
+	}
+	if _, ok := account.Extra["openai_passthrough"]; ok {
+		t.Fatal("openai_passthrough should not be set for anthropic runtime account")
+	}
+	if _, ok := account.Credentials["openai_capabilities"]; ok {
+		t.Fatal("openai_capabilities should not be set for anthropic runtime account")
 	}
 }
 
@@ -235,6 +273,43 @@ func TestUpstreamRuntimeOpenAIAPIBaseURL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := upstreamRuntimeOpenAIAPIBaseURL(tt.upstream); got != tt.want {
+				t.Fatalf("base url = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestUpstreamRuntimeAnthropicAPIBaseURL(t *testing.T) {
+	tests := []struct {
+		name     string
+		upstream *Upstream
+		want     string
+	}{
+		{
+			name:     "site root is preserved",
+			upstream: &Upstream{BaseURL: "https://upstream.example.com/"},
+			want:     "https://upstream.example.com",
+		},
+		{
+			name:     "messages endpoint trims to root",
+			upstream: &Upstream{BaseURL: "https://upstream.example.com/v1/messages"},
+			want:     "https://upstream.example.com",
+		},
+		{
+			name: "explicit anthropic api base from metadata wins",
+			upstream: &Upstream{
+				BaseURL: "https://panel.example.com",
+				Metadata: map[string]any{
+					"anthropic_api_base_url": "https://gateway.example.com/anthropic/",
+				},
+			},
+			want: "https://gateway.example.com/anthropic",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := upstreamRuntimeAnthropicAPIBaseURL(tt.upstream); got != tt.want {
 				t.Fatalf("base url = %q, want %q", got, tt.want)
 			}
 		})

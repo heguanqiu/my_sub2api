@@ -82,7 +82,7 @@ func TestAdminSalesViewsUseTargetSalesAccount(t *testing.T) {
 	router.GET("/api/v1/admin/payment/sales/:sales_id/orders", handler.GetSalesOrders)
 
 	recDashboard := httptest.NewRecorder()
-	reqDashboard := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/admin/payment/sales/%d/dashboard?range=today", salesB.ID), nil)
+	reqDashboard := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/admin/payment/sales/%d/dashboard?month=%s", salesB.ID, time.Now().Format("2006-01")), nil)
 	router.ServeHTTP(recDashboard, reqDashboard)
 	require.Equal(t, http.StatusOK, recDashboard.Code)
 

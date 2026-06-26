@@ -25,11 +25,12 @@
             </label>
             <label class="block w-full lg:w-52">
               <span class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                {{ t('admin.sales.range') }}
+                {{ t('sales.month') }}
               </span>
-              <Select
-                v-model="selectedRange"
-                :options="rangeOptions"
+              <input
+                v-model="selectedMonth"
+                type="month"
+                class="input w-full"
                 :disabled="dashboardLoading || !selectedSalesId"
                 @change="loadDashboard"
               />
@@ -89,6 +90,20 @@
             </div>
 
             <div v-else class="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <input
+                v-model="orderStartDate"
+                type="date"
+                class="input w-full sm:w-40"
+                :aria-label="t('dates.startDate')"
+                @change="handleOrderFilterChange"
+              />
+              <input
+                v-model="orderEndDate"
+                type="date"
+                class="input w-full sm:w-40"
+                :aria-label="t('dates.endDate')"
+                @change="handleOrderFilterChange"
+              />
               <Select v-model="orderStatus" :options="orderStatusOptions" class="w-full sm:w-44" @change="handleOrderFilterChange" />
               <Select
                 v-if="activeTab === 'orders'"
@@ -190,7 +205,7 @@ import Icon from '@/components/icons/Icon.vue'
 import OrderTable from '@/components/payment/OrderTable.vue'
 import { adminAPI } from '@/api/admin'
 import { adminPaymentAPI } from '@/api/admin/payment'
-import type { SalesCustomerSummary, SalesDashboardRange, SalesDashboardSummary } from '@/api/sales'
+import type { SalesCustomerSummary, SalesDashboardSummary } from '@/api/sales'
 import type { AdminUser, User } from '@/types'
 import type { Column } from '@/components/common/types'
 import type { PaymentOrder } from '@/types/payment'
@@ -204,7 +219,7 @@ const appStore = useAppStore()
 
 const salesUsers = ref<AdminUser[]>([])
 const selectedSalesId = ref<number | ''>('')
-const selectedRange = ref<SalesDashboardRange>('today')
+const selectedMonth = ref(formatMonthInput(new Date()))
 const dashboard = ref<SalesDashboardSummary | null>(null)
 const customers = ref<SalesCustomerSummary[]>([])
 const visibleOrders = ref<PaymentOrder[]>([])
@@ -220,6 +235,8 @@ const customerSearch = ref('')
 const customerStatus = ref('')
 const orderStatus = ref('')
 const paymentType = ref('')
+const orderStartDate = ref('')
+const orderEndDate = ref('')
 
 const customerPagination = reactive({ page: 1, page_size: 20, total: 0 })
 const orderPagination = reactive({ page: 1, page_size: 20, total: 0 })
@@ -234,12 +251,6 @@ const salesOptions = computed(() => {
   }))
   return options.length > 0 ? options : [{ value: '', label: t('admin.sales.noSalesOptions') }]
 })
-
-const rangeOptions = computed(() => [
-  { value: 'today', label: t('sales.rangeToday') },
-  { value: '7d', label: t('sales.range7d') },
-  { value: '30d', label: t('sales.range30d') }
-])
 
 const userStatusOptions = computed(() => [
   { value: '', label: t('common.all') },
@@ -275,7 +286,7 @@ const tabs = computed(() => [
 ])
 
 const summaryCards = computed(() => [
-  { label: t('sales.totalCustomers'), value: dashboard.value?.total_customers ?? 0 },
+  { label: t('sales.monthlyCustomers'), value: dashboard.value?.total_customers ?? 0 },
   { label: t('sales.totalOrders'), value: dashboard.value?.total_orders ?? 0 },
   { label: t('sales.completedOrders'), value: dashboard.value?.completed_orders ?? 0 },
   { label: t('sales.totalOrderAmount'), value: `¥${(dashboard.value?.total_order_amount ?? 0).toFixed(2)}` }
@@ -314,7 +325,7 @@ async function loadDashboard() {
   if (!currentSalesId.value) return
   dashboardLoading.value = true
   try {
-    const res = await adminPaymentAPI.getSalesDashboard(currentSalesId.value, { range: selectedRange.value })
+    const res = await adminPaymentAPI.getSalesDashboard(currentSalesId.value, { month: selectedMonth.value })
     dashboard.value = res.data
   } catch (err: unknown) {
     appStore.showError(extractI18nErrorMessage(err, t, 'common', t('common.error')))
@@ -350,7 +361,9 @@ async function loadOrders() {
       page: orderPagination.page,
       page_size: orderPagination.page_size,
       status: orderStatus.value || undefined,
-      payment_type: paymentType.value || undefined
+      payment_type: paymentType.value || undefined,
+      start_date: orderStartDate.value || undefined,
+      end_date: orderEndDate.value || undefined
     })
     visibleOrders.value = res.data.items ?? []
     orderPagination.total = res.data.total ?? 0
@@ -368,7 +381,9 @@ async function loadCustomerOrders() {
     const res = await adminPaymentAPI.getSalesCustomerOrders(currentSalesId.value, selectedCustomer.value.id, {
       page: orderPagination.page,
       page_size: orderPagination.page_size,
-      status: orderStatus.value || undefined
+      status: orderStatus.value || undefined,
+      start_date: orderStartDate.value || undefined,
+      end_date: orderEndDate.value || undefined
     })
     visibleOrders.value = res.data.items ?? []
     orderPagination.total = res.data.total ?? 0
@@ -472,6 +487,12 @@ async function openCustomerOrdersByID(customerID: number) {
   } catch (err: unknown) {
     appStore.showError(extractI18nErrorMessage(err, t, 'common', t('common.error')))
   }
+}
+
+function formatMonthInput(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  return `${year}-${month}`
 }
 
 onMounted(() => {

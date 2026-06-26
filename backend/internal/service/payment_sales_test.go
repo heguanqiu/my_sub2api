@@ -97,7 +97,7 @@ func TestSalesViewsUseCurrentCustomerOwnership(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	dashboard, err := svc.GetSalesDashboard(ctx, salesB.ID, SalesDashboardRangeToday)
+	dashboard, err := svc.GetSalesDashboard(ctx, salesB.ID, SalesDashboardParams{})
 	require.NoError(t, err)
 	require.Equal(t, 1, dashboard.TotalCustomers)
 	require.Equal(t, 2, dashboard.TotalOrders)

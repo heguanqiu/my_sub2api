@@ -100,6 +100,7 @@ func provideCleanup(
 	paymentOrderExpiry *service.PaymentOrderExpiryService,
 	channelMonitorRunner *service.ChannelMonitorRunner,
 	upstreamProbeRunner *service.UpstreamProbeRunner,
+	upstreamAutoSyncRunner *service.UpstreamAutoSyncRunner,
 	quotaFlusher *service.UserPlatformQuotaUsageFlusher,
 ) func() {
 	return func() {
@@ -256,6 +257,12 @@ func provideCleanup(
 			{"UpstreamProbeRunner", func() error {
 				if upstreamProbeRunner != nil {
 					upstreamProbeRunner.Stop()
+				}
+				return nil
+			}},
+			{"UpstreamAutoSyncRunner", func() error {
+				if upstreamAutoSyncRunner != nil {
+					upstreamAutoSyncRunner.Stop()
 				}
 				return nil
 			}},

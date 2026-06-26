@@ -801,6 +801,12 @@ func (s *PaymentService) GetUserOrders(ctx context.Context, userID int64, p Orde
 	if p.PaymentType != "" {
 		q = q.Where(paymentorder.PaymentTypeEQ(p.PaymentType))
 	}
+	if p.StartTime != nil {
+		q = q.Where(paymentorder.CreatedAtGTE(*p.StartTime))
+	}
+	if p.EndTime != nil {
+		q = q.Where(paymentorder.CreatedAtLT(*p.EndTime))
+	}
 	total, err := q.Clone().Count(ctx)
 	if err != nil {
 		return nil, 0, fmt.Errorf("count user orders: %w", err)
@@ -827,6 +833,12 @@ func (s *PaymentService) AdminListOrders(ctx context.Context, userID int64, p Or
 	}
 	if p.PaymentType != "" {
 		q = q.Where(paymentorder.PaymentTypeEQ(p.PaymentType))
+	}
+	if p.StartTime != nil {
+		q = q.Where(paymentorder.CreatedAtGTE(*p.StartTime))
+	}
+	if p.EndTime != nil {
+		q = q.Where(paymentorder.CreatedAtLT(*p.EndTime))
 	}
 	if p.Keyword != "" {
 		q = q.Where(paymentorder.Or(

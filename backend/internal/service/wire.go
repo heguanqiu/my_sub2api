@@ -627,6 +627,7 @@ var ProviderSet = wire.NewSet(
 	NewHTTPUpstreamAdminAdapter,
 	NewUpstreamService,
 	ProvideUpstreamProbeRunner,
+	ProvideUpstreamAutoSyncRunner,
 	NewModelPricingResolver,
 	ProvidePaymentConfigService,
 	ProvidePaymentService,

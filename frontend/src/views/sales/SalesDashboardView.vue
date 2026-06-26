@@ -11,17 +11,19 @@
               {{ t('sales.ordersDescription') }}
             </p>
           </div>
-          <div class="flex flex-wrap gap-2">
-            <button
-              v-for="option in rangeOptions"
-              :key="option.value"
-              type="button"
-              :class="selectedRange === option.value ? 'btn btn-primary' : 'btn btn-secondary'"
-              :disabled="loading"
-              @click="setRange(option.value)"
-            >
-              {{ option.label }}
-            </button>
+          <div class="flex flex-wrap items-end gap-2">
+            <label class="block w-44">
+              <span class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                {{ t('sales.month') }}
+              </span>
+              <input
+                v-model="selectedMonth"
+                type="month"
+                class="input w-full"
+                :disabled="loading"
+                @change="loadDashboard"
+              />
+            </label>
             <button class="btn btn-secondary" @click="router.push('/sales/customers')">
               {{ t('nav.salesCustomers') }}
             </button>
@@ -50,7 +52,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import { salesAPI, type SalesDashboardRange, type SalesDashboardSummary } from '@/api/sales'
+import { salesAPI, type SalesDashboardSummary } from '@/api/sales'
 import { useAppStore } from '@/stores'
 import { extractI18nErrorMessage } from '@/utils/apiError'
 
@@ -58,17 +60,11 @@ const { t } = useI18n()
 const router = useRouter()
 const appStore = useAppStore()
 const stats = ref<SalesDashboardSummary | null>(null)
-const selectedRange = ref<SalesDashboardRange>('today')
+const selectedMonth = ref(formatMonthInput(new Date()))
 const loading = ref(false)
 
-const rangeOptions = computed<Array<{ value: SalesDashboardRange; label: string }>>(() => [
-  { value: 'today', label: t('sales.rangeToday') },
-  { value: '7d', label: t('sales.range7d') },
-  { value: '30d', label: t('sales.range30d') }
-])
-
 const cards = computed(() => [
-  { label: t('sales.totalCustomers'), value: stats.value?.total_customers ?? 0 },
+  { label: t('sales.monthlyCustomers'), value: stats.value?.total_customers ?? 0 },
   { label: t('sales.totalOrders'), value: stats.value?.total_orders ?? 0 },
   { label: t('sales.completedOrders'), value: stats.value?.completed_orders ?? 0 },
   {
@@ -80,7 +76,7 @@ const cards = computed(() => [
 async function loadDashboard() {
   loading.value = true
   try {
-    const res = await salesAPI.getDashboard({ range: selectedRange.value })
+    const res = await salesAPI.getDashboard({ month: selectedMonth.value })
     stats.value = res.data
   } catch (err: unknown) {
     appStore.showError(extractI18nErrorMessage(err, t, 'common', t('common.error')))
@@ -89,10 +85,10 @@ async function loadDashboard() {
   }
 }
 
-function setRange(range: SalesDashboardRange) {
-  if (selectedRange.value === range) return
-  selectedRange.value = range
-  void loadDashboard()
+function formatMonthInput(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  return `${year}-${month}`
 }
 
 onMounted(loadDashboard)

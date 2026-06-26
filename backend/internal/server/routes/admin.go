@@ -690,6 +690,8 @@ func registerUpstreamRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		upstreams.GET("/:id/alerts", h.Admin.Upstream.Alerts)
 		upstreams.PUT("/:id/alerts/:alert_type/resolve", h.Admin.Upstream.ResolveAlert)
 		upstreams.GET("/:id/cost-report", h.Admin.Upstream.CostReport)
+		upstreams.POST("/:id/cost-report/reset", h.Admin.Upstream.ResetCostReport)
+		upstreams.POST("/:id/balance", h.Admin.Upstream.RefreshBalance)
 		upstreams.GET("/:id/remote-groups", h.Admin.Upstream.Groups)
 		upstreams.GET("/:id/remote-api-keys", h.Admin.Upstream.APIKeys)
 		upstreams.PUT("/:id/remote-api-keys/:remote_key_id", h.Admin.Upstream.UpdateAPIKeyConfig)

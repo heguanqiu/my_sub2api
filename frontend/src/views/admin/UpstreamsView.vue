@@ -137,6 +137,15 @@
                 </button>
                 <button
                   type="button"
+                  class="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 dark:hover:bg-dark-700 dark:hover:text-gray-200"
+                  :title="tr('admin.upstreams.visit', '访问')"
+                  :disabled="!upstreamVisitURL(row)"
+                  @click="visitUpstream(row)"
+                >
+                  <Icon name="externalLink" size="sm" />
+                </button>
+                <button
+                  type="button"
                   class="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-300"
                   :title="tr('admin.upstreams.testLogin', 'Test login')"
                   :disabled="testingId === row.id"
@@ -206,7 +215,7 @@
                   {{ statusLabel(selectedUpstream.status) }}
                 </span>
               </div>
-              <div class="mt-3 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
+              <div class="mt-3 grid grid-cols-2 gap-2 text-center sm:grid-cols-5">
                 <div class="rounded-lg bg-gray-50 px-2 py-2 dark:bg-dark-900">
                   <div class="text-xs text-gray-500 dark:text-dark-400">{{ tr('admin.upstreams.apiKeys', 'API 密钥') }}</div>
                   <div class="mt-1 font-semibold text-gray-900 dark:text-white">{{ remoteAPIKeys.length }}</div>
@@ -222,7 +231,19 @@
                   </div>
                 </div>
                 <div class="rounded-lg bg-gray-50 px-2 py-2 dark:bg-dark-900">
-                  <div class="text-xs text-gray-500 dark:text-dark-400">{{ tr('admin.upstreams.cost', '成本') }}</div>
+                  <div class="text-xs text-gray-500 dark:text-dark-400">{{ tr('admin.upstreams.accountBalance', '上游余额') }}</div>
+                  <div class="mt-1 font-mono text-sm font-semibold text-gray-900 dark:text-white">
+                    {{ formatQuotaValue(upstreamAccountBalance) }}
+                  </div>
+                  <div class="mt-0.5 text-[11px] text-gray-500 dark:text-dark-400">
+                    {{ tr('admin.upstreams.usedQuota', '已用') }} {{ formatQuotaValue(upstreamAccountUsedQuota) }}
+                  </div>
+                  <div class="mt-0.5 text-[11px] text-gray-500 dark:text-dark-400">
+                    {{ formatOptionalDate(upstreamAccountBalanceCheckedAt) }}
+                  </div>
+                </div>
+                <div class="rounded-lg bg-gray-50 px-2 py-2 dark:bg-dark-900">
+                  <div class="text-xs text-gray-500 dark:text-dark-400">{{ tr('admin.upstreams.schedulerCost', '调度成本') }}</div>
                   <div class="mt-1 font-semibold text-gray-900 dark:text-white">x{{ formatNumber(selectedUpstream.cost_multiplier, 2) }}</div>
                 </div>
               </div>
@@ -253,6 +274,24 @@
                 >
                   <Icon name="login" size="sm" />
                   {{ tr('admin.upstreams.testLogin', '测试登录') }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-sm"
+                  :disabled="refreshingBalance || detailLoading"
+                  @click="refreshUpstreamBalance"
+                >
+                  <Icon name="refresh" size="sm" :class="refreshingBalance ? 'animate-spin' : ''" />
+                  {{ tr('admin.upstreams.queryBalance', '查询余额') }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-sm"
+                  :disabled="!upstreamVisitURL(selectedUpstream)"
+                  @click="visitUpstream(selectedUpstream)"
+                >
+                  <Icon name="externalLink" size="sm" />
+                  {{ tr('admin.upstreams.visit', '访问') }}
                 </button>
                 <button
                   type="button"
@@ -408,15 +447,17 @@
                             <span v-if="key.masked_key">· {{ key.masked_key }}</span>
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          class="btn btn-primary btn-sm"
-                          :disabled="savingRemoteKeyId === key.remote_api_key_id"
-                          @click="saveRemoteAPIKeyConfig(key)"
-                        >
-                          <Icon name="check" size="sm" />
-                          {{ savingRemoteKeyId === key.remote_api_key_id ? tr('common.saving', '保存中') : tr('common.save', '保存') }}
-                        </button>
+                        <div class="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            class="btn btn-primary btn-sm"
+                            :disabled="savingRemoteKeyId === key.remote_api_key_id"
+                            @click="saveRemoteAPIKeyConfig(key)"
+                          >
+                            <Icon name="check" size="sm" />
+                            {{ savingRemoteKeyId === key.remote_api_key_id ? tr('common.saving', '保存中') : tr('common.save', '保存') }}
+                          </button>
+                        </div>
                       </div>
 
                       <div class="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,1.2fr)]">
@@ -434,7 +475,7 @@
                         <div class="space-y-2">
                           <span class="input-label">{{ tr('admin.upstreams.mappedLocalGroups', '映射本地分组') }}</span>
                           <div v-if="localGroups.length === 0" class="rounded-lg border border-dashed border-gray-200 px-3 py-2 text-sm text-gray-500 dark:border-dark-700 dark:text-dark-400">
-                            {{ tr('admin.upstreams.noLocalOpenAIGroups', '暂无本地 OpenAI 分组') }}
+                            {{ localGroupsLoading ? tr('common.loading', '加载中') : tr('admin.upstreams.noLocalRuntimeGroups', '暂无本地 OpenAI / Anthropic 分组') }}
                           </div>
                           <div v-else class="flex max-h-28 flex-wrap gap-2 overflow-y-auto rounded-lg border border-gray-100 p-2 dark:border-dark-700">
                             <label
@@ -448,7 +489,7 @@
                                 :checked="remoteKeyDraft(key.remote_api_key_id).local_group_ids.includes(group.id)"
                                 @change="toggleRemoteKeyLocalGroup(key.remote_api_key_id, group.id)"
                               />
-                              <span>{{ group.name }}</span>
+                              <span>{{ localGroupLabel(group) }}</span>
                             </label>
                           </div>
                         </div>
@@ -464,7 +505,7 @@
                         {{ tr('admin.upstreams.availableModels', '可用模型') }}
                       </h3>
                       <p class="mt-1 text-xs text-gray-500 dark:text-dark-400">
-                        {{ tr('admin.upstreams.availableModelsHint', '统一管理这个上游支持的模型；为空表示所有模型都可参与调度。支持 * 通配符。') }}
+                        {{ tr('admin.upstreams.availableModelsHint', '选择允许参与调度的模型；为空表示全部模型。支持自定义通配符。') }}
                       </p>
                     </div>
                     <button
@@ -476,12 +517,14 @@
                       {{ savingModels ? tr('common.saving', '保存中') : tr('common.save', '保存') }}
                     </button>
                   </div>
-                  <textarea
-                    v-model.trim="supportedModelsText"
-                    rows="4"
-                    class="input font-mono text-xs"
-                    :placeholder="tr('admin.upstreams.availableModelsPlaceholder', '每行一个模型或通配符，例如：\\ngpt-4o\\ngpt-4.1-*')"
-                  ></textarea>
+                  <ModelWhitelistSelector
+                    v-model="supportedModelsList"
+                    :platforms="upstreamModelPlatforms"
+                  />
+                  <p class="text-xs text-gray-500 dark:text-dark-400">
+                    {{ t('admin.accounts.selectedModels', { count: supportedModelsList.length }) }}
+                    <span v-if="supportedModelsList.length === 0">{{ t('admin.accounts.supportsAllModels') }}</span>
+                  </p>
                 </section>
 
                 <section v-if="syncPreviewResult" class="mt-5 space-y-3">
@@ -666,9 +709,23 @@
                     <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
                       {{ tr('admin.upstreams.costReconciliation', '成本对账') }}
                     </h3>
-                    <button type="button" class="btn btn-secondary btn-sm" :disabled="costLoading" @click="refreshCostReport">
-                      <Icon name="refresh" size="sm" :class="costLoading ? 'animate-spin' : ''" />
-                    </button>
+                    <div class="flex items-center gap-2">
+                      <button
+                        type="button"
+                        class="btn btn-secondary btn-sm"
+                        :disabled="costLoading || resettingCost"
+                        @click="requestResetCostReport"
+                      >
+                        <Icon name="trash" size="sm" />
+                        {{ tr('admin.upstreams.resetCostReport', '重置') }}
+                      </button>
+                      <button type="button" class="btn btn-secondary btn-sm" :disabled="costLoading" @click="refreshCostReport">
+                        <Icon name="refresh" size="sm" :class="costLoading ? 'animate-spin' : ''" />
+                      </button>
+                    </div>
+                  </div>
+                  <div v-if="costReport?.reset_at" class="text-xs text-gray-500 dark:text-dark-400">
+                    {{ tr('admin.upstreams.costReportResetAt', '统计起点') }}: {{ formatOptionalDate(costReport.reset_at) }}
                   </div>
                   <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <label class="space-y-1">
@@ -815,7 +872,7 @@
               <input v-model.number="form.weight" type="number" min="0" class="input" />
             </div>
             <div>
-              <label class="input-label">{{ tr('admin.upstreams.costMultiplier', 'Cost multiplier') }}</label>
+              <label class="input-label">{{ tr('admin.upstreams.costMultiplier', '调度成本权重') }}</label>
               <input v-model.number="form.cost_multiplier" type="number" min="0" step="0.0001" class="input" />
             </div>
             <div>
@@ -838,6 +895,14 @@
               <input v-model="form.probe_enabled" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
               {{ tr('admin.upstreams.probeEnabled', 'Enable probes') }}
             </label>
+            <label class="flex items-center gap-2 pt-7 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <input v-model="form.auto_sync_enabled" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+              {{ tr('admin.upstreams.autoSyncEnabled', '启用定时同步') }}
+            </label>
+            <div>
+              <label class="input-label">{{ tr('admin.upstreams.autoSyncIntervalMinutes', '同步间隔（分钟）') }}</label>
+              <input v-model.number="form.auto_sync_interval_minutes" type="number" min="1" max="1440" class="input" />
+            </div>
           </div>
         </section>
 
@@ -903,6 +968,17 @@
       @confirm="confirmDelete"
       @cancel="showDeleteDialog = false"
     />
+
+    <ConfirmDialog
+      :show="showResetCostDialog"
+      :title="tr('admin.upstreams.resetCostReportTitle', '重置成本统计')"
+      :message="resetCostMessage"
+      :confirm-text="tr('admin.upstreams.resetCostReport', '重置')"
+      :cancel-text="tr('common.cancel', 'Cancel')"
+      danger
+      @confirm="confirmResetCostReport"
+      @cancel="showResetCostDialog = false"
+    />
   </AppLayout>
 </template>
 
@@ -912,6 +988,7 @@ import { useI18n } from 'vue-i18n'
 import { adminAPI } from '@/api/admin'
 import type {
   Upstream,
+  UpstreamAccountBalanceResult,
   UpstreamAdminAuthMode,
   UpstreamAlert,
   UpstreamCostReport,
@@ -928,7 +1005,7 @@ import type {
 } from '@/api/admin/upstreams'
 import type { Column } from '@/components/common/types'
 import type { SelectOption } from '@/components/common/Select.vue'
-import type { AdminGroup } from '@/types'
+import type { AdminGroup, GroupPlatform } from '@/types'
 import { useAppStore } from '@/stores/app'
 import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 import { formatDateTime } from '@/utils/format'
@@ -941,6 +1018,7 @@ import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import Select from '@/components/common/Select.vue'
 import Icon from '@/components/icons/Icon.vue'
+import ModelWhitelistSelector from '@/components/account/ModelWhitelistSelector.vue'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -962,6 +1040,8 @@ type UpstreamForm = {
   probe_enabled: boolean
   probe_model: string
   probe_interval_seconds: number
+  auto_sync_enabled: boolean
+  auto_sync_interval_minutes: number
   routing_mode: UpstreamRoutingMode
   notes: string
   admin_auth_mode: UpstreamAdminAuthMode
@@ -1007,14 +1087,19 @@ const applyingPreview = ref(false)
 const policySaving = ref(false)
 const costLoading = ref(false)
 const savingRemoteKeyId = ref<string | null>(null)
+const refreshingBalance = ref(false)
+const resettingCost = ref(false)
 const showEditDialog = ref(false)
 const showDeleteDialog = ref(false)
+const showResetCostDialog = ref(false)
 const editingUpstream = ref<Upstream | null>(null)
 const deletingUpstream = ref<Upstream | null>(null)
 const searchQuery = ref('')
 const localGroups = ref<AdminGroup[]>([])
 const remoteKeyDrafts = reactive<Record<string, RemoteAPIKeyDraft>>({})
 const supportedModelsText = ref('')
+const upstreamLocalGroupPlatforms: GroupPlatform[] = ['openai', 'anthropic']
+const upstreamModelPlatforms: GroupPlatform[] = ['openai', 'anthropic']
 
 const filters = reactive({
   type: '',
@@ -1068,6 +1153,8 @@ const form = reactive<UpstreamForm>({
   probe_enabled: true,
   probe_model: '',
   probe_interval_seconds: 60,
+  auto_sync_enabled: false,
+  auto_sync_interval_minutes: 30,
   routing_mode: 'balanced',
   notes: '',
   admin_auth_mode: 'password',
@@ -1092,7 +1179,7 @@ const columns = computed<Column[]>(() => [
   { key: 'status', label: tr('admin.upstreams.status', 'Status'), sortable: true },
   { key: 'routing_mode', label: tr('admin.upstreams.routingMode', 'Mode'), sortable: true },
   { key: 'weight', label: tr('admin.upstreams.weightPriority', 'Weight / Priority'), sortable: true },
-  { key: 'cost_multiplier', label: tr('admin.upstreams.costMultiplier', 'Cost'), sortable: true },
+  { key: 'cost_multiplier', label: tr('admin.upstreams.costMultiplier', '调度成本'), sortable: true },
   { key: 'groups_count', label: tr('admin.upstreams.groupsKeys', 'Groups / Keys'), sortable: true },
   { key: 'last_synced_at', label: tr('admin.upstreams.lastSync', 'Last sync'), sortable: true },
   { key: 'actions', label: tr('common.actions', 'Actions') }
@@ -1141,7 +1228,7 @@ const previewLocalGroupOptions = computed<SelectOption[]>(() => [
   { value: null, label: tr('admin.upstreams.anyLocalGroup', 'Any local group') },
   ...localGroups.value.map((group) => ({
     value: group.id,
-    label: group.name
+    label: localGroupLabel(group)
   }))
 ])
 
@@ -1159,7 +1246,19 @@ const deleteMessage = computed(() => {
   return `${tr('admin.upstreams.deleteConfirmPrefix', 'Delete')} ${name}?`
 })
 
+const resetCostMessage = computed(() => {
+  const name = selectedUpstream.value?.name || tr('admin.upstreams.thisUpstream', 'this upstream')
+  return `${tr('admin.upstreams.resetCostConfirmPrefix', '重置')} ${name} ${tr('admin.upstreams.resetCostConfirmSuffix', '的成本统计？历史调用记录会保留，成本对账将从当前时间重新累计。')}`
+})
+
 const supportedModels = computed(() => parseStringList(supportedModelsText.value))
+
+const supportedModelsList = computed<string[]>({
+  get: () => parseStringList(supportedModelsText.value),
+  set: (models) => {
+    supportedModelsText.value = normalizeStringList(models).join('\n')
+  }
+})
 
 const selectedScheduleKeyLabel = computed(() => {
   if (!scheduleDecision.value) return '-'
@@ -1171,13 +1270,18 @@ const selectedScheduleKeyLabel = computed(() => {
   return `${upstreamName} / ${keyName}`
 })
 
+const upstreamAccountBalance = computed(() => metadataNumber(selectedUpstream.value?.metadata?.account_balance))
+const upstreamAccountUsedQuota = computed(() => metadataNumber(selectedUpstream.value?.metadata?.account_used_quota))
+const upstreamAccountBalanceCheckedAt = computed(() => metadataString(selectedUpstream.value?.metadata?.account_balance_checked_at))
+
 async function loadLocalGroups() {
   if (localGroups.value.length > 0 || localGroupsLoading.value) return
   localGroupsLoading.value = true
   try {
-    localGroups.value = await adminAPI.groups.getAll('openai')
+    const groups = await adminAPI.groups.getAll()
+    localGroups.value = groups.filter((group) => upstreamLocalGroupPlatforms.includes(group.platform))
   } catch (error: any) {
-    appStore.showError(errorMessage(error, tr('admin.upstreams.localGroupsLoadFailed', 'Failed to load local OpenAI groups')))
+    appStore.showError(errorMessage(error, tr('admin.upstreams.localGroupsLoadFailed', 'Failed to load local OpenAI / Anthropic groups')))
   } finally {
     localGroupsLoading.value = false
   }
@@ -1352,6 +1456,8 @@ function resetForm() {
   form.probe_enabled = true
   form.probe_model = ''
   form.probe_interval_seconds = 60
+  form.auto_sync_enabled = false
+  form.auto_sync_interval_minutes = 30
   form.routing_mode = 'balanced'
   form.notes = ''
   form.admin_auth_mode = 'password'
@@ -1382,6 +1488,8 @@ function fillForm(row: Upstream) {
   form.probe_enabled = row.probe_enabled
   form.probe_model = row.probe_model || ''
   form.probe_interval_seconds = row.probe_interval_seconds
+  form.auto_sync_enabled = metadataBool(row.metadata?.auto_sync_enabled)
+  form.auto_sync_interval_minutes = metadataIntervalMinutes(row.metadata)
   form.routing_mode = row.routing_mode
   form.notes = row.notes || ''
   form.admin_auth_mode = row.admin_auth?.auth_mode || 'password'
@@ -1482,11 +1590,58 @@ function buildPayloadMetadata(): Record<string, unknown> {
   } else {
     delete metadata.supported_models
   }
+  if (form.auto_sync_enabled) {
+    metadata.auto_sync_enabled = true
+    metadata.auto_sync_interval_seconds = Math.max(60, Math.min(86400, Math.round((Number(form.auto_sync_interval_minutes) || 30) * 60)))
+  } else {
+    delete metadata.auto_sync_enabled
+    delete metadata.auto_sync_interval_seconds
+  }
+  delete metadata.auto_sync_interval_minutes
   return metadata
 }
 
 function metadataString(raw: unknown): string {
   return typeof raw === 'string' ? raw.trim() : ''
+}
+
+function metadataBool(raw: unknown): boolean {
+  if (typeof raw === 'boolean') return raw
+  if (typeof raw === 'number') return raw !== 0
+  if (typeof raw === 'string') {
+    return ['1', 'true', 'yes', 'on', 'enabled'].includes(raw.trim().toLowerCase())
+  }
+  return false
+}
+
+function metadataIntervalMinutes(metadata?: Record<string, unknown>): number {
+  const seconds = metadataNumber(metadata?.auto_sync_interval_seconds)
+  if (seconds && seconds > 0) {
+    return Math.max(1, Math.round(seconds / 60))
+  }
+  const minutes = metadataNumber(metadata?.auto_sync_interval_minutes)
+  if (minutes && minutes > 0) {
+    return Math.max(1, Math.round(minutes))
+  }
+  return 30
+}
+
+function upstreamVisitURL(row?: Upstream | null): string {
+  const raw = String(row?.base_url || '').trim()
+  if (!raw) return ''
+  try {
+    const url = new URL(raw)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return ''
+    return url.toString()
+  } catch {
+    return ''
+  }
+}
+
+function visitUpstream(row?: Upstream | null) {
+  const url = upstreamVisitURL(row)
+  if (!url) return
+  window.open(url, '_blank', 'noopener,noreferrer')
 }
 
 async function saveUpstream() {
@@ -1629,6 +1784,49 @@ async function saveRemoteAPIKeyConfig(key: UpstreamRemoteAPIKey) {
   }
 }
 
+async function refreshUpstreamBalance() {
+  if (!selectedUpstream.value || refreshingBalance.value) return
+  refreshingBalance.value = true
+  try {
+    const result = await adminAPI.upstreams.refreshBalance(selectedUpstream.value.id)
+    applyUpstreamAccountBalance(result)
+    if (result.has_balance) {
+      appStore.showSuccess(tr('admin.upstreams.balanceRefreshed', '余额已刷新'))
+    } else {
+      appStore.showInfo(result.message || tr('admin.upstreams.balanceUnavailable', '上游账户未返回余额字段'))
+    }
+  } catch (error: any) {
+    appStore.showError(errorMessage(error, tr('admin.upstreams.balanceRefreshFailed', '查询余额失败')))
+  } finally {
+    refreshingBalance.value = false
+  }
+}
+
+function applyUpstreamAccountBalance(result: UpstreamAccountBalanceResult) {
+  if (!selectedUpstream.value) return
+  const metadata = { ...(selectedUpstream.value.metadata || {}) }
+  setOptionalMetadataNumber(metadata, 'account_balance', result.balance)
+  setOptionalMetadataNumber(metadata, 'account_quota', result.quota)
+  setOptionalMetadataNumber(metadata, 'account_used_quota', result.used_quota)
+  setOptionalMetadataNumber(metadata, 'account_remaining_quota', result.remaining_quota)
+  delete metadata.account_balance_currency
+  if (result.source) {
+    metadata.account_balance_source = result.source
+  }
+  if (result.checked_at) {
+    metadata.account_balance_checked_at = result.checked_at
+  }
+  if (result.has_balance) {
+    delete metadata.account_balance_error
+  } else if (result.message) {
+    metadata.account_balance_error = result.message
+  }
+  selectedUpstream.value = {
+    ...selectedUpstream.value,
+    metadata
+  }
+}
+
 async function saveSupportedModels() {
   if (!selectedUpstream.value) return
   savingModels.value = true
@@ -1762,6 +1960,33 @@ async function refreshCostReport() {
   }
 }
 
+function requestResetCostReport() {
+  if (!selectedUpstream.value) return
+  showResetCostDialog.value = true
+}
+
+async function confirmResetCostReport() {
+  if (!selectedUpstream.value || resettingCost.value) return
+  resettingCost.value = true
+  try {
+    const result = await adminAPI.upstreams.resetCostReport(selectedUpstream.value.id)
+    const metadata = { ...(selectedUpstream.value.metadata || {}) }
+    metadata.cost_report_reset_at = result.reset_at
+    selectedUpstream.value = {
+      ...selectedUpstream.value,
+      metadata
+    }
+    showResetCostDialog.value = false
+    appStore.showSuccess(tr('admin.upstreams.costReportReset', '成本统计已重置'))
+    await refreshCostReport()
+    await loadUpstreams()
+  } catch (error: any) {
+    appStore.showError(errorMessage(error, tr('admin.upstreams.costResetFailed', '重置成本统计失败')))
+  } finally {
+    resettingCost.value = false
+  }
+}
+
 async function loadCostReport(id: number) {
   const end = new Date()
   const start = new Date(end.getTime() - (Number(costForm.hours) || 24) * 60 * 60 * 1000)
@@ -1808,11 +2033,19 @@ function remoteAPIKeyStatusActive(status?: string) {
   return ['', 'active', 'enabled', 'enable', '1', 'true'].includes(normalized)
 }
 
+function localGroupLabel(group: AdminGroup) {
+  const platform = group.platform === 'anthropic' ? 'Anthropic' : group.platform === 'openai' ? 'OpenAI' : group.platform
+  return `${group.name} · ${platform}`
+}
+
 function localGroupNames(ids?: number[]) {
   const uniqueIDs = Array.from(new Set((ids || []).filter((id) => Number.isFinite(Number(id)) && Number(id) > 0)))
   if (uniqueIDs.length === 0) return tr('admin.upstreams.noMappedLocalGroups', '未映射本地分组')
   return uniqueIDs
-    .map((id) => localGroups.value.find((group) => group.id === id)?.name || String(id))
+    .map((id) => {
+      const group = localGroups.value.find((item) => item.id === id)
+      return group ? localGroupLabel(group) : String(id)
+    })
     .join(', ')
 }
 
@@ -1936,24 +2169,27 @@ function costDimensionLabel(item: any) {
 }
 
 function parseStringList(raw: string) {
-  return Array.from(
-    new Set(
-      raw
-        .split(/[\n,\t]+/)
-        .map((item) => item.trim())
-        .filter(Boolean)
-    )
-  )
+  return normalizeStringList(raw.split(/[\n,\t]+/))
 }
 
 function parseMetadataStringList(raw: unknown): string[] {
   if (Array.isArray(raw)) {
-    return Array.from(new Set(raw.map((item) => String(item).trim()).filter(Boolean)))
+    return normalizeStringList(raw)
   }
   if (typeof raw === 'string') {
     return parseStringList(raw)
   }
   return []
+}
+
+function normalizeStringList(items: unknown[]) {
+  return Array.from(
+    new Set(
+      items
+        .map((item) => String(item).trim())
+        .filter(Boolean)
+    )
+  )
 }
 
 function formatOptionalDate(value?: string | null) {
@@ -1965,6 +2201,25 @@ function formatNumber(value: unknown, digits = 2) {
   const n = Number(value)
   if (!Number.isFinite(n)) return '0'
   return n.toFixed(digits).replace(/\.?0+$/, '')
+}
+
+function formatQuotaValue(value?: number | null) {
+  if (value == null || !Number.isFinite(Number(value))) return '-'
+  return formatNumber(value, 6)
+}
+
+function metadataNumber(value: unknown): number | null {
+  if (value == null) return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
+
+function setOptionalMetadataNumber(metadata: Record<string, unknown>, key: string, value?: number | null) {
+  if (value == null || !Number.isFinite(Number(value))) {
+    delete metadata[key]
+    return
+  }
+  metadata[key] = Number(value)
 }
 
 function errorMessage(error: any, fallback: string) {

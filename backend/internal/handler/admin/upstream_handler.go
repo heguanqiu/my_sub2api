@@ -383,6 +383,19 @@ func (h *UpstreamHandler) UpdateAPIKeyConfig(c *gin.Context) {
 	response.Success(c, key)
 }
 
+func (h *UpstreamHandler) RefreshBalance(c *gin.Context) {
+	id, ok := parseUpstreamID(c)
+	if !ok {
+		return
+	}
+	result, err := h.upstreamService.RefreshAccountBalance(c.Request.Context(), id)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, result)
+}
+
 func (h *UpstreamHandler) SchedulePreview(c *gin.Context) {
 	var req schedulePreviewRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -510,6 +523,19 @@ func (h *UpstreamHandler) CostReport(c *gin.Context) {
 		return
 	}
 	response.Success(c, report)
+}
+
+func (h *UpstreamHandler) ResetCostReport(c *gin.Context) {
+	id, ok := parseUpstreamID(c)
+	if !ok {
+		return
+	}
+	result, err := h.upstreamService.ResetCostReport(c.Request.Context(), id)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, result)
 }
 
 func parseUpstreamID(c *gin.Context) (int64, bool) {

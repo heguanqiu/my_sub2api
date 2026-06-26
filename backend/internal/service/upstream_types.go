@@ -244,6 +244,7 @@ type UpstreamAdminSession struct {
 
 type UpstreamAdminAdapter interface {
 	Login(ctx context.Context, upstream *Upstream) (*UpstreamAdminSession, error)
+	GetAccountBalance(ctx context.Context, upstream *Upstream, session *UpstreamAdminSession) (*UpstreamAccountBalanceResult, error)
 	ListGroups(ctx context.Context, upstream *Upstream, session *UpstreamAdminSession) ([]*UpstreamRemoteGroup, error)
 	ListAPIKeys(ctx context.Context, upstream *Upstream, session *UpstreamAdminSession) ([]*UpstreamRemoteAPIKey, error)
 }
@@ -396,8 +397,14 @@ type UpstreamCostReport struct {
 	Start     time.Time               `json:"start"`
 	End       time.Time               `json:"end"`
 	Dimension string                  `json:"dimension"`
+	ResetAt   *time.Time              `json:"reset_at,omitempty"`
 	Items     []UpstreamCostDimension `json:"items"`
 	Totals    UpstreamCostDimension   `json:"totals"`
+}
+
+type UpstreamCostReportResetResult struct {
+	UpstreamID int64     `json:"upstream_id"`
+	ResetAt    time.Time `json:"reset_at"`
 }
 
 type UpstreamLoginTestResult struct {
@@ -423,6 +430,18 @@ type UpstreamProbeResult struct {
 	ErrorMessage      string                     `json:"error_message,omitempty"`
 	SchedulerSnapshot *UpstreamSchedulerSnapshot `json:"scheduler_snapshot,omitempty"`
 	CheckedAt         time.Time                  `json:"checked_at"`
+}
+
+type UpstreamAccountBalanceResult struct {
+	UpstreamID     int64     `json:"upstream_id"`
+	Balance        *float64  `json:"balance"`
+	Quota          *float64  `json:"quota"`
+	UsedQuota      *float64  `json:"used_quota"`
+	RemainingQuota *float64  `json:"remaining_quota"`
+	Source         string    `json:"source,omitempty"`
+	HasBalance     bool      `json:"has_balance"`
+	Message        string    `json:"message"`
+	CheckedAt      time.Time `json:"checked_at"`
 }
 
 type UpstreamRepository interface {

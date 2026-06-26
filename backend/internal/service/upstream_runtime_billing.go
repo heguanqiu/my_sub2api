@@ -6,19 +6,26 @@ import (
 	"strings"
 )
 
-func openAIAccountRateMultiplierForUsage(account *Account, groupID *int64) float64 {
+func accountRateMultiplierForUsage(account *Account, groupID *int64) float64 {
 	base := 1.0
 	if account != nil {
 		base = account.BillingRateMultiplier()
 	}
-	if accountUpstreamID(account) <= 0 || groupID == nil {
+	if accountUpstreamID(account) <= 0 {
 		return base
+	}
+	if groupID == nil {
+		return 1
 	}
 	remoteRate := upstreamRuntimeRemoteGroupRateMultiplier(account, *groupID)
 	if remoteRate <= 0 {
-		return base
+		return 1
 	}
-	return base * remoteRate
+	return remoteRate
+}
+
+func openAIAccountRateMultiplierForUsage(account *Account, groupID *int64) float64 {
+	return accountRateMultiplierForUsage(account, groupID)
 }
 
 func upstreamRuntimeRemoteGroupRateMultiplier(account *Account, localGroupID int64) float64 {

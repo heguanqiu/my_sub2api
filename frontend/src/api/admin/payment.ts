@@ -12,7 +12,7 @@ import type {
   ProviderInstance
 } from '@/types/payment'
 import type { BasePaginationResponse, User } from '@/types'
-import type { SalesDashboardRange, SalesDashboardSummary, SalesCustomerSummary } from '@/api/sales'
+import type { SalesDashboardSummary, SalesCustomerSummary } from '@/api/sales'
 
 /** Admin-facing payment config returned by GET /admin/payment/config */
 export interface AdminPaymentConfig {
@@ -126,7 +126,7 @@ export const adminPaymentAPI = {
   // ==================== Sales Data ====================
 
   /** Get dashboard statistics for a target sales account */
-  getSalesDashboard(salesId: number, params?: { range?: SalesDashboardRange }) {
+  getSalesDashboard(salesId: number, params?: { month?: string }) {
     return apiClient.get<SalesDashboardSummary>(`/admin/payment/sales/${salesId}/dashboard`, { params })
   },
 
@@ -136,7 +136,14 @@ export const adminPaymentAPI = {
   },
 
   /** Get recharge orders for customers currently assigned to a target sales account */
-  getSalesOrders(salesId: number, params?: { page?: number; page_size?: number; status?: string; payment_type?: string }) {
+  getSalesOrders(salesId: number, params?: {
+    page?: number
+    page_size?: number
+    status?: string
+    payment_type?: string
+    start_date?: string
+    end_date?: string
+  }) {
     return apiClient.get<BasePaginationResponse<PaymentOrder>>(`/admin/payment/sales/${salesId}/orders`, { params })
   },
 
@@ -146,7 +153,13 @@ export const adminPaymentAPI = {
   },
 
   /** Get recharge orders for one customer under a target sales account */
-  getSalesCustomerOrders(salesId: number, customerId: number, params?: { page?: number; page_size?: number; status?: string }) {
+  getSalesCustomerOrders(salesId: number, customerId: number, params?: {
+    page?: number
+    page_size?: number
+    status?: string
+    start_date?: string
+    end_date?: string
+  }) {
     return apiClient.get<BasePaginationResponse<PaymentOrder>>(`/admin/payment/sales/${salesId}/customers/${customerId}/orders`, { params })
   },
 

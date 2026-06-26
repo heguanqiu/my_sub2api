@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/ent/enttest"
@@ -88,6 +89,83 @@ func TestSalesCustomerResponsesUseFrontendJSONShape(t *testing.T) {
 	require.Equal(t, customer.Email, detailResp.Data["email"])
 	require.NotContains(t, detailResp.Data, "ID")
 	require.NotContains(t, detailResp.Data, "Email")
+}
+
+func TestSalesOrdersDateRangeQueryFiltersOrders(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	ctx := context.Background()
+
+	client, rawDB := newPaymentSalesHandlerTestClient(t)
+	userRepo := repository.NewUserRepository(client, rawDB)
+	paymentSvc := service.NewPaymentService(client, nil, nil, nil, nil, nil, userRepo, nil)
+	handler := NewPaymentHandler(paymentSvc, nil, nil)
+
+	sales, err := client.User.Create().
+		SetEmail("date-range-sales@example.com").
+		SetPasswordHash("hash").
+		SetRole(service.RoleSales).
+		SetStatus(service.StatusActive).
+		Save(ctx)
+	require.NoError(t, err)
+
+	customer, err := client.User.Create().
+		SetEmail("date-range-customer@example.com").
+		SetPasswordHash("hash").
+		SetRole(service.RoleUser).
+		SetStatus(service.StatusActive).
+		SetOwnerSalesID(sales.ID).
+		Save(ctx)
+	require.NoError(t, err)
+
+	createOrder := func(outTradeNo string, createdAt time.Time) {
+		t.Helper()
+		_, err := client.PaymentOrder.Create().
+			SetUser(customer).
+			SetUserEmail(customer.Email).
+			SetUserName(customer.Email).
+			SetAmount(10).
+			SetPayAmount(10).
+			SetFeeRate(0).
+			SetRechargeCode(outTradeNo + "-code").
+			SetPaymentType("alipay").
+			SetPaymentTradeNo(outTradeNo + "-trade").
+			SetOrderType("balance").
+			SetOutTradeNo(outTradeNo).
+			SetStatus(service.OrderStatusCompleted).
+			SetExpiresAt(createdAt.Add(30 * time.Minute)).
+			SetClientIP("127.0.0.1").
+			SetSrcHost("app.example.com").
+			SetCreatedAt(createdAt).
+			Save(ctx)
+		require.NoError(t, err)
+	}
+	createOrder("sales-orders-may", time.Date(2026, 5, 31, 23, 59, 59, 0, time.Local))
+	createOrder("sales-orders-june", time.Date(2026, 6, 10, 12, 0, 0, 0, time.Local))
+	createOrder("sales-orders-july", time.Date(2026, 7, 1, 0, 0, 0, 0, time.Local))
+
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		c.Set(string(middleware2.ContextKeyUser), middleware2.AuthSubject{UserID: sales.ID})
+		c.Set(string(middleware2.ContextKeyUserRole), service.RoleSales)
+		c.Next()
+	})
+	router.GET("/api/v1/sales/orders", handler.GetSalesOrders)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/sales/orders?page=1&page_size=20&start_date=2026-06-01&end_date=2026-06-30", nil)
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	var resp struct {
+		Data struct {
+			Items []map[string]any `json:"items"`
+			Total int              `json:"total"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	require.Equal(t, 1, resp.Data.Total)
+	require.Len(t, resp.Data.Items, 1)
+	require.Equal(t, "sales-orders-june", resp.Data.Items[0]["out_trade_no"])
 }
 
 func newPaymentSalesHandlerTestClient(t *testing.T) (*dbent.Client, *sql.DB) {

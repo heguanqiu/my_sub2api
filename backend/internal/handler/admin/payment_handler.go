@@ -2,6 +2,7 @@ package admin
 
 import (
 	"strconv"
+	"strings"
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
@@ -62,6 +63,11 @@ func (h *PaymentHandler) ListOrders(c *gin.Context) {
 			userID = v
 		}
 	}
+	startTime, endTime, err := service.ParseOrderListDateRange(c.Query("start_date"), c.Query("end_date"), c.Query("timezone"))
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
 	orders, total, err := h.paymentService.AdminListOrders(c.Request.Context(), userID, service.OrderListParams{
 		Page:        page,
 		PageSize:    pageSize,
@@ -69,6 +75,8 @@ func (h *PaymentHandler) ListOrders(c *gin.Context) {
 		OrderType:   c.Query("order_type"),
 		PaymentType: c.Query("payment_type"),
 		Keyword:     c.Query("keyword"),
+		StartTime:   startTime,
+		EndTime:     endTime,
 	})
 	if err != nil {
 		response.ErrorFrom(c, err)
@@ -84,7 +92,10 @@ func (h *PaymentHandler) GetSalesDashboard(c *gin.Context) {
 	if !ok {
 		return
 	}
-	stats, err := h.paymentService.GetSalesDashboard(c.Request.Context(), salesID, c.Query("range"))
+	stats, err := h.paymentService.GetSalesDashboard(c.Request.Context(), salesID, service.SalesDashboardParams{
+		Month:    adminSalesDashboardMonthQuery(c),
+		Timezone: c.Query("timezone"),
+	})
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
@@ -143,11 +154,18 @@ func (h *PaymentHandler) GetSalesOrders(c *gin.Context) {
 		return
 	}
 	page, pageSize := response.ParsePagination(c)
+	startTime, endTime, err := service.ParseOrderListDateRange(c.Query("start_date"), c.Query("end_date"), c.Query("timezone"))
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
 	items, total, err := h.paymentService.ListSalesOrders(c.Request.Context(), salesID, service.OrderListParams{
 		Page:        page,
 		PageSize:    pageSize,
 		Status:      c.Query("status"),
 		PaymentType: c.Query("payment_type"),
+		StartTime:   startTime,
+		EndTime:     endTime,
 	})
 	if err != nil {
 		response.ErrorFrom(c, err)
@@ -168,10 +186,17 @@ func (h *PaymentHandler) GetSalesCustomerOrders(c *gin.Context) {
 		return
 	}
 	page, pageSize := response.ParsePagination(c)
+	startTime, endTime, err := service.ParseOrderListDateRange(c.Query("start_date"), c.Query("end_date"), c.Query("timezone"))
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
 	items, total, err := h.paymentService.GetSalesCustomerOrders(c.Request.Context(), salesID, customerID, service.OrderListParams{
-		Page:     page,
-		PageSize: pageSize,
-		Status:   c.Query("status"),
+		Page:      page,
+		PageSize:  pageSize,
+		Status:    c.Query("status"),
+		StartTime: startTime,
+		EndTime:   endTime,
 	})
 	if err != nil {
 		response.ErrorFrom(c, err)
@@ -423,6 +448,17 @@ func parseIDParam(c *gin.Context, paramName string) (int64, bool) {
 		return 0, false
 	}
 	return id, true
+}
+
+func adminSalesDashboardMonthQuery(c *gin.Context) string {
+	if month := c.Query("month"); month != "" {
+		return month
+	}
+	legacyRange := strings.TrimSpace(c.Query("range"))
+	if len(legacyRange) == len("2006-01") {
+		return legacyRange
+	}
+	return ""
 }
 
 // --- Config ---

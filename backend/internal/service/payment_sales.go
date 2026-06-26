@@ -9,6 +9,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	dbuser "github.com/Wei-Shaw/sub2api/ent/user"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
 )
 
 type SalesDashboardSummary struct {
@@ -17,6 +18,14 @@ type SalesDashboardSummary struct {
 	CompletedOrders  int     `json:"completed_orders"`
 	TotalOrderAmount float64 `json:"total_order_amount"`
 	Range            string  `json:"range"`
+	Month            string  `json:"month"`
+	StartDate        string  `json:"start_date"`
+	EndDate          string  `json:"end_date"`
+}
+
+type SalesDashboardParams struct {
+	Month    string
+	Timezone string
 }
 
 type SalesCustomerSummary struct {
@@ -25,19 +34,21 @@ type SalesCustomerSummary struct {
 	CompletedOrderAmount float64 `json:"completed_order_amount"`
 }
 
-const (
-	SalesDashboardRangeToday  = "today"
-	SalesDashboardRange7Days  = "7d"
-	SalesDashboardRange30Days = "30d"
-)
-
-func (s *PaymentService) GetSalesDashboard(ctx context.Context, salesUserID int64, rangeKey string) (*SalesDashboardSummary, error) {
+func (s *PaymentService) GetSalesDashboard(ctx context.Context, salesUserID int64, p SalesDashboardParams) (*SalesDashboardSummary, error) {
 	if err := s.ensureSalesAccess(ctx, salesUserID); err != nil {
 		return nil, err
 	}
-	rangeKey, start, end := salesDashboardTimeRange(rangeKey, time.Now())
+	month, start, end, err := salesDashboardMonthRange(p.Month, p.Timezone, time.Now())
+	if err != nil {
+		return nil, err
+	}
 	customerCount, err := s.entClient.User.Query().
-		Where(dbuser.OwnerSalesIDEQ(salesUserID), dbuser.RoleEQ(RoleUser)).
+		Where(
+			dbuser.OwnerSalesIDEQ(salesUserID),
+			dbuser.RoleEQ(RoleUser),
+			dbuser.CreatedAtGTE(start),
+			dbuser.CreatedAtLT(end),
+		).
 		Count(ctx)
 	if err != nil {
 		return nil, err
@@ -70,22 +81,35 @@ func (s *PaymentService) GetSalesDashboard(ctx context.Context, salesUserID int6
 		TotalOrders:      totalOrders,
 		CompletedOrders:  len(completedOrders),
 		TotalOrderAmount: completedAmount,
-		Range:            rangeKey,
+		Range:            month,
+		Month:            month,
+		StartDate:        start.Format("2006-01-02"),
+		EndDate:          end.AddDate(0, 0, -1).Format("2006-01-02"),
 	}, nil
 }
 
-func salesDashboardTimeRange(rangeKey string, now time.Time) (string, time.Time, time.Time) {
-	localNow := now.In(time.Local)
-	todayStart := time.Date(localNow.Year(), localNow.Month(), localNow.Day(), 0, 0, 0, 0, localNow.Location())
-	end := todayStart.AddDate(0, 0, 1)
-	switch strings.TrimSpace(rangeKey) {
-	case SalesDashboardRange7Days:
-		return SalesDashboardRange7Days, todayStart.AddDate(0, 0, -6), end
-	case SalesDashboardRange30Days:
-		return SalesDashboardRange30Days, todayStart.AddDate(0, 0, -29), end
-	default:
-		return SalesDashboardRangeToday, todayStart, end
+func salesDashboardMonthRange(month string, userTZ string, now time.Time) (string, time.Time, time.Time, error) {
+	month = strings.TrimSpace(month)
+	loc := salesDashboardLocation(userTZ)
+	if month == "" {
+		localNow := now.In(loc)
+		start := time.Date(localNow.Year(), localNow.Month(), 1, 0, 0, 0, 0, loc)
+		return start.Format("2006-01"), start, start.AddDate(0, 1, 0), nil
 	}
+	start, err := timezone.ParseInUserLocation("2006-01", month, userTZ)
+	if err != nil {
+		return "", time.Time{}, time.Time{}, infraerrors.BadRequest("INVALID_MONTH", "invalid month format, use YYYY-MM")
+	}
+	return start.Format("2006-01"), start, start.AddDate(0, 1, 0), nil
+}
+
+func salesDashboardLocation(userTZ string) *time.Location {
+	if strings.TrimSpace(userTZ) != "" {
+		if loc, err := time.LoadLocation(userTZ); err == nil {
+			return loc
+		}
+	}
+	return timezone.Location()
 }
 
 func (s *PaymentService) ListSalesCustomers(ctx context.Context, salesUserID int64, page, pageSize int, search, status string) ([]SalesCustomerSummary, int, error) {
@@ -155,6 +179,12 @@ func (s *PaymentService) ListSalesOrders(ctx context.Context, salesUserID int64,
 	if p.PaymentType != "" {
 		q = q.Where(paymentorder.PaymentTypeEQ(p.PaymentType))
 	}
+	if p.StartTime != nil {
+		q = q.Where(paymentorder.CreatedAtGTE(*p.StartTime))
+	}
+	if p.EndTime != nil {
+		q = q.Where(paymentorder.CreatedAtLT(*p.EndTime))
+	}
 	total, err := q.Clone().Count(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -173,6 +203,12 @@ func (s *PaymentService) GetSalesCustomerOrders(ctx context.Context, salesUserID
 	q := s.entClient.PaymentOrder.Query().Where(paymentorder.UserIDEQ(customerID))
 	if p.Status != "" {
 		q = q.Where(paymentorder.StatusEQ(p.Status))
+	}
+	if p.StartTime != nil {
+		q = q.Where(paymentorder.CreatedAtGTE(*p.StartTime))
+	}
+	if p.EndTime != nil {
+		q = q.Where(paymentorder.CreatedAtLT(*p.EndTime))
 	}
 	total, err := q.Clone().Count(ctx)
 	if err != nil {

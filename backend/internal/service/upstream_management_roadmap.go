@@ -377,10 +377,60 @@ func (s *UpstreamService) ResolveAlert(ctx context.Context, id int64, alertType 
 }
 
 func (s *UpstreamService) CostReport(ctx context.Context, id int64, start, end time.Time, dimension string) (*UpstreamCostReport, error) {
-	if _, err := s.repo.Get(ctx, id); err != nil {
+	upstream, err := s.repo.Get(ctx, id)
+	if err != nil {
 		return nil, err
 	}
-	return s.repo.GetCostReport(ctx, id, start, end, dimension)
+	resetAt := upstreamCostReportResetAt(upstream)
+	if resetAt != nil && start.Before(*resetAt) {
+		start = *resetAt
+	}
+	report, err := s.repo.GetCostReport(ctx, id, start, end, dimension)
+	if err != nil {
+		return nil, err
+	}
+	report.ResetAt = resetAt
+	if resetAt != nil && report.Start.Before(*resetAt) {
+		report.Start = *resetAt
+	}
+	return report, nil
+}
+
+func (s *UpstreamService) ResetCostReport(ctx context.Context, id int64) (*UpstreamCostReportResetResult, error) {
+	upstream, err := s.repo.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	now := time.Now().UTC()
+	metadata := copyAnyMap(upstream.Metadata)
+	if metadata == nil {
+		metadata = map[string]any{}
+	}
+	metadata["cost_report_reset_at"] = now.Format(time.RFC3339)
+	upstream.Metadata = metadata
+	if err := s.repo.Update(ctx, upstream); err != nil {
+		return nil, err
+	}
+	return &UpstreamCostReportResetResult{
+		UpstreamID: id,
+		ResetAt:    now,
+	}, nil
+}
+
+func upstreamCostReportResetAt(upstream *Upstream) *time.Time {
+	if upstream == nil || upstream.Metadata == nil {
+		return nil
+	}
+	raw := strings.TrimSpace(anyToString(upstream.Metadata["cost_report_reset_at"]))
+	if raw == "" {
+		return nil
+	}
+	parsed, err := time.Parse(time.RFC3339, raw)
+	if err != nil {
+		return nil
+	}
+	parsed = parsed.UTC()
+	return &parsed
 }
 
 func normalizeGovernancePolicy(policy UpstreamGovernancePolicy) UpstreamGovernancePolicy {

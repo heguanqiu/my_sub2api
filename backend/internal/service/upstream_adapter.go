@@ -199,6 +199,27 @@ func (a *HTTPUpstreamAdminAdapter) ListAPIKeys(ctx context.Context, upstream *Up
 	return []*UpstreamRemoteAPIKey{}, nil
 }
 
+func (a *HTTPUpstreamAdminAdapter) GetAccountBalance(ctx context.Context, upstream *Upstream, session *UpstreamAdminSession) (*UpstreamAccountBalanceResult, error) {
+	raw, err := a.getJSON(ctx, upstream, session, "/api/user/self")
+	if err != nil {
+		return nil, err
+	}
+	result := parseNewAPIAccountBalance(raw)
+	now := time.Now().UTC()
+	result.UpstreamID = upstream.ID
+	result.Source = "/api/user/self"
+	result.CheckedAt = now
+	result.HasBalance = result.Balance != nil || result.Quota != nil || result.UsedQuota != nil || result.RemainingQuota != nil
+	if result.Message == "" {
+		if result.HasBalance {
+			result.Message = "account balance refreshed"
+		} else {
+			result.Message = "upstream /api/user/self did not include quota fields"
+		}
+	}
+	return result, nil
+}
+
 func (a *HTTPUpstreamAdminAdapter) getJSON(ctx context.Context, upstream *Upstream, session *UpstreamAdminSession, relPath string) ([]byte, error) {
 	return a.getJSONWithClient(ctx, a.client, upstream, session, relPath)
 }
@@ -375,6 +396,36 @@ func parseUpstreamAPIKeys(raw []byte) []*UpstreamRemoteAPIKey {
 		})
 	}
 	return out
+}
+
+func parseNewAPIAccountBalance(raw []byte) *UpstreamAccountBalanceResult {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	var decoded any
+	if err := decoder.Decode(&decoded); err != nil {
+		return &UpstreamAccountBalanceResult{Message: "invalid /api/user/self response"}
+	}
+	root, ok := decoded.(map[string]any)
+	if !ok {
+		return &UpstreamAccountBalanceResult{Message: "invalid /api/user/self response"}
+	}
+	payload := root
+	if data, ok := root["data"].(map[string]any); ok {
+		payload = data
+	}
+
+	quota := optionalObjectFloat(payload, "quota")
+	usedQuota := optionalObjectFloat(payload, "used_quota")
+	result := &UpstreamAccountBalanceResult{
+		Quota:     quota,
+		UsedQuota: usedQuota,
+	}
+	if quota != nil {
+		// new-api stores current usable account balance in user.quota.
+		result.Balance = quota
+		result.RemainingQuota = quota
+	}
+	return result
 }
 
 func parseMappedUpstreamGroups(raw []byte) []*UpstreamRemoteGroup {

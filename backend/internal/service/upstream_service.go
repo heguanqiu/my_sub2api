@@ -240,25 +240,7 @@ func (s *UpstreamService) SyncRemoteResources(ctx context.Context, id int64) (*U
 		return nil, ErrUpstreamLoginFailed.WithCause(err)
 	}
 	if upstream.AdminAuth != nil {
-		now := time.Now().UTC()
-		upstream.AdminAuth.LastLoginAt = &now
-		upstream.AdminAuth.LastLoginError = ""
-		if strings.TrimSpace(session.AccessToken) != "" {
-			upstream.AdminAuth.AccessToken = session.AccessToken
-		}
-		if strings.TrimSpace(session.RefreshToken) != "" {
-			upstream.AdminAuth.RefreshToken = session.RefreshToken
-		}
-		if session.TokenExpiresAt != nil {
-			upstream.AdminAuth.TokenExpiresAt = session.TokenExpiresAt
-		}
-		if strings.TrimSpace(session.UserID) != "" {
-			if upstream.AdminAuth.Metadata == nil {
-				upstream.AdminAuth.Metadata = map[string]any{}
-			}
-			upstream.AdminAuth.Metadata["user_id"] = strings.TrimSpace(session.UserID)
-		}
-		if err := s.persistPlainAdminAuth(ctx, upstream.AdminAuth); err != nil {
+		if err := s.persistAdminSession(ctx, upstream, session); err != nil {
 			_ = s.recordFailedSync(ctx, id, started, err)
 			return nil, err
 		}
@@ -358,28 +340,8 @@ func (s *UpstreamService) TestAdminLogin(ctx context.Context, id int64) (*Upstre
 		tokenExpiresAt = session.TokenExpiresAt
 		hasToken = strings.TrimSpace(session.AccessToken) != ""
 	}
-	if upstream.AdminAuth != nil && session != nil {
-		now := time.Now().UTC()
-		upstream.AdminAuth.LastLoginAt = &now
-		upstream.AdminAuth.LastLoginError = ""
-		if strings.TrimSpace(session.AccessToken) != "" {
-			upstream.AdminAuth.AccessToken = session.AccessToken
-		}
-		if strings.TrimSpace(session.RefreshToken) != "" {
-			upstream.AdminAuth.RefreshToken = session.RefreshToken
-		}
-		if session.TokenExpiresAt != nil {
-			upstream.AdminAuth.TokenExpiresAt = session.TokenExpiresAt
-		}
-		if strings.TrimSpace(session.UserID) != "" {
-			if upstream.AdminAuth.Metadata == nil {
-				upstream.AdminAuth.Metadata = map[string]any{}
-			}
-			upstream.AdminAuth.Metadata["user_id"] = strings.TrimSpace(session.UserID)
-		}
-		if err := s.persistPlainAdminAuth(ctx, upstream.AdminAuth); err != nil {
-			return nil, err
-		}
+	if err := s.persistAdminSession(ctx, upstream, session); err != nil {
+		return nil, err
 	}
 	return &UpstreamLoginTestResult{
 		Success:        true,
@@ -387,6 +349,72 @@ func (s *UpstreamService) TestAdminLogin(ctx context.Context, id int64) (*Upstre
 		TokenExpiresAt: tokenExpiresAt,
 		Message:        "login succeeded",
 	}, nil
+}
+
+func (s *UpstreamService) persistAdminSession(ctx context.Context, upstream *Upstream, session *UpstreamAdminSession) error {
+	if upstream == nil || upstream.AdminAuth == nil || session == nil {
+		return nil
+	}
+	now := time.Now().UTC()
+	upstream.AdminAuth.LastLoginAt = &now
+	upstream.AdminAuth.LastLoginError = ""
+	if strings.TrimSpace(session.AccessToken) != "" {
+		upstream.AdminAuth.AccessToken = session.AccessToken
+	}
+	if strings.TrimSpace(session.RefreshToken) != "" {
+		upstream.AdminAuth.RefreshToken = session.RefreshToken
+	}
+	if session.TokenExpiresAt != nil {
+		upstream.AdminAuth.TokenExpiresAt = session.TokenExpiresAt
+	}
+	if strings.TrimSpace(session.UserID) != "" {
+		if upstream.AdminAuth.Metadata == nil {
+			upstream.AdminAuth.Metadata = map[string]any{}
+		}
+		upstream.AdminAuth.Metadata["user_id"] = strings.TrimSpace(session.UserID)
+	}
+	return s.persistPlainAdminAuth(ctx, upstream.AdminAuth)
+}
+
+func (s *UpstreamService) persistAccountBalanceMetadata(ctx context.Context, upstream *Upstream, result *UpstreamAccountBalanceResult) error {
+	if upstream == nil || result == nil {
+		return nil
+	}
+	metadata := copyAnyMap(upstream.Metadata)
+	if result.Balance != nil {
+		metadata["account_balance"] = *result.Balance
+	} else {
+		delete(metadata, "account_balance")
+	}
+	if result.Quota != nil {
+		metadata["account_quota"] = *result.Quota
+	} else {
+		delete(metadata, "account_quota")
+	}
+	if result.UsedQuota != nil {
+		metadata["account_used_quota"] = *result.UsedQuota
+	} else {
+		delete(metadata, "account_used_quota")
+	}
+	if result.RemainingQuota != nil {
+		metadata["account_remaining_quota"] = *result.RemainingQuota
+	} else {
+		delete(metadata, "account_remaining_quota")
+	}
+	delete(metadata, "account_balance_currency")
+	if strings.TrimSpace(result.Source) != "" {
+		metadata["account_balance_source"] = strings.TrimSpace(result.Source)
+	}
+	if !result.CheckedAt.IsZero() {
+		metadata["account_balance_checked_at"] = result.CheckedAt.Format(time.RFC3339)
+	}
+	if result.HasBalance {
+		delete(metadata, "account_balance_error")
+	} else if strings.TrimSpace(result.Message) != "" {
+		metadata["account_balance_error"] = strings.TrimSpace(result.Message)
+	}
+	upstream.Metadata = metadata
+	return s.repo.Update(ctx, upstream)
 }
 
 func (s *UpstreamService) ListRemoteGroups(ctx context.Context, id int64) ([]*UpstreamRemoteGroup, error) {
@@ -456,6 +484,62 @@ func (s *UpstreamService) UpdateRemoteAPIKeyConfig(ctx context.Context, id int64
 	}
 	maskRemoteAPIKeySecretsForResponse([]*UpstreamRemoteAPIKey{key})
 	return key, nil
+}
+
+func (s *UpstreamService) RefreshAccountBalance(ctx context.Context, id int64) (*UpstreamAccountBalanceResult, error) {
+	upstream, err := s.repo.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.decryptSecretsForUse(upstream); err != nil {
+		return nil, err
+	}
+	session, err := s.adapter.Login(ctx, upstream)
+	if err != nil {
+		if upstream.AdminAuth != nil {
+			upstream.AdminAuth.LastLoginError = err.Error()
+			_ = s.persistPlainAdminAuth(ctx, upstream.AdminAuth)
+		}
+		return nil, ErrUpstreamLoginFailed.WithCause(err)
+	}
+	if err := s.persistAdminSession(ctx, upstream, session); err != nil {
+		return nil, err
+	}
+
+	result, err := s.adapter.GetAccountBalance(ctx, upstream, session)
+	if err != nil {
+		checkedAt := time.Now().UTC()
+		s.persistAccountBalanceMetadata(ctx, upstream, &UpstreamAccountBalanceResult{
+			UpstreamID: id,
+			HasBalance: false,
+			Message:    err.Error(),
+			CheckedAt:  checkedAt,
+		})
+		return nil, ErrUpstreamSyncFailed.WithCause(err)
+	}
+	now := time.Now().UTC()
+	if result == nil {
+		result = &UpstreamAccountBalanceResult{}
+	}
+	result.UpstreamID = id
+	if result.CheckedAt.IsZero() {
+		result.CheckedAt = now
+	}
+	result.HasBalance = result.Balance != nil || result.Quota != nil || result.UsedQuota != nil || result.RemainingQuota != nil
+	if strings.TrimSpace(result.Message) == "" {
+		if result.HasBalance {
+			result.Message = "account balance refreshed"
+		} else {
+			result.Message = "upstream account response did not include quota fields"
+		}
+	}
+	if strings.TrimSpace(result.Source) == "" {
+		result.Source = "/api/user/self"
+	}
+	if err := s.persistAccountBalanceMetadata(ctx, upstream, result); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (s *UpstreamService) SchedulePreview(ctx context.Context, req UpstreamScheduleRequest) (*UpstreamScheduleDecision, error) {

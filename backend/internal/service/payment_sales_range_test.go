@@ -16,7 +16,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func TestSalesDashboardRangeFiltersOrders(t *testing.T) {
+func TestSalesDashboardMonthFiltersOrders(t *testing.T) {
 	ctx := context.Background()
 	client := newPaymentSalesRangeTestClient(t)
 
@@ -43,10 +43,21 @@ func TestSalesDashboardRangeFiltersOrders(t *testing.T) {
 		SetRole(RoleUser).
 		SetStatus(StatusActive).
 		SetOwnerSalesID(sales.ID).
+		SetCreatedAt(time.Date(2026, 6, 2, 10, 0, 0, 0, time.Local)).
 		Save(ctx)
 	require.NoError(t, err)
 
-	now := time.Now()
+	_, err = client.User.Create().
+		SetEmail("range-july-customer@example.com").
+		SetPasswordHash("hash").
+		SetRole(RoleUser).
+		SetStatus(StatusActive).
+		SetOwnerSalesID(sales.ID).
+		SetCreatedAt(time.Date(2026, 7, 2, 10, 0, 0, 0, time.Local)).
+		Save(ctx)
+	require.NoError(t, err)
+
+	now := time.Date(2026, 6, 20, 12, 0, 0, 0, time.Local)
 	createSalesRangeOrder := func(outTradeNo string, amount float64, createdAt time.Time) {
 		t.Helper()
 		_, err := client.PaymentOrder.Create().
@@ -70,28 +81,85 @@ func TestSalesDashboardRangeFiltersOrders(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	createSalesRangeOrder("range-today", 10, now)
-	createSalesRangeOrder("range-week", 20, now.AddDate(0, 0, -3))
-	createSalesRangeOrder("range-month", 30, now.AddDate(0, 0, -20))
-	createSalesRangeOrder("range-old", 40, now.AddDate(0, 0, -40))
+	createSalesRangeOrder("range-june-a", 10, now)
+	createSalesRangeOrder("range-june-b", 20, time.Date(2026, 6, 1, 0, 0, 0, 0, time.Local))
+	createSalesRangeOrder("range-july", 30, time.Date(2026, 7, 1, 0, 0, 0, 0, time.Local))
+	createSalesRangeOrder("range-may", 40, time.Date(2026, 5, 31, 23, 59, 59, 0, time.Local))
 
-	today, err := svc.GetSalesDashboard(ctx, sales.ID, SalesDashboardRangeToday)
+	month, err := svc.GetSalesDashboard(ctx, sales.ID, SalesDashboardParams{Month: "2026-06"})
 	require.NoError(t, err)
-	require.Equal(t, SalesDashboardRangeToday, today.Range)
-	require.Equal(t, 1, today.TotalOrders)
-	require.Equal(t, 10.0, today.TotalOrderAmount)
+	require.Equal(t, "2026-06", month.Month)
+	require.Equal(t, "2026-06-01", month.StartDate)
+	require.Equal(t, "2026-06-30", month.EndDate)
+	require.Equal(t, 1, month.TotalCustomers)
+	require.Equal(t, 2, month.TotalOrders)
+	require.Equal(t, 30.0, month.TotalOrderAmount)
+}
 
-	week, err := svc.GetSalesDashboard(ctx, sales.ID, SalesDashboardRange7Days)
-	require.NoError(t, err)
-	require.Equal(t, SalesDashboardRange7Days, week.Range)
-	require.Equal(t, 2, week.TotalOrders)
-	require.Equal(t, 30.0, week.TotalOrderAmount)
+func TestSalesOrdersDateRangeFiltersOrders(t *testing.T) {
+	ctx := context.Background()
+	client := newPaymentSalesRangeTestClient(t)
 
-	month, err := svc.GetSalesDashboard(ctx, sales.ID, SalesDashboardRange30Days)
+	userRepo := &salesDashboardRangeUserRepoStub{
+		usersByID: map[int64]*User{},
+	}
+	svc := &PaymentService{
+		entClient: client,
+		userRepo:  userRepo,
+	}
+
+	sales, err := client.User.Create().
+		SetEmail("orders-range-sales@example.com").
+		SetPasswordHash("hash").
+		SetRole(RoleSales).
+		SetStatus(StatusActive).
+		Save(ctx)
 	require.NoError(t, err)
-	require.Equal(t, SalesDashboardRange30Days, month.Range)
-	require.Equal(t, 3, month.TotalOrders)
-	require.Equal(t, 60.0, month.TotalOrderAmount)
+	userRepo.usersByID[sales.ID] = authUserEntityToService(sales)
+
+	customer, err := client.User.Create().
+		SetEmail("orders-range-customer@example.com").
+		SetPasswordHash("hash").
+		SetRole(RoleUser).
+		SetStatus(StatusActive).
+		SetOwnerSalesID(sales.ID).
+		Save(ctx)
+	require.NoError(t, err)
+
+	createOrder := func(outTradeNo string, createdAt time.Time) {
+		t.Helper()
+		_, err := client.PaymentOrder.Create().
+			SetUser(customer).
+			SetUserEmail(customer.Email).
+			SetUserName(customer.Email).
+			SetAmount(10).
+			SetPayAmount(10).
+			SetFeeRate(0).
+			SetRechargeCode(outTradeNo + "-code").
+			SetPaymentType("alipay").
+			SetPaymentTradeNo(outTradeNo + "-trade").
+			SetOrderType("balance").
+			SetOutTradeNo(outTradeNo).
+			SetStatus(OrderStatusCompleted).
+			SetExpiresAt(createdAt.Add(30 * time.Minute)).
+			SetClientIP("127.0.0.1").
+			SetSrcHost("app.example.com").
+			SetCreatedAt(createdAt).
+			Save(ctx)
+		require.NoError(t, err)
+	}
+
+	createOrder("orders-may", time.Date(2026, 5, 31, 23, 59, 59, 0, time.Local))
+	createOrder("orders-june", time.Date(2026, 6, 10, 12, 0, 0, 0, time.Local))
+	createOrder("orders-july", time.Date(2026, 7, 1, 0, 0, 0, 0, time.Local))
+
+	start := time.Date(2026, 6, 1, 0, 0, 0, 0, time.Local)
+	end := time.Date(2026, 7, 1, 0, 0, 0, 0, time.Local)
+	orders, total, err := svc.ListSalesOrders(ctx, sales.ID, OrderListParams{Page: 1, PageSize: 20, StartTime: &start, EndTime: &end})
+	require.NoError(t, err)
+	require.Equal(t, 1, total)
+	require.Len(t, orders, 1)
+	require.Equal(t, "orders-june", orders[0].OutTradeNo)
 }
 
 func newPaymentSalesRangeTestClient(t *testing.T) *dbent.Client {

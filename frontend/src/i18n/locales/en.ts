@@ -1434,12 +1434,14 @@ export default {
 
   sales: {
     totalCustomers: 'Total Customers',
+    monthlyCustomers: 'New Customers',
     totalOrders: 'Total Orders',
     completedOrders: 'Completed Orders',
     totalOrderAmount: 'Recharge Amount',
     rangeToday: 'Today',
     range7d: '7 days',
     range30d: '30 days',
+    month: 'Month',
     completedOrderAmount: 'Completed Amount',
     orders: 'Orders',
     referralTitle: 'Sales Referral Registration Link',

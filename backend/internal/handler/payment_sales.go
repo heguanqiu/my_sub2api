@@ -2,6 +2,7 @@ package handler
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
@@ -35,7 +36,10 @@ func (h *PaymentHandler) GetSalesDashboard(c *gin.Context) {
 	if !ok {
 		return
 	}
-	stats, err := h.paymentService.GetSalesDashboard(c.Request.Context(), subject.UserID, c.Query("range"))
+	stats, err := h.paymentService.GetSalesDashboard(c.Request.Context(), subject.UserID, service.SalesDashboardParams{
+		Month:    salesDashboardMonthQuery(c),
+		Timezone: c.Query("timezone"),
+	})
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
@@ -89,11 +93,18 @@ func (h *PaymentHandler) GetSalesOrders(c *gin.Context) {
 		return
 	}
 	page, pageSize := response.ParsePagination(c)
+	startTime, endTime, err := service.ParseOrderListDateRange(c.Query("start_date"), c.Query("end_date"), c.Query("timezone"))
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
 	items, total, err := h.paymentService.ListSalesOrders(c.Request.Context(), subject.UserID, service.OrderListParams{
 		Page:        page,
 		PageSize:    pageSize,
 		Status:      c.Query("status"),
 		PaymentType: c.Query("payment_type"),
+		StartTime:   startTime,
+		EndTime:     endTime,
 	})
 	if err != nil {
 		response.ErrorFrom(c, err)
@@ -113,14 +124,32 @@ func (h *PaymentHandler) GetSalesCustomerOrders(c *gin.Context) {
 		return
 	}
 	page, pageSize := response.ParsePagination(c)
+	startTime, endTime, err := service.ParseOrderListDateRange(c.Query("start_date"), c.Query("end_date"), c.Query("timezone"))
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
 	items, total, err := h.paymentService.GetSalesCustomerOrders(c.Request.Context(), subject.UserID, customerID, service.OrderListParams{
-		Page:     page,
-		PageSize: pageSize,
-		Status:   c.Query("status"),
+		Page:      page,
+		PageSize:  pageSize,
+		Status:    c.Query("status"),
+		StartTime: startTime,
+		EndTime:   endTime,
 	})
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
 	}
 	response.Paginated(c, sanitizePaymentOrdersForResponse(items), int64(total), page, pageSize)
+}
+
+func salesDashboardMonthQuery(c *gin.Context) string {
+	if month := c.Query("month"); month != "" {
+		return month
+	}
+	legacyRange := strings.TrimSpace(c.Query("range"))
+	if len(legacyRange) == len("2006-01") {
+		return legacyRange
+	}
+	return ""
 }

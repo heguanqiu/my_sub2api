@@ -66,6 +66,18 @@ export interface UpstreamRemoteAPIKey {
   last_synced_at: string
 }
 
+export interface UpstreamAccountBalanceResult {
+  upstream_id: number
+  balance?: number | null
+  quota?: number | null
+  used_quota?: number | null
+  remaining_quota?: number | null
+  source?: string
+  has_balance: boolean
+  message: string
+  checked_at: string
+}
+
 export interface UpstreamSyncRun {
   id: number
   upstream_id: number
@@ -227,8 +239,14 @@ export interface UpstreamCostReport {
   start: string
   end: string
   dimension: string
+  reset_at?: string | null
   items: UpstreamCostDimension[]
   totals: UpstreamCostDimension
+}
+
+export interface UpstreamCostReportResetResult {
+  upstream_id: number
+  reset_at: string
 }
 
 export interface Upstream {
@@ -483,6 +501,11 @@ export async function updateRemoteAPIKeyConfig(
   return data
 }
 
+export async function refreshBalance(id: number): Promise<UpstreamAccountBalanceResult> {
+  const { data } = await apiClient.post<UpstreamAccountBalanceResult>(`/admin/upstreams/${id}/balance`)
+  return data
+}
+
 export async function schedulePreview(payload: SchedulePreviewRequest): Promise<UpstreamScheduleDecision> {
   const { data } = await apiClient.post<UpstreamScheduleDecision>('/admin/upstreams/schedule-preview', payload)
   return data
@@ -515,6 +538,11 @@ export async function costReport(
   return data
 }
 
+export async function resetCostReport(id: number): Promise<UpstreamCostReportResetResult> {
+  const { data } = await apiClient.post<UpstreamCostReportResetResult>(`/admin/upstreams/${id}/cost-report/reset`)
+  return data
+}
+
 const upstreamsAPI = {
   list,
   get,
@@ -531,12 +559,14 @@ const upstreamsAPI = {
   listRemoteGroups,
   listRemoteAPIKeys,
   updateRemoteAPIKeyConfig,
+  refreshBalance,
   schedulePreview,
   getPolicy,
   updatePolicy,
   listAlerts,
   resolveAlert,
-  costReport
+  costReport,
+  resetCostReport
 }
 
 export default upstreamsAPI

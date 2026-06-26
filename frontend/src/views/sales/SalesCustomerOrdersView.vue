@@ -20,6 +20,26 @@
             </p>
           </div>
           <div class="flex flex-wrap items-center gap-3">
+            <label class="block w-40">
+              <span class="sr-only">{{ t('dates.startDate') }}</span>
+              <input
+                v-model="startDate"
+                type="date"
+                class="input w-full"
+                :aria-label="t('dates.startDate')"
+                @change="handleFilterChange"
+              />
+            </label>
+            <label class="block w-40">
+              <span class="sr-only">{{ t('dates.endDate') }}</span>
+              <input
+                v-model="endDate"
+                type="date"
+                class="input w-full"
+                :aria-label="t('dates.endDate')"
+                @change="handleFilterChange"
+              />
+            </label>
             <Select
               v-model="statusFilter"
               :options="statusFilters"
@@ -80,6 +100,8 @@ const loading = ref(false)
 const customer = ref<User | null>(null)
 const orders = ref<PaymentOrder[]>([])
 const statusFilter = ref('')
+const startDate = ref('')
+const endDate = ref('')
 const pagination = reactive({ page: 1, page_size: 20, total: 0 })
 
 const statusFilters = computed(() => [
@@ -105,7 +127,9 @@ async function fetchOrders() {
     const res = await salesAPI.getCustomerOrders(customerId.value, {
       page: pagination.page,
       page_size: pagination.page_size,
-      status: statusFilter.value || undefined
+      status: statusFilter.value || undefined,
+      start_date: startDate.value || undefined,
+      end_date: endDate.value || undefined
     })
     orders.value = res.data.items ?? []
     pagination.total = res.data.total ?? 0
