@@ -23,6 +23,13 @@
           class="w-44"
           @change="handleFilterChange"
         />
+        <Select
+          v-model="routingMode"
+          :options="routingModeOptions"
+          class="w-48"
+          :disabled="routingConfigLoading || routingConfigSaving"
+          @change="saveRoutingConfig"
+        />
         <div class="flex flex-1 flex-wrap items-center justify-end gap-2">
           <button
             type="button"
@@ -32,6 +39,15 @@
             @click="loadUpstreams"
           >
             <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
+          </button>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            :disabled="upstreams.length === 0"
+            @click="openCostReportDialog"
+          >
+            <Icon name="calculator" size="md" />
+            {{ tr('admin.upstreams.costReconciliation', '成本对账') }}
           </button>
           <button type="button" class="btn btn-primary" @click="openCreateDialog">
             <Icon name="plus" size="md" />
@@ -81,14 +97,27 @@
               </span>
             </template>
 
-            <template #cell-routing_mode="{ value }">
-              <span class="badge badge-primary">{{ routingModeLabel(String(value)) }}</span>
-            </template>
-
             <template #cell-weight="{ value, row }">
               <div class="text-sm tabular-nums text-gray-700 dark:text-gray-200">
                 {{ value }}
                 <span class="text-xs text-gray-400">/ P{{ row.priority }}</span>
+              </div>
+            </template>
+
+            <template #cell-account_balance="{ row }">
+              <div class="min-w-36 text-sm">
+                <div class="flex items-center gap-1 font-mono text-gray-800 dark:text-gray-100">
+                  <Icon
+                    v-if="isBalanceRefreshing(row.id)"
+                    name="refresh"
+                    size="xs"
+                    class="animate-spin text-gray-400"
+                  />
+                  <span>{{ upstreamBalanceLabel(row) }}</span>
+                </div>
+                <div class="mt-1 truncate text-xs text-gray-500 dark:text-dark-400">
+                  {{ upstreamBalanceSubLabel(row) }}
+                </div>
               </div>
             </template>
 
@@ -278,10 +307,10 @@
                 <button
                   type="button"
                   class="btn btn-secondary btn-sm"
-                  :disabled="refreshingBalance || detailLoading"
+                  :disabled="refreshingBalance || detailLoading || isBalanceRefreshing(selectedUpstream.id)"
                   @click="refreshUpstreamBalance"
                 >
-                  <Icon name="refresh" size="sm" :class="refreshingBalance ? 'animate-spin' : ''" />
+                  <Icon name="refresh" size="sm" :class="(refreshingBalance || isBalanceRefreshing(selectedUpstream.id)) ? 'animate-spin' : ''" />
                   {{ tr('admin.upstreams.queryBalance', '查询余额') }}
                 </button>
                 <button
@@ -590,14 +619,9 @@
                       :placeholder="tr('admin.upstreams.modelPlaceholder', '模型，可选')"
                     />
                     <Select
-                      v-model="previewForm.mode"
-                      :options="routingModeOptions"
-                    />
-                    <Select
                       v-model="previewForm.local_group_id"
                       :options="previewLocalGroupOptions"
                       clearable
-                      class="sm:col-span-2"
                     />
                   </div>
 
@@ -705,70 +729,6 @@
                 </section>
 
                 <section class="mt-5 space-y-3">
-                  <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
-                      {{ tr('admin.upstreams.costReconciliation', '成本对账') }}
-                    </h3>
-                    <div class="flex items-center gap-2">
-                      <button
-                        type="button"
-                        class="btn btn-secondary btn-sm"
-                        :disabled="costLoading || resettingCost"
-                        @click="requestResetCostReport"
-                      >
-                        <Icon name="trash" size="sm" />
-                        {{ tr('admin.upstreams.resetCostReport', '重置') }}
-                      </button>
-                      <button type="button" class="btn btn-secondary btn-sm" :disabled="costLoading" @click="refreshCostReport">
-                        <Icon name="refresh" size="sm" :class="costLoading ? 'animate-spin' : ''" />
-                      </button>
-                    </div>
-                  </div>
-                  <div v-if="costReport?.reset_at" class="text-xs text-gray-500 dark:text-dark-400">
-                    {{ tr('admin.upstreams.costReportResetAt', '统计起点') }}: {{ formatOptionalDate(costReport.reset_at) }}
-                  </div>
-                  <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <label class="space-y-1">
-                      <span class="input-label">{{ tr('admin.upstreams.costDimension', '对账维度') }}</span>
-                      <Select v-model="costForm.dimension" :options="costDimensionOptions" @change="refreshCostReport" />
-                    </label>
-                    <label class="space-y-1">
-                      <span class="input-label">{{ tr('admin.upstreams.costWindowHours', '统计窗口（小时）') }}</span>
-                      <input v-model.number="costForm.hours" type="number" min="1" max="720" class="input" @change="refreshCostReport" />
-                    </label>
-                  </div>
-                  <div class="grid grid-cols-3 gap-2 text-center">
-                    <div class="rounded-lg bg-gray-50 px-2 py-2 dark:bg-dark-900">
-                      <div class="text-xs text-gray-500 dark:text-dark-400">{{ tr('admin.upstreams.localBilled', '本地计费') }}</div>
-                      <div class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ formatCurrency(costReport?.totals.local_billed_cost) }}</div>
-                    </div>
-                    <div class="rounded-lg bg-gray-50 px-2 py-2 dark:bg-dark-900">
-                      <div class="text-xs text-gray-500 dark:text-dark-400">{{ tr('admin.upstreams.upstreamCost', '上游成本') }}</div>
-                      <div class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ formatCurrency(costReport?.totals.upstream_cost) }}</div>
-                    </div>
-                    <div class="rounded-lg bg-gray-50 px-2 py-2 dark:bg-dark-900">
-                      <div class="text-xs text-gray-500 dark:text-dark-400">{{ tr('admin.upstreams.grossProfit', '毛利') }}</div>
-                      <div class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ formatCurrency(costReport?.totals.gross_profit) }}</div>
-                    </div>
-                  </div>
-                  <div v-if="costReport?.items.length" class="max-h-52 space-y-2 overflow-y-auto pr-1">
-                    <div
-                      v-for="item in costReport.items"
-                      :key="`${costReport.dimension}-${costDimensionLabel(item)}`"
-                      class="rounded-lg border border-gray-100 px-3 py-2 text-xs dark:border-dark-700"
-                    >
-                      <div class="flex items-center justify-between gap-2">
-                        <span class="truncate font-medium text-gray-900 dark:text-white">{{ costDimensionLabel(item) }}</span>
-                        <span class="text-gray-500 dark:text-dark-400">{{ item.request_count }}</span>
-                      </div>
-                      <div class="mt-1 text-gray-500 dark:text-dark-400">
-                        {{ formatCurrency(item.local_billed_cost) }} / {{ formatCurrency(item.upstream_cost) }} · {{ formatCurrency(item.gross_profit) }}
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                <section class="mt-5 space-y-3">
                   <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
                     {{ tr('admin.upstreams.eventTimeline', '事件时间线') }}
                   </h3>
@@ -846,10 +806,6 @@
             <div>
               <label class="input-label">{{ tr('admin.upstreams.status', 'Status') }}</label>
               <Select v-model="form.status" :options="statusOptions" />
-            </div>
-            <div>
-              <label class="input-label">{{ tr('admin.upstreams.routingMode', 'Routing mode') }}</label>
-              <Select v-model="form.routing_mode" :options="routingModeOptions" />
             </div>
             <div>
               <label class="input-label">{{ tr('admin.upstreams.probeModel', 'Probe model') }}</label>
@@ -969,6 +925,103 @@
       @cancel="showDeleteDialog = false"
     />
 
+    <BaseDialog
+      :show="showCostDialog"
+      :title="tr('admin.upstreams.costReconciliation', '成本对账')"
+      width="extra-wide"
+      @close="closeCostReportDialog"
+    >
+      <div class="space-y-4">
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <label class="space-y-1">
+            <span class="input-label">{{ tr('admin.upstreams.name', 'Name') }}</span>
+            <Select v-model="costUpstreamId" :options="costUpstreamOptions" @change="handleCostUpstreamChange" />
+          </label>
+          <label class="space-y-1">
+            <span class="input-label">{{ tr('admin.upstreams.costDimension', '对账维度') }}</span>
+            <Select v-model="costForm.dimension" :options="costDimensionOptions" @change="refreshCostReport" />
+          </label>
+          <label class="space-y-1">
+            <span class="input-label">{{ tr('admin.upstreams.costWindowHours', '统计窗口（小时）') }}</span>
+            <input v-model.number="costForm.hours" type="number" min="1" max="720" class="input" @change="refreshCostReport" />
+          </label>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="text-xs text-gray-500 dark:text-dark-400">
+            <template v-if="costReport?.reset_at">
+              {{ tr('admin.upstreams.costReportResetAt', '统计起点') }}: {{ formatOptionalDate(costReport.reset_at) }}
+            </template>
+            <template v-else>
+              {{ tr('admin.upstreams.costReportNoReset', '未设置统计重置时间') }}
+            </template>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="btn btn-secondary btn-sm"
+              :disabled="!selectedCostUpstream || costLoading"
+              @click="refreshCostReport"
+            >
+              <Icon name="refresh" size="sm" :class="costLoading ? 'animate-spin' : ''" />
+              {{ tr('common.refresh', 'Refresh') }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary btn-sm"
+              :disabled="!selectedCostUpstream || costLoading || resettingCost"
+              @click="requestResetCostReport"
+            >
+              <Icon name="clock" size="sm" />
+              {{ tr('admin.upstreams.resetCostReport', '重置') }}
+            </button>
+          </div>
+        </div>
+
+        <div v-if="costLoading" class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div class="skeleton h-16"></div>
+          <div class="skeleton h-16"></div>
+          <div class="skeleton h-16"></div>
+        </div>
+        <div v-else class="grid grid-cols-1 gap-2 text-center sm:grid-cols-3">
+          <div class="rounded-lg bg-gray-50 px-3 py-3 dark:bg-dark-900">
+            <div class="text-xs text-gray-500 dark:text-dark-400">{{ tr('admin.upstreams.localBilled', '本地计费') }}</div>
+            <div class="mt-1 text-base font-semibold text-gray-900 dark:text-white">{{ formatCurrency(costReport?.totals.local_billed_cost) }}</div>
+          </div>
+          <div class="rounded-lg bg-gray-50 px-3 py-3 dark:bg-dark-900">
+            <div class="text-xs text-gray-500 dark:text-dark-400">{{ tr('admin.upstreams.upstreamCost', '上游成本') }}</div>
+            <div class="mt-1 text-base font-semibold text-gray-900 dark:text-white">{{ formatCurrency(costReport?.totals.upstream_cost) }}</div>
+          </div>
+          <div class="rounded-lg bg-gray-50 px-3 py-3 dark:bg-dark-900">
+            <div class="text-xs text-gray-500 dark:text-dark-400">{{ tr('admin.upstreams.grossProfit', '毛利') }}</div>
+            <div class="mt-1 text-base font-semibold text-gray-900 dark:text-white">{{ formatCurrency(costReport?.totals.gross_profit) }}</div>
+          </div>
+        </div>
+
+        <div v-if="!costLoading && costReport?.items.length" class="max-h-[420px] overflow-y-auto rounded-lg border border-gray-100 dark:border-dark-700">
+          <div
+            v-for="item in costReport.items"
+            :key="`${costReport.dimension}-${costDimensionLabel(item)}`"
+            class="grid grid-cols-1 gap-2 border-b border-gray-100 px-3 py-2 text-xs last:border-b-0 dark:border-dark-700 sm:grid-cols-[minmax(0,1fr)_repeat(4,110px)] sm:items-center"
+          >
+            <div class="min-w-0">
+              <div class="truncate font-medium text-gray-900 dark:text-white">{{ costDimensionLabel(item) }}</div>
+              <div class="mt-0.5 text-gray-500 dark:text-dark-400">{{ item.request_count }} {{ tr('admin.upstreams.requests', 'requests') }}</div>
+            </div>
+            <div class="font-mono text-gray-700 dark:text-gray-200">{{ formatCurrency(item.local_billed_cost) }}</div>
+            <div class="font-mono text-gray-700 dark:text-gray-200">{{ formatCurrency(item.upstream_cost) }}</div>
+            <div class="font-mono" :class="item.gross_profit >= 0 ? 'text-emerald-600 dark:text-emerald-300' : 'text-red-600 dark:text-red-300'">
+              {{ formatCurrency(item.gross_profit) }}
+            </div>
+            <div class="font-mono text-gray-500 dark:text-dark-400">x{{ formatNumber(item.avg_multiplier, 3) }}</div>
+          </div>
+        </div>
+        <div v-else-if="!costLoading" class="rounded-lg border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500 dark:border-dark-700 dark:text-dark-400">
+          {{ tr('admin.upstreams.noCostReportItems', '暂无成本对账数据') }}
+        </div>
+      </div>
+    </BaseDialog>
+
     <ConfirmDialog
       :show="showResetCostDialog"
       :title="tr('admin.upstreams.resetCostReportTitle', '重置成本统计')"
@@ -1042,7 +1095,6 @@ type UpstreamForm = {
   probe_interval_seconds: number
   auto_sync_enabled: boolean
   auto_sync_interval_minutes: number
-  routing_mode: UpstreamRoutingMode
   notes: string
   admin_auth_mode: UpstreamAdminAuthMode
   admin_login_url: string
@@ -1089,12 +1141,20 @@ const costLoading = ref(false)
 const savingRemoteKeyId = ref<string | null>(null)
 const refreshingBalance = ref(false)
 const resettingCost = ref(false)
+const routingConfigLoading = ref(false)
+const routingConfigSaving = ref(false)
+const routingMode = ref<UpstreamRoutingMode>('balanced')
+const savedRoutingMode = ref<UpstreamRoutingMode>('balanced')
+const balanceRefreshingIds = ref<Set<number>>(new Set())
+const autoBalanceRefreshing = ref(false)
+const showCostDialog = ref(false)
 const showEditDialog = ref(false)
 const showDeleteDialog = ref(false)
 const showResetCostDialog = ref(false)
 const editingUpstream = ref<Upstream | null>(null)
 const deletingUpstream = ref<Upstream | null>(null)
 const searchQuery = ref('')
+const costUpstreamId = ref<number | null>(null)
 const localGroups = ref<AdminGroup[]>([])
 const remoteKeyDrafts = reactive<Record<string, RemoteAPIKeyDraft>>({})
 const supportedModelsText = ref('')
@@ -1116,7 +1176,6 @@ const pagination = reactive({
 const previewForm = reactive({
   model: '',
   local_group_id: null as number | null,
-  mode: 'balanced' as UpstreamRoutingMode,
   random_seed: 0
 })
 
@@ -1155,7 +1214,6 @@ const form = reactive<UpstreamForm>({
   probe_interval_seconds: 60,
   auto_sync_enabled: false,
   auto_sync_interval_minutes: 30,
-  routing_mode: 'balanced',
   notes: '',
   admin_auth_mode: 'password',
   admin_login_url: '',
@@ -1172,13 +1230,14 @@ const form = reactive<UpstreamForm>({
 
 let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 let listController: AbortController | null = null
+let balanceRefreshTimer: ReturnType<typeof setInterval> | null = null
 
 const columns = computed<Column[]>(() => [
   { key: 'name', label: tr('admin.upstreams.name', 'Name'), sortable: true },
   { key: 'type', label: tr('admin.upstreams.type', 'Type'), sortable: true },
   { key: 'status', label: tr('admin.upstreams.status', 'Status'), sortable: true },
-  { key: 'routing_mode', label: tr('admin.upstreams.routingMode', 'Mode'), sortable: true },
   { key: 'weight', label: tr('admin.upstreams.weightPriority', 'Weight / Priority'), sortable: true },
+  { key: 'account_balance', label: tr('admin.upstreams.accountBalance', 'Account balance') },
   { key: 'cost_multiplier', label: tr('admin.upstreams.costMultiplier', '调度成本'), sortable: true },
   { key: 'groups_count', label: tr('admin.upstreams.groupsKeys', 'Groups / Keys'), sortable: true },
   { key: 'last_synced_at', label: tr('admin.upstreams.lastSync', 'Last sync'), sortable: true },
@@ -1241,14 +1300,25 @@ const costDimensionOptions = computed<SelectOption[]>(() => [
   { value: 'model', label: tr('admin.upstreams.costByModel', 'Model') }
 ])
 
+const costUpstreamOptions = computed<SelectOption[]>(() => upstreams.value.map((upstream) => ({
+  value: upstream.id,
+  label: upstream.name
+})))
+
+const selectedCostUpstream = computed(() => {
+  if (!costUpstreamId.value) return null
+  return upstreams.value.find((item) => item.id === costUpstreamId.value) ||
+    (selectedUpstream.value?.id === costUpstreamId.value ? selectedUpstream.value : null)
+})
+
 const deleteMessage = computed(() => {
   const name = deletingUpstream.value?.name || tr('admin.upstreams.thisUpstream', 'this upstream')
   return `${tr('admin.upstreams.deleteConfirmPrefix', 'Delete')} ${name}?`
 })
 
 const resetCostMessage = computed(() => {
-  const name = selectedUpstream.value?.name || tr('admin.upstreams.thisUpstream', 'this upstream')
-  return `${tr('admin.upstreams.resetCostConfirmPrefix', '重置')} ${name} ${tr('admin.upstreams.resetCostConfirmSuffix', '的成本统计？历史调用记录会保留，成本对账将从当前时间重新累计。')}`
+  const name = selectedCostUpstream.value?.name || tr('admin.upstreams.thisUpstream', 'this upstream')
+  return `${tr('admin.upstreams.resetCostConfirmPrefix', '重置')} ${name} ${tr('admin.upstreams.resetCostConfirmSuffix', '的成本统计？历史调用记录会保留，新的统计起点会安排在今晚 0 点生效。')}`
 })
 
 const supportedModels = computed(() => parseStringList(supportedModelsText.value))
@@ -1273,6 +1343,50 @@ const selectedScheduleKeyLabel = computed(() => {
 const upstreamAccountBalance = computed(() => metadataNumber(selectedUpstream.value?.metadata?.account_balance))
 const upstreamAccountUsedQuota = computed(() => metadataNumber(selectedUpstream.value?.metadata?.account_used_quota))
 const upstreamAccountBalanceCheckedAt = computed(() => metadataString(selectedUpstream.value?.metadata?.account_balance_checked_at))
+
+function normalizeRoutingModeValue(value: unknown): UpstreamRoutingMode {
+  const mode = String(value || '').trim()
+  if (mode === 'stability' || mode === 'balanced' || mode === 'cost' || mode === 'speed' || mode === 'manual') {
+    return mode
+  }
+  return 'balanced'
+}
+
+async function loadRoutingConfig() {
+  routingConfigLoading.value = true
+  try {
+    const config = await adminAPI.upstreams.getRoutingConfig()
+    const mode = normalizeRoutingModeValue(config.mode)
+    routingMode.value = mode
+    savedRoutingMode.value = mode
+  } catch (error: any) {
+    appStore.showError(errorMessage(error, tr('admin.upstreams.routingModeLoadFailed', 'Failed to load routing mode')))
+  } finally {
+    routingConfigLoading.value = false
+  }
+}
+
+async function saveRoutingConfig(value?: string | number | boolean | null) {
+  const nextMode = normalizeRoutingModeValue(value ?? routingMode.value)
+  routingMode.value = nextMode
+  if (nextMode === savedRoutingMode.value || routingConfigSaving.value) return
+  routingConfigSaving.value = true
+  try {
+    const config = await adminAPI.upstreams.updateRoutingConfig(nextMode)
+    const saved = normalizeRoutingModeValue(config.mode)
+    routingMode.value = saved
+    savedRoutingMode.value = saved
+    appStore.showSuccess(tr('admin.upstreams.routingModeSaved', 'Routing mode saved'))
+    if (scheduleDecision.value) {
+      void runSchedulePreview()
+    }
+  } catch (error: any) {
+    routingMode.value = savedRoutingMode.value
+    appStore.showError(errorMessage(error, tr('admin.upstreams.routingModeSaveFailed', 'Failed to save routing mode')))
+  } finally {
+    routingConfigSaving.value = false
+  }
+}
 
 async function loadLocalGroups() {
   if (localGroups.value.length > 0 || localGroupsLoading.value) return
@@ -1368,14 +1482,13 @@ async function loadDetail(id: number) {
   scheduleDecision.value = null
   syncPreviewResult.value = null
   try {
-    const [upstream, keys, health, events, policy, alerts, cost] = await Promise.all([
+    const [upstream, keys, health, events, policy, alerts] = await Promise.all([
       adminAPI.upstreams.get(id),
       adminAPI.upstreams.listRemoteAPIKeys(id),
       adminAPI.upstreams.health(id),
       adminAPI.upstreams.events(id, { limit: 30 }),
       adminAPI.upstreams.getPolicy(id),
-      adminAPI.upstreams.listAlerts(id, true),
-      loadCostReport(id)
+      adminAPI.upstreams.listAlerts(id, true)
     ])
     selectedUpstream.value = upstream
     remoteAPIKeys.value = keys
@@ -1383,11 +1496,9 @@ async function loadDetail(id: number) {
     upstreamEvents.value = events
     governancePolicy.value = policy
     upstreamAlerts.value = alerts
-    costReport.value = cost
     syncRemoteKeyDrafts(keys)
     supportedModelsText.value = parseMetadataStringList(upstream.metadata?.supported_models).join('\n')
     fillPolicyForm(policy)
-    previewForm.mode = upstream.routing_mode || 'balanced'
   } catch (error: any) {
     appStore.showError(errorMessage(error, tr('admin.upstreams.detailFailed', 'Failed to load upstream details')))
   } finally {
@@ -1412,7 +1523,6 @@ function resetDetailState() {
   upstreamAlerts.value = []
   governancePolicy.value = null
   syncPreviewResult.value = null
-  costReport.value = null
   scheduleDecision.value = null
   clearRemoteKeyDrafts()
   supportedModelsText.value = ''
@@ -1458,7 +1568,6 @@ function resetForm() {
   form.probe_interval_seconds = 60
   form.auto_sync_enabled = false
   form.auto_sync_interval_minutes = 30
-  form.routing_mode = 'balanced'
   form.notes = ''
   form.admin_auth_mode = 'password'
   form.admin_login_url = ''
@@ -1490,7 +1599,6 @@ function fillForm(row: Upstream) {
   form.probe_interval_seconds = row.probe_interval_seconds
   form.auto_sync_enabled = metadataBool(row.metadata?.auto_sync_enabled)
   form.auto_sync_interval_minutes = metadataIntervalMinutes(row.metadata)
-  form.routing_mode = row.routing_mode
   form.notes = row.notes || ''
   form.admin_auth_mode = row.admin_auth?.auth_mode || 'password'
   form.admin_login_url = row.admin_auth?.login_url || ''
@@ -1567,7 +1675,6 @@ function buildPayload(): UpstreamPayload {
     probe_enabled: form.probe_enabled,
     probe_model: form.probe_model.trim(),
     probe_interval_seconds: Number(form.probe_interval_seconds) || 60,
-    routing_mode: form.routing_mode,
     notes: form.notes.trim(),
     metadata,
     admin_auth: adminAuth
@@ -1785,26 +1892,34 @@ async function saveRemoteAPIKeyConfig(key: UpstreamRemoteAPIKey) {
 }
 
 async function refreshUpstreamBalance() {
-  if (!selectedUpstream.value || refreshingBalance.value) return
+  const upstreamID = selectedUpstream.value?.id
+  if (!upstreamID || refreshingBalance.value || isBalanceRefreshing(upstreamID)) return
   refreshingBalance.value = true
+  setBalanceRefreshing(upstreamID, true)
   try {
-    const result = await adminAPI.upstreams.refreshBalance(selectedUpstream.value.id)
-    applyUpstreamAccountBalance(result)
+    const result = await adminAPI.upstreams.refreshBalance(upstreamID)
+    applyUpstreamAccountBalance(result, upstreamID)
     if (result.has_balance) {
       appStore.showSuccess(tr('admin.upstreams.balanceRefreshed', '余额已刷新'))
     } else {
       appStore.showInfo(result.message || tr('admin.upstreams.balanceUnavailable', '上游账户未返回余额字段'))
     }
   } catch (error: any) {
-    appStore.showError(errorMessage(error, tr('admin.upstreams.balanceRefreshFailed', '查询余额失败')))
+    const message = errorMessage(error, tr('admin.upstreams.balanceRefreshFailed', '查询余额失败'))
+    applyUpstreamAccountBalanceError(upstreamID, message)
+    appStore.showError(message)
   } finally {
+    setBalanceRefreshing(upstreamID, false)
     refreshingBalance.value = false
   }
 }
 
-function applyUpstreamAccountBalance(result: UpstreamAccountBalanceResult) {
-  if (!selectedUpstream.value) return
-  const metadata = { ...(selectedUpstream.value.metadata || {}) }
+function applyUpstreamAccountBalance(result: UpstreamAccountBalanceResult, upstreamID = result.upstream_id) {
+  if (!upstreamID) return
+  updateUpstreamMetadata(upstreamID, (metadata) => applyAccountBalanceMetadata(metadata, result))
+}
+
+function applyAccountBalanceMetadata(metadata: Record<string, unknown>, result: UpstreamAccountBalanceResult) {
   setOptionalMetadataNumber(metadata, 'account_balance', result.balance)
   setOptionalMetadataNumber(metadata, 'account_quota', result.quota)
   setOptionalMetadataNumber(metadata, 'account_used_quota', result.used_quota)
@@ -1821,9 +1936,59 @@ function applyUpstreamAccountBalance(result: UpstreamAccountBalanceResult) {
   } else if (result.message) {
     metadata.account_balance_error = result.message
   }
-  selectedUpstream.value = {
-    ...selectedUpstream.value,
-    metadata
+  return metadata
+}
+
+function applyUpstreamAccountBalanceError(upstreamID: number, message: string) {
+  updateUpstreamMetadata(upstreamID, (metadata) => {
+    delete metadata.account_balance
+    delete metadata.account_quota
+    delete metadata.account_used_quota
+    delete metadata.account_remaining_quota
+    metadata.account_balance_error = message
+    metadata.account_balance_checked_at = new Date().toISOString()
+    return metadata
+  })
+}
+
+function updateUpstreamMetadata(upstreamID: number, build: (metadata: Record<string, unknown>) => Record<string, unknown>) {
+  upstreams.value = upstreams.value.map((upstream) => {
+    if (upstream.id !== upstreamID) return upstream
+    return {
+      ...upstream,
+      metadata: build({ ...(upstream.metadata || {}) })
+    }
+  })
+  if (selectedUpstream.value?.id === upstreamID) {
+    selectedUpstream.value = {
+      ...selectedUpstream.value,
+      metadata: build({ ...(selectedUpstream.value.metadata || {}) })
+    }
+  }
+}
+
+async function refreshVisibleBalances() {
+  if (autoBalanceRefreshing.value || upstreams.value.length === 0) return
+  autoBalanceRefreshing.value = true
+  const visibleUpstreams = [...upstreams.value]
+  try {
+    for (const upstream of visibleUpstreams) {
+      if (isBalanceRefreshing(upstream.id)) continue
+      setBalanceRefreshing(upstream.id, true)
+      try {
+        const result = await adminAPI.upstreams.refreshBalance(upstream.id)
+        applyUpstreamAccountBalance(result, upstream.id)
+      } catch (error: any) {
+        applyUpstreamAccountBalanceError(
+          upstream.id,
+          errorMessage(error, tr('admin.upstreams.balanceRefreshFailed', '查询余额失败'))
+        )
+      } finally {
+        setBalanceRefreshing(upstream.id, false)
+      }
+    }
+  } finally {
+    autoBalanceRefreshing.value = false
   }
 }
 
@@ -1896,7 +2061,6 @@ async function runSchedulePreview() {
     scheduleDecision.value = await adminAPI.upstreams.schedulePreview({
       model: previewForm.model.trim() || undefined,
       local_group_id: previewForm.local_group_id || undefined,
-      mode: previewForm.mode,
       random_seed: previewForm.random_seed
     })
   } catch (error: any) {
@@ -1949,10 +2113,10 @@ async function resolveUpstreamAlert(alert: UpstreamAlert) {
 }
 
 async function refreshCostReport() {
-  if (!selectedUpstream.value) return
+  if (!selectedCostUpstream.value) return
   costLoading.value = true
   try {
-    costReport.value = await loadCostReport(selectedUpstream.value.id)
+    costReport.value = await loadCostReport(selectedCostUpstream.value.id)
   } catch (error: any) {
     appStore.showError(errorMessage(error, tr('admin.upstreams.costLoadFailed', 'Failed to load cost report')))
   } finally {
@@ -1960,24 +2124,42 @@ async function refreshCostReport() {
   }
 }
 
+async function openCostReportDialog() {
+  const fallback = selectedUpstream.value || upstreams.value[0]
+  if (selectedUpstream.value) {
+    costUpstreamId.value = selectedUpstream.value.id
+  }
+  if (!selectedCostUpstream.value && fallback) {
+    costUpstreamId.value = fallback.id
+  }
+  showCostDialog.value = true
+  costReport.value = null
+  await refreshCostReport()
+}
+
+function closeCostReportDialog() {
+  showCostDialog.value = false
+}
+
+async function handleCostUpstreamChange() {
+  costReport.value = null
+  await refreshCostReport()
+}
+
 function requestResetCostReport() {
-  if (!selectedUpstream.value) return
+  if (!selectedCostUpstream.value) return
   showResetCostDialog.value = true
 }
 
 async function confirmResetCostReport() {
-  if (!selectedUpstream.value || resettingCost.value) return
+  if (!selectedCostUpstream.value || resettingCost.value) return
+  const upstreamID = selectedCostUpstream.value.id
   resettingCost.value = true
   try {
-    const result = await adminAPI.upstreams.resetCostReport(selectedUpstream.value.id)
-    const metadata = { ...(selectedUpstream.value.metadata || {}) }
-    metadata.cost_report_reset_at = result.reset_at
-    selectedUpstream.value = {
-      ...selectedUpstream.value,
-      metadata
-    }
+    const result = await adminAPI.upstreams.resetCostReport(upstreamID)
+    applyCostReportReset(upstreamID, result.reset_at)
     showResetCostDialog.value = false
-    appStore.showSuccess(tr('admin.upstreams.costReportReset', '成本统计已重置'))
+    appStore.showSuccess(tr('admin.upstreams.costReportReset', '已安排今晚 0 点重置成本统计'))
     await refreshCostReport()
     await loadUpstreams()
   } catch (error: any) {
@@ -1995,6 +2177,28 @@ async function loadCostReport(id: number) {
     end: end.toISOString(),
     dimension: costForm.dimension
   })
+}
+
+function applyCostReportReset(upstreamID: number, resetAt: string) {
+  upstreams.value = upstreams.value.map((upstream) => {
+    if (upstream.id !== upstreamID) return upstream
+    return {
+      ...upstream,
+      metadata: {
+        ...(upstream.metadata || {}),
+        cost_report_reset_at: resetAt
+      }
+    }
+  })
+  if (selectedUpstream.value?.id === upstreamID) {
+    selectedUpstream.value = {
+      ...selectedUpstream.value,
+      metadata: {
+        ...(selectedUpstream.value.metadata || {}),
+        cost_report_reset_at: resetAt
+      }
+    }
+  }
 }
 
 function requestDelete(row: Upstream) {
@@ -2061,6 +2265,44 @@ function setSyncing(id: number, syncing: boolean) {
 
 function isSyncing(id: number) {
   return syncingIds.value.has(id)
+}
+
+function setBalanceRefreshing(id: number, refreshing: boolean) {
+  const next = new Set(balanceRefreshingIds.value)
+  if (refreshing) {
+    next.add(id)
+  } else {
+    next.delete(id)
+  }
+  balanceRefreshingIds.value = next
+}
+
+function isBalanceRefreshing(id: number) {
+  return balanceRefreshingIds.value.has(id)
+}
+
+function upstreamBalanceLabel(row: Upstream) {
+  const balance = metadataNumber(row.metadata?.account_balance)
+  if (balance != null) return formatQuotaValue(balance)
+  const remaining = metadataNumber(row.metadata?.account_remaining_quota)
+  if (remaining != null) return formatQuotaValue(remaining)
+  const quota = metadataNumber(row.metadata?.account_quota)
+  if (quota != null) return formatQuotaValue(quota)
+  return '-'
+}
+
+function upstreamBalanceSubLabel(row: Upstream) {
+  const error = metadataString(row.metadata?.account_balance_error)
+  if (error) return error
+  const used = metadataNumber(row.metadata?.account_used_quota)
+  if (used != null) {
+    return `${tr('admin.upstreams.usedQuota', 'Used')} ${formatQuotaValue(used)}`
+  }
+  const checkedAt = metadataString(row.metadata?.account_balance_checked_at)
+  if (checkedAt) {
+    return `${tr('admin.upstreams.balanceCheckedAt', 'Checked')} ${formatOptionalDate(checkedAt)}`
+  }
+  return '-'
 }
 
 function typeLabel(value: string) {
@@ -2227,12 +2469,19 @@ function errorMessage(error: any, fallback: string) {
 }
 
 onMounted(() => {
-  loadLocalGroups()
-  loadUpstreams()
+  void loadLocalGroups()
+  void loadRoutingConfig()
+  void loadUpstreams().then(() => {
+    void refreshVisibleBalances()
+  })
+  balanceRefreshTimer = setInterval(() => {
+    void refreshVisibleBalances()
+  }, 5 * 60 * 1000)
 })
 
 onUnmounted(() => {
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
+  if (balanceRefreshTimer) clearInterval(balanceRefreshTimer)
   listController?.abort()
 })
 </script>

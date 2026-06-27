@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -118,6 +119,21 @@ func TestGetCostReportJoinsRemoteGroupRateMultiplier(t *testing.T) {
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("unmet sql expectations: %v", err)
+	}
+}
+
+func TestUpstreamCostMultiplierPrefersUsageLogSnapshot(t *testing.T) {
+	expr := upstreamCostMultiplierSQL()
+	snapshotIndex := strings.Index(expr, "ul.account_rate_multiplier")
+	currentRemoteIndex := strings.Index(expr, "urg.rate_multiplier")
+	if snapshotIndex < 0 {
+		t.Fatalf("cost multiplier SQL %q does not reference usage log snapshot", expr)
+	}
+	if currentRemoteIndex < 0 {
+		t.Fatalf("cost multiplier SQL %q does not reference current remote group fallback", expr)
+	}
+	if snapshotIndex > currentRemoteIndex {
+		t.Fatalf("cost multiplier SQL should prefer usage log snapshot before current remote group fallback: %q", expr)
 	}
 }
 

@@ -137,6 +137,9 @@ func TestSelectUpstreamCandidateCostModeRewardsLowerMultiplier(t *testing.T) {
 	if decision.CandidateScores[0].UpstreamID != 2 {
 		t.Fatalf("top candidate = %d, want cheap upstream 2", decision.CandidateScores[0].UpstreamID)
 	}
+	if decision.SelectedID != 2 {
+		t.Fatalf("selected id = %d, want cheap upstream 2", decision.SelectedID)
+	}
 	if decision.CandidateScores[0].CostScore <= decision.CandidateScores[1].CostScore {
 		t.Fatalf("cheap cost score = %v, expensive cost score = %v; want cheap higher",
 			decision.CandidateScores[0].CostScore,
@@ -182,6 +185,9 @@ func TestSelectUpstreamCandidateManualModeMakesPriorityDominate(t *testing.T) {
 
 	if decision.CandidateScores[0].UpstreamID != 2 {
 		t.Fatalf("top candidate = %d, want lower priority-number upstream 2", decision.CandidateScores[0].UpstreamID)
+	}
+	if decision.SelectedID != 2 {
+		t.Fatalf("selected id = %d, want lower priority-number upstream 2", decision.SelectedID)
 	}
 	if decision.CandidateScores[0].Weights.Priority != 0.6 {
 		t.Fatalf("manual weights = %+v, want priority weight 0.6", decision.CandidateScores[0].Weights)

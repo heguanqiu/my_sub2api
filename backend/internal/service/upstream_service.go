@@ -39,6 +39,37 @@ func (s *UpstreamService) List(ctx context.Context, params UpstreamListParams) (
 	return items, total, nil
 }
 
+func (s *UpstreamService) RoutingConfig(ctx context.Context) (*UpstreamRoutingConfig, error) {
+	mode, err := s.currentRoutingMode(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &UpstreamRoutingConfig{Mode: mode}, nil
+}
+
+func (s *UpstreamService) UpdateRoutingConfig(ctx context.Context, mode string) (*UpstreamRoutingConfig, error) {
+	normalized := normalizeUpstreamRoutingMode(mode)
+	if s == nil || s.repo == nil {
+		return &UpstreamRoutingConfig{Mode: normalized}, nil
+	}
+	if err := s.repo.SetRoutingMode(ctx, normalized); err != nil {
+		return nil, err
+	}
+	_ = s.refreshRuntimeAccountsRouting(ctx, normalized)
+	return &UpstreamRoutingConfig{Mode: normalized}, nil
+}
+
+func (s *UpstreamService) currentRoutingMode(ctx context.Context) (string, error) {
+	if s == nil || s.repo == nil {
+		return UpstreamRoutingBalanced, nil
+	}
+	mode, err := s.repo.GetRoutingMode(ctx)
+	if err != nil {
+		return "", err
+	}
+	return normalizeUpstreamRoutingMode(mode), nil
+}
+
 func (s *UpstreamService) Get(ctx context.Context, id int64) (*Upstream, error) {
 	upstream, err := s.repo.Get(ctx, id)
 	if err != nil {
@@ -500,6 +531,12 @@ func (s *UpstreamService) RefreshAccountBalance(ctx context.Context, id int64) (
 			upstream.AdminAuth.LastLoginError = err.Error()
 			_ = s.persistPlainAdminAuth(ctx, upstream.AdminAuth)
 		}
+		_ = s.persistAccountBalanceMetadata(ctx, upstream, &UpstreamAccountBalanceResult{
+			UpstreamID: id,
+			HasBalance: false,
+			Message:    err.Error(),
+			CheckedAt:  time.Now().UTC(),
+		})
 		return nil, ErrUpstreamLoginFailed.WithCause(err)
 	}
 	if err := s.persistAdminSession(ctx, upstream, session); err != nil {
@@ -543,6 +580,11 @@ func (s *UpstreamService) RefreshAccountBalance(ctx context.Context, id int64) (
 }
 
 func (s *UpstreamService) SchedulePreview(ctx context.Context, req UpstreamScheduleRequest) (*UpstreamScheduleDecision, error) {
+	mode, err := s.currentRoutingMode(ctx)
+	if err != nil {
+		return nil, err
+	}
+	req.Mode = mode
 	apiKeyCandidates := make([]UpstreamAPIKeyScheduleCandidate, 0)
 	filteredAPIKeys := make([]UpstreamAPIKeyScheduleCandidate, 0)
 	if len(req.Candidates) == 0 {

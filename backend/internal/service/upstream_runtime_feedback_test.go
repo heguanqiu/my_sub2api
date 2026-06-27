@@ -39,16 +39,22 @@ func (r *upstreamRuntimeFeedbackAccountRepo) Update(ctx context.Context, account
 func TestReportUpstreamRuntimeEventRefreshesHiddenAccountSchedulingFields(t *testing.T) {
 	load := 20
 	account := Account{
-		ID:                 42,
-		Platform:           PlatformOpenAI,
-		Type:               AccountTypeAPIKey,
-		Status:             StatusActive,
-		Schedulable:        true,
-		Concurrency:        20,
-		Priority:           100,
-		LoadFactor:         &load,
-		Credentials:        map[string]any{"api_key": "sk-test"},
-		Extra:              map[string]any{upstreamRuntimeManagedExtraKey: true, "upstream_id": int64(7), "upstream_base_priority": int64(100), "upstream_base_load_factor": int64(20)},
+		ID:          42,
+		Platform:    PlatformOpenAI,
+		Type:        AccountTypeAPIKey,
+		Status:      StatusActive,
+		Schedulable: true,
+		Concurrency: 20,
+		Priority:    100,
+		LoadFactor:  &load,
+		Credentials: map[string]any{"api_key": "sk-test"},
+		Extra: map[string]any{
+			upstreamRuntimeManagedExtraKey: true,
+			"upstream_id":                  int64(7),
+			"upstream_routing_mode":        UpstreamRoutingStability,
+			"upstream_base_priority":       int64(100),
+			"upstream_base_load_factor":    int64(20),
+		},
 		AccountGroups:      []AccountGroup{{AccountID: 42, GroupID: 3}},
 		GroupIDs:           []int64{3},
 		CreatedAt:          time.Now(),
@@ -109,5 +115,70 @@ func TestReportUpstreamRuntimeEventRefreshesHiddenAccountSchedulingFields(t *tes
 	}
 	if got := accountRepo.updated.Extra["upstream_health_score"]; got != 0.5 {
 		t.Fatalf("health extra = %v, want 0.5", got)
+	}
+}
+
+func TestUpstreamRuntimeSchedulingFieldsFollowRoutingMode(t *testing.T) {
+	tests := []struct {
+		name         string
+		mode         string
+		basePriority int
+		baseLoad     int
+		cost         float64
+		health       float64
+		wantPriority int
+		wantLoad     int
+	}{
+		{
+			name:         "balanced keeps base load but adjusts unhealthy priority",
+			mode:         UpstreamRoutingBalanced,
+			basePriority: 100,
+			baseLoad:     20,
+			cost:         1,
+			health:       0.5,
+			wantPriority: 140,
+			wantLoad:     20,
+		},
+		{
+			name:         "stability shrinks load when health drops",
+			mode:         UpstreamRoutingStability,
+			basePriority: 100,
+			baseLoad:     20,
+			cost:         1,
+			health:       0.5,
+			wantPriority: 140,
+			wantLoad:     10,
+		},
+		{
+			name:         "cost uses cost score and minimum probe load",
+			mode:         UpstreamRoutingCost,
+			basePriority: 100,
+			baseLoad:     20,
+			cost:         2,
+			health:       1,
+			wantPriority: 50,
+			wantLoad:     1,
+		},
+		{
+			name:         "manual keeps configured priority",
+			mode:         UpstreamRoutingManual,
+			basePriority: 100,
+			baseLoad:     20,
+			cost:         1,
+			health:       0.5,
+			wantPriority: 100,
+			wantLoad:     1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := upstreamRuntimePriorityForMode(tt.mode, tt.basePriority, tt.cost, tt.health, UpstreamStatusActive); got != tt.wantPriority {
+				t.Fatalf("priority = %d, want %d", got, tt.wantPriority)
+			}
+			if got := upstreamRuntimeLoadFactorForMode(tt.mode, tt.baseLoad, tt.health); got != tt.wantLoad {
+				t.Fatalf("load factor = %d, want %d", got, tt.wantLoad)
+			}
+		})
 	}
 }

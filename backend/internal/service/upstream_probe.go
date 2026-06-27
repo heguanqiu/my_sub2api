@@ -254,6 +254,7 @@ func (s *UpstreamService) refreshRuntimeAccountFromSnapshot(ctx context.Context,
 		next.ErrorMessage = ""
 	}
 
+	mode := normalizeUpstreamRoutingMode(anyToString(next.Extra["upstream_routing_mode"]))
 	basePriority := parseAnyInt64(next.Extra["upstream_base_priority"])
 	if basePriority <= 0 {
 		basePriority = int64(next.Priority)
@@ -261,11 +262,13 @@ func (s *UpstreamService) refreshRuntimeAccountFromSnapshot(ctx context.Context,
 	if basePriority <= 0 {
 		basePriority = 100
 	}
-	priority := int(basePriority)
-	if health < 0.9 {
-		priority += int((0.9 - health) * 100)
-	}
-	next.Priority = clampInt(priority, 1, 10000)
+	next.Priority = upstreamRuntimePriorityForMode(
+		mode,
+		int(basePriority),
+		parseAnyFloat(next.Extra["upstream_cost_multiplier"]),
+		health,
+		anyToString(next.Extra["upstream_status"]),
+	)
 
 	baseLoad := parseAnyInt64(next.Extra["upstream_base_load_factor"])
 	if baseLoad <= 0 {
@@ -274,7 +277,7 @@ func (s *UpstreamService) refreshRuntimeAccountFromSnapshot(ctx context.Context,
 	if baseLoad <= 0 {
 		baseLoad = 1
 	}
-	loadFactor := clampInt(int(float64(baseLoad)*health), 1, int(baseLoad))
+	loadFactor := upstreamRuntimeLoadFactorForMode(mode, int(baseLoad), health)
 	next.LoadFactor = &loadFactor
 
 	if err := s.accountRepo.Update(ctx, &next); err != nil {

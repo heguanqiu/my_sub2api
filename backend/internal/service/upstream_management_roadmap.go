@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
 )
 
 func (s *UpstreamService) HealthDashboard(ctx context.Context, id int64) (*UpstreamHealthDashboard, error) {
@@ -384,7 +386,7 @@ func (s *UpstreamService) CostReport(ctx context.Context, id int64, start, end t
 		return nil, err
 	}
 	resetAt := upstreamCostReportResetAt(upstream)
-	if resetAt != nil && start.Before(*resetAt) {
+	if resetAt != nil && end.After(*resetAt) && start.Before(*resetAt) {
 		start = *resetAt
 	}
 	report, err := s.repo.GetCostReport(ctx, id, start, end, dimension)
@@ -392,7 +394,7 @@ func (s *UpstreamService) CostReport(ctx context.Context, id int64, start, end t
 		return nil, err
 	}
 	report.ResetAt = resetAt
-	if resetAt != nil && report.Start.Before(*resetAt) {
+	if resetAt != nil && report.End.After(*resetAt) && report.Start.Before(*resetAt) {
 		report.Start = *resetAt
 	}
 	return report, nil
@@ -403,20 +405,27 @@ func (s *UpstreamService) ResetCostReport(ctx context.Context, id int64) (*Upstr
 	if err != nil {
 		return nil, err
 	}
-	now := time.Now().UTC()
+	resetAt := nextUpstreamCostReportResetAt(timezone.Now())
 	metadata := copyAnyMap(upstream.Metadata)
 	if metadata == nil {
 		metadata = map[string]any{}
 	}
-	metadata["cost_report_reset_at"] = now.Format(time.RFC3339)
+	metadata["cost_report_reset_at"] = resetAt.UTC().Format(time.RFC3339)
 	upstream.Metadata = metadata
 	if err := s.repo.Update(ctx, upstream); err != nil {
 		return nil, err
 	}
 	return &UpstreamCostReportResetResult{
 		UpstreamID: id,
-		ResetAt:    now,
+		ResetAt:    resetAt.UTC(),
 	}, nil
+}
+
+func nextUpstreamCostReportResetAt(now time.Time) time.Time {
+	if now.IsZero() {
+		now = timezone.Now()
+	}
+	return timezone.StartOfDay(now).AddDate(0, 0, 1)
 }
 
 func upstreamCostReportResetAt(upstream *Upstream) *time.Time {

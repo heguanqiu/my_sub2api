@@ -692,6 +692,8 @@ func registerUpstreamRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	{
 		upstreams.GET("", h.Admin.Upstream.List)
 		upstreams.POST("", h.Admin.Upstream.Create)
+		upstreams.GET("/routing-config", h.Admin.Upstream.RoutingConfig)
+		upstreams.PUT("/routing-config", h.Admin.Upstream.UpdateRoutingConfig)
 		upstreams.POST("/schedule-preview", h.Admin.Upstream.SchedulePreview)
 		upstreams.GET("/:id", h.Admin.Upstream.Get)
 		upstreams.PUT("/:id", h.Admin.Upstream.Update)

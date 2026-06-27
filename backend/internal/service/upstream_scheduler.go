@@ -121,10 +121,14 @@ func SelectUpstreamCandidate(req UpstreamScheduleRequest) UpstreamScheduleDecisi
 		return decision
 	}
 
-	selected := weightedRandomUpstream(eligible, req.RandomSeed)
+	selected := selectUpstreamForMode(mode, eligible, req.RandomSeed)
 	decision.SelectedID = selected.UpstreamID
 	decision.SelectedName = selected.Name
-	decision.Reason = "selected by weighted score among eligible upstreams"
+	if mode == UpstreamRoutingBalanced {
+		decision.Reason = "selected by weighted score among eligible upstreams"
+	} else {
+		decision.Reason = "selected top-scored upstream for " + mode + " mode"
+	}
 	return decision
 }
 
@@ -203,6 +207,16 @@ func weightedRandomUpstream(candidates []UpstreamScoreBreakdown, seed int64) Ups
 		}
 	}
 	return candidates[len(candidates)-1]
+}
+
+func selectUpstreamForMode(mode string, candidates []UpstreamScoreBreakdown, seed int64) UpstreamScoreBreakdown {
+	if len(candidates) == 0 {
+		return UpstreamScoreBreakdown{}
+	}
+	if normalizeUpstreamRoutingMode(mode) == UpstreamRoutingBalanced {
+		return weightedRandomUpstream(candidates, seed)
+	}
+	return candidates[0]
 }
 
 func weightsForUpstreamMode(mode string) UpstreamScoreWeights {

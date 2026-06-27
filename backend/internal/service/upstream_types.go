@@ -24,6 +24,7 @@ const (
 	UpstreamRoutingCost      = "cost"
 	UpstreamRoutingSpeed     = "speed"
 	UpstreamRoutingManual    = "manual"
+	UpstreamRoutingModeKey   = "upstream.routing_mode"
 
 	UpstreamAdminAuthPassword = "password"
 	UpstreamAdminAuthToken    = "token"
@@ -169,6 +170,10 @@ type UpstreamListParams struct {
 	Type     string
 	Status   string
 	Search   string
+}
+
+type UpstreamRoutingConfig struct {
+	Mode string `json:"mode"`
 }
 
 type UpstreamCreateParams struct {
@@ -468,6 +473,8 @@ type UpstreamRepository interface {
 	UpsertAlert(ctx context.Context, alert UpstreamAlert) error
 	ResolveAlert(ctx context.Context, upstreamID int64, alertType string) error
 	GetCostReport(ctx context.Context, upstreamID int64, start, end time.Time, dimension string) (*UpstreamCostReport, error)
+	GetRoutingMode(ctx context.Context) (string, error)
+	SetRoutingMode(ctx context.Context, mode string) error
 }
 
 type UpstreamSchedulerSnapshot struct {

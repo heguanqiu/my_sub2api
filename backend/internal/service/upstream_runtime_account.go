@@ -38,6 +38,9 @@ func (s *UpstreamService) syncRuntimeAccount(ctx context.Context, upstream *Upst
 	if upstream == nil || s.accountRepo == nil {
 		return nil
 	}
+	if mode, err := s.currentRoutingMode(ctx); err == nil {
+		upstream.RoutingMode = mode
+	}
 	accounts, err := s.findRuntimeAccounts(ctx, upstream.ID)
 	if err != nil {
 		return err
@@ -101,6 +104,40 @@ func (s *UpstreamService) syncRuntimeAccount(ctx context.Context, upstream *Upst
 		if err := s.disableRuntimeAccountRecord(ctx, &account, "upstream runtime account no longer mapped to a synced API key"); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (s *UpstreamService) refreshRuntimeAccountsRouting(ctx context.Context, mode string) error {
+	if s == nil || s.repo == nil || s.accountRepo == nil {
+		return nil
+	}
+	page := 1
+	for {
+		items, total, err := s.repo.List(ctx, UpstreamListParams{Page: page, PageSize: 100})
+		if err != nil {
+			return err
+		}
+		for _, upstream := range items {
+			if upstream == nil {
+				continue
+			}
+			detail, err := s.repo.Get(ctx, upstream.ID)
+			if err != nil {
+				continue
+			}
+			detail.RoutingMode = normalizeUpstreamRoutingMode(mode)
+			if err := s.decryptRemoteAPIKeySecretsForUse(detail); err != nil {
+				continue
+			}
+			if err := s.syncRuntimeAccount(ctx, detail); err != nil {
+				continue
+			}
+		}
+		if int64(page*100) >= total || len(items) == 0 {
+			break
+		}
+		page++
 	}
 	return nil
 }
@@ -547,11 +584,27 @@ func upstreamRuntimeConcurrency(upstream *Upstream) int {
 
 func upstreamRuntimeLoadFactor(upstream *Upstream) int {
 	base := upstreamRuntimeConcurrency(upstream)
-	health := clampUpstreamScore01(defaultScore(upstream.LatestHealthScore))
+	return upstreamRuntimeLoadFactorForMode(upstream.RoutingMode, base, defaultScore(upstream.LatestHealthScore))
+}
+
+func upstreamRuntimeLoadFactorForMode(mode string, base int, healthScore float64) int {
+	if base <= 0 {
+		base = 1
+	}
+	health := clampUpstreamScore01(healthScore)
 	if health <= 0 {
 		return 1
 	}
-	return clampInt(int(math.Round(float64(base)*health)), 1, base)
+	switch normalizeUpstreamRoutingMode(mode) {
+	case UpstreamRoutingStability:
+		return clampInt(int(math.Round(float64(base)*health)), 1, base)
+	case UpstreamRoutingBalanced:
+		return base
+	case UpstreamRoutingCost, UpstreamRoutingSpeed, UpstreamRoutingManual:
+		return 1
+	default:
+		return base
+	}
 }
 
 func upstreamRuntimePriority(upstream *Upstream) int {
@@ -562,11 +615,28 @@ func upstreamRuntimePriority(upstream *Upstream) int {
 	if priority <= 0 {
 		priority = 100
 	}
-	health := clampUpstreamScore01(defaultScore(upstream.LatestHealthScore))
-	if health < 0.9 {
-		priority += int(math.Round((0.9 - health) * 100))
+	return upstreamRuntimePriorityForMode(upstream.RoutingMode, priority, upstream.CostMultiplier, defaultScore(upstream.LatestHealthScore), upstream.Status)
+}
+
+func upstreamRuntimePriorityForMode(mode string, basePriority int, costMultiplier float64, healthScore float64, status string) int {
+	if basePriority <= 0 {
+		basePriority = 100
 	}
-	switch upstream.Status {
+	priority := basePriority
+	health := clampUpstreamScore01(healthScore)
+	switch normalizeUpstreamRoutingMode(mode) {
+	case UpstreamRoutingCost:
+		priority += int(math.Round(costScore(costMultiplier) * -100))
+	case UpstreamRoutingSpeed:
+		priority += int(math.Round((1 - health) * 50))
+	case UpstreamRoutingManual:
+		// Keep the configured priority as the dominant scheduler signal.
+	default:
+		if health < 0.9 {
+			priority += int(math.Round((0.9 - health) * 100))
+		}
+	}
+	switch status {
 	case UpstreamStatusDegraded:
 		priority += 25
 	case UpstreamStatusHalfOpen:

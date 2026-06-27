@@ -21,6 +21,31 @@ func NewUpstreamRepository(db *sql.DB) service.UpstreamRepository {
 	return &upstreamRepository{db: db}
 }
 
+func (r *upstreamRepository) GetRoutingMode(ctx context.Context) (string, error) {
+	const q = `SELECT value FROM settings WHERE key = $1`
+	var mode string
+	err := r.db.QueryRowContext(ctx, q, service.UpstreamRoutingModeKey).Scan(&mode)
+	if err == sql.ErrNoRows {
+		return service.UpstreamRoutingBalanced, nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return mode, nil
+}
+
+func (r *upstreamRepository) SetRoutingMode(ctx context.Context, mode string) error {
+	const q = `
+		INSERT INTO settings (key, value, updated_at)
+		VALUES ($1, $2, NOW())
+		ON CONFLICT (key) DO UPDATE
+		SET value = EXCLUDED.value,
+		    updated_at = NOW()
+	`
+	_, err := r.db.ExecContext(ctx, q, service.UpstreamRoutingModeKey, mode)
+	return err
+}
+
 func (r *upstreamRepository) Create(ctx context.Context, upstream *service.Upstream) error {
 	const q = `
 		INSERT INTO upstreams (
@@ -1534,8 +1559,8 @@ func upstreamCostRemoteGroupSQL() string {
 
 func upstreamCostMultiplierSQL() string {
 	return `CASE
-			WHEN urg.rate_multiplier IS NOT NULL AND urg.rate_multiplier > 0 THEN urg.rate_multiplier
 			WHEN ul.account_rate_multiplier IS NOT NULL AND ul.account_rate_multiplier > 0 THEN ul.account_rate_multiplier
+			WHEN urg.rate_multiplier IS NOT NULL AND urg.rate_multiplier > 0 THEN urg.rate_multiplier
 			ELSE 1
 		END`
 }

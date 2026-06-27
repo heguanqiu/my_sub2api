@@ -394,6 +394,10 @@ export interface UpstreamListFilters {
   search?: string
 }
 
+export interface UpstreamRoutingConfig {
+  mode: UpstreamRoutingMode
+}
+
 export interface SchedulePreviewRequest {
   model?: string
   local_group_id?: number
@@ -506,6 +510,16 @@ export async function refreshBalance(id: number): Promise<UpstreamAccountBalance
   return data
 }
 
+export async function getRoutingConfig(): Promise<UpstreamRoutingConfig> {
+  const { data } = await apiClient.get<UpstreamRoutingConfig>('/admin/upstreams/routing-config')
+  return data
+}
+
+export async function updateRoutingConfig(mode: UpstreamRoutingMode): Promise<UpstreamRoutingConfig> {
+  const { data } = await apiClient.put<UpstreamRoutingConfig>('/admin/upstreams/routing-config', { mode })
+  return data
+}
+
 export async function schedulePreview(payload: SchedulePreviewRequest): Promise<UpstreamScheduleDecision> {
   const { data } = await apiClient.post<UpstreamScheduleDecision>('/admin/upstreams/schedule-preview', payload)
   return data
@@ -560,6 +574,8 @@ const upstreamsAPI = {
   listRemoteAPIKeys,
   updateRemoteAPIKeyConfig,
   refreshBalance,
+  getRoutingConfig,
+  updateRoutingConfig,
   schedulePreview,
   getPolicy,
   updatePolicy,

@@ -92,6 +92,10 @@ type schedulePreviewRequest struct {
 	Candidates    []service.UpstreamCandidate `json:"candidates"`
 }
 
+type updateRoutingConfigRequest struct {
+	Mode string `json:"mode"`
+}
+
 type updateUpstreamRemoteAPIKeyConfigRequest struct {
 	RemoteGroupID string  `json:"remote_group_id"`
 	LocalGroupIDs []int64 `json:"local_group_ids"`
@@ -394,6 +398,29 @@ func (h *UpstreamHandler) RefreshBalance(c *gin.Context) {
 		return
 	}
 	response.Success(c, result)
+}
+
+func (h *UpstreamHandler) RoutingConfig(c *gin.Context) {
+	cfg, err := h.upstreamService.RoutingConfig(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, cfg)
+}
+
+func (h *UpstreamHandler) UpdateRoutingConfig(c *gin.Context) {
+	var req updateRoutingConfigRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorFrom(c, infraerrors.BadRequest("VALIDATION_ERROR", err.Error()))
+		return
+	}
+	cfg, err := h.upstreamService.UpdateRoutingConfig(c.Request.Context(), req.Mode)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, cfg)
 }
 
 func (h *UpstreamHandler) SchedulePreview(c *gin.Context) {
