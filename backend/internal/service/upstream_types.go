@@ -141,6 +141,7 @@ type UpstreamRemoteAPIKey struct {
 	SyncedRemoteGroupID string         `json:"synced_remote_group_id"`
 	RemoteGroupID       string         `json:"remote_group_id"`
 	LocalGroupIDs       []int64        `json:"local_group_ids,omitempty"`
+	SchedulingEnabled   *bool          `json:"scheduling_enabled,omitempty"`
 	Status              string         `json:"status"`
 	Quota               *float64       `json:"quota"`
 	UsedQuota           *float64       `json:"used_quota"`
@@ -438,15 +439,17 @@ type UpstreamProbeResult struct {
 }
 
 type UpstreamAccountBalanceResult struct {
-	UpstreamID     int64     `json:"upstream_id"`
-	Balance        *float64  `json:"balance"`
-	Quota          *float64  `json:"quota"`
-	UsedQuota      *float64  `json:"used_quota"`
-	RemainingQuota *float64  `json:"remaining_quota"`
-	Source         string    `json:"source,omitempty"`
-	HasBalance     bool      `json:"has_balance"`
-	Message        string    `json:"message"`
-	CheckedAt      time.Time `json:"checked_at"`
+	UpstreamID      int64     `json:"upstream_id"`
+	Balance         *float64  `json:"balance"`
+	Quota           *float64  `json:"quota"`
+	UsedQuota       *float64  `json:"used_quota"`
+	RemainingQuota  *float64  `json:"remaining_quota"`
+	Concurrency     *int      `json:"concurrency,omitempty"`
+	ConcurrencyUsed *int      `json:"concurrency_used,omitempty"`
+	Source          string    `json:"source,omitempty"`
+	HasBalance      bool      `json:"has_balance"`
+	Message         string    `json:"message"`
+	CheckedAt       time.Time `json:"checked_at"`
 }
 
 type UpstreamRepository interface {
@@ -460,8 +463,9 @@ type UpstreamRepository interface {
 	ReplaceRemoteResources(ctx context.Context, upstreamID int64, groups []*UpstreamRemoteGroup, keys []*UpstreamRemoteAPIKey, run *UpstreamSyncRun) error
 	ListRemoteGroups(ctx context.Context, upstreamID int64) ([]*UpstreamRemoteGroup, error)
 	ListRemoteAPIKeys(ctx context.Context, upstreamID int64) ([]*UpstreamRemoteAPIKey, error)
-	UpdateRemoteAPIKeyConfig(ctx context.Context, upstreamID int64, remoteAPIKeyID string, remoteGroupID string, localGroupIDs []int64, apiKeyEncrypted *string) (*UpstreamRemoteAPIKey, error)
+	UpdateRemoteAPIKeyConfig(ctx context.Context, upstreamID int64, remoteAPIKeyID string, remoteGroupID string, localGroupIDs []int64, schedulingEnabled *bool, apiKeyEncrypted *string) (*UpstreamRemoteAPIKey, error)
 	ClearRemoteAPIKeyLocalConfig(ctx context.Context, upstreamID int64, remoteAPIKeyID string) error
+	RemoveLocalGroupMappings(ctx context.Context, groupID int64) error
 	LatestSyncRun(ctx context.Context, upstreamID int64) (*UpstreamSyncRun, error)
 	RecordRuntimeEvent(ctx context.Context, event UpstreamRuntimeEvent) (*UpstreamSchedulerSnapshot, error)
 	GetHealthDashboard(ctx context.Context, upstreamID int64) (*UpstreamHealthDashboard, error)

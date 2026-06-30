@@ -1,6 +1,9 @@
 package service
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 func TestBuildForwardCredentialNormalizesAPIKeyAuthType(t *testing.T) {
 	svc := &UpstreamService{}
@@ -36,6 +39,44 @@ func TestBuildAdminAuthRejectsInvalidAuthMode(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("expected invalid admin auth mode error")
+	}
+}
+
+func TestSyncRuntimeAccountSkipsDeletedLocalGroupMappings(t *testing.T) {
+	accountRepo := &upstreamRuntimeAccountRepo{}
+	groupRepo := &upstreamRuntimeGroupRepo{
+		groups: map[int64]*Group{
+			36: {ID: 36, Platform: PlatformOpenAI, Status: StatusActive},
+		},
+	}
+	svc := NewUpstreamService(&upstreamRuntimeRepo{}, accountRepo, groupRepo, nil, nil)
+	upstream := &Upstream{
+		ID:          7,
+		Name:        "north",
+		Type:        UpstreamTypeSub2API,
+		BaseURL:     "https://upstream.example.com",
+		Status:      UpstreamStatusActive,
+		RoutingMode: UpstreamRoutingBalanced,
+		RemoteAPIKeys: []*UpstreamRemoteAPIKey{
+			{
+				RemoteAPIKeyID:   "key-1",
+				RemoteAPIKeyName: "pro",
+				APIKey:           "sk-forward",
+				Status:           UpstreamStatusActive,
+				LocalGroupIDs:    []int64{36, 404},
+			},
+		},
+	}
+
+	err := svc.syncRuntimeAccount(context.Background(), upstream)
+	if err != nil {
+		t.Fatalf("syncRuntimeAccount() error = %v", err)
+	}
+	if len(accountRepo.created) != 1 {
+		t.Fatalf("created accounts = %d, want 1", len(accountRepo.created))
+	}
+	if len(accountRepo.boundGroups) != 1 || len(accountRepo.boundGroups[0]) != 1 || accountRepo.boundGroups[0][0] != 36 {
+		t.Fatalf("bound groups = %#v, want [[36]]", accountRepo.boundGroups)
 	}
 }
 
@@ -204,6 +245,50 @@ func TestBuildRuntimeAccountFromUpstreamAPIKeyDoesNotRequireRemoteGroup(t *testi
 	}
 }
 
+func TestBuildRuntimeAccountFromUpstreamAPIKeyDisabledScheduling(t *testing.T) {
+	upstream := &Upstream{
+		ID:          9,
+		Name:        "north",
+		Type:        UpstreamTypeSub2API,
+		BaseURL:     "https://upstream.example.com/",
+		Status:      UpstreamStatusActive,
+		Priority:    100,
+		Weight:      100,
+		RoutingMode: UpstreamRoutingBalanced,
+	}
+	disabled := false
+	remoteKey := &UpstreamRemoteAPIKey{
+		RemoteAPIKeyID:    "5798",
+		RemoteAPIKeyName:  "pro",
+		APIKey:            "sk-forward",
+		Status:            "active",
+		LocalGroupIDs:     []int64{36},
+		SchedulingEnabled: &disabled,
+	}
+
+	account := buildRuntimeAccountFromUpstreamAPIKey(upstream, remoteKey, nil, PlatformOpenAI)
+
+	if account.Schedulable {
+		t.Fatal("account should not be schedulable when the remote key scheduling switch is disabled")
+	}
+	if account.ErrorMessage != "upstream API key scheduling disabled" {
+		t.Fatalf("error message = %q", account.ErrorMessage)
+	}
+	if got := account.Extra["upstream_remote_api_key_scheduling_enabled"]; got != false {
+		t.Fatalf("scheduling extra = %v, want false", got)
+	}
+}
+
+func TestUpstreamRuntimeConcurrencyPrefersSyncedAccountConcurrency(t *testing.T) {
+	upstream := &Upstream{
+		Weight:   100,
+		Metadata: map[string]any{"account_concurrency": 8, "concurrency": 3},
+	}
+	if got := upstreamRuntimeConcurrency(upstream); got != 8 {
+		t.Fatalf("concurrency = %d, want 8", got)
+	}
+}
+
 func TestBuildRuntimeAccountFromUpstreamAPIKeyAnthropicPassthrough(t *testing.T) {
 	upstream := &Upstream{
 		ID:          9,
@@ -314,4 +399,58 @@ func TestUpstreamRuntimeAnthropicAPIBaseURL(t *testing.T) {
 			}
 		})
 	}
+}
+
+type upstreamRuntimeRepo struct {
+	UpstreamRepository
+}
+
+func (r *upstreamRuntimeRepo) GetRoutingMode(context.Context) (string, error) {
+	return UpstreamRoutingBalanced, nil
+}
+
+type upstreamRuntimeGroupRepo struct {
+	GroupRepository
+	groups map[int64]*Group
+}
+
+func (r *upstreamRuntimeGroupRepo) GetByID(_ context.Context, id int64) (*Group, error) {
+	group := r.groups[id]
+	if group == nil {
+		return nil, ErrGroupNotFound
+	}
+	cp := *group
+	return &cp, nil
+}
+
+type upstreamRuntimeAccountRepo struct {
+	AccountRepository
+	created     []*Account
+	updated     []*Account
+	boundGroups [][]int64
+	nextID      int64
+}
+
+func (r *upstreamRuntimeAccountRepo) FindByExtraField(context.Context, string, any) ([]Account, error) {
+	return nil, nil
+}
+
+func (r *upstreamRuntimeAccountRepo) Create(_ context.Context, account *Account) error {
+	r.nextID++
+	cp := *account
+	cp.ID = r.nextID
+	account.ID = cp.ID
+	r.created = append(r.created, &cp)
+	return nil
+}
+
+func (r *upstreamRuntimeAccountRepo) Update(_ context.Context, account *Account) error {
+	cp := *account
+	r.updated = append(r.updated, &cp)
+	return nil
+}
+
+func (r *upstreamRuntimeAccountRepo) BindGroups(_ context.Context, _ int64, groupIDs []int64) error {
+	r.boundGroups = append(r.boundGroups, append([]int64(nil), groupIDs...))
+	return nil
 }

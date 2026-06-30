@@ -371,11 +371,13 @@ func (r *upstreamRepository) ReplaceRemoteResources(ctx context.Context, upstrea
 					raw_snapshot = EXCLUDED.raw_snapshot,
 					last_synced_at = EXCLUDED.last_synced_at,
 					updated_at = NOW()
-				RETURNING id, api_key_encrypted, synced_remote_group_id, remote_group_id, local_group_ids, created_at, updated_at
+				RETURNING id, api_key_encrypted, synced_remote_group_id, remote_group_id, local_group_ids,
+				          scheduling_enabled, created_at, updated_at
 			`, upstreamID, key.RemoteAPIKeyID, key.RemoteAPIKeyName, key.APIKey,
 				key.MaskedKey, key.SyncedRemoteGroupID, key.RemoteGroupID, pq.Array(uniquePositiveInt64sRepo(key.LocalGroupIDs)),
 				key.Status, key.Quota, key.UsedQuota, jsonObject(key.RawSnapshot), key.LastSyncedAt).
-				Scan(&key.ID, &key.APIKey, &key.SyncedRemoteGroupID, &key.RemoteGroupID, pq.Array(&key.LocalGroupIDs), &key.CreatedAt, &key.UpdatedAt)
+				Scan(&key.ID, &key.APIKey, &key.SyncedRemoteGroupID, &key.RemoteGroupID, pq.Array(&key.LocalGroupIDs),
+					&keySchedulingEnabledScanner{key: key}, &key.CreatedAt, &key.UpdatedAt)
 			if err != nil {
 				return err
 			}
@@ -448,7 +450,7 @@ func (r *upstreamRepository) ListRemoteAPIKeys(ctx context.Context, upstreamID i
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT id, upstream_id, remote_api_key_id, remote_api_key_name,
 		       api_key_encrypted, masked_key, synced_remote_group_id, remote_group_id,
-		       local_group_ids, status, quota, used_quota, raw_snapshot, last_synced_at, created_at, updated_at
+		       local_group_ids, scheduling_enabled, status, quota, used_quota, raw_snapshot, last_synced_at, created_at, updated_at
 		FROM upstream_remote_api_keys
 		WHERE upstream_id = $1
 		ORDER BY remote_api_key_name ASC
@@ -468,26 +470,28 @@ func (r *upstreamRepository) ListRemoteAPIKeys(ctx context.Context, upstreamID i
 	return out, rows.Err()
 }
 
-func (r *upstreamRepository) UpdateRemoteAPIKeyConfig(ctx context.Context, upstreamID int64, remoteAPIKeyID string, remoteGroupID string, localGroupIDs []int64, apiKeyEncrypted *string) (*service.UpstreamRemoteAPIKey, error) {
+func (r *upstreamRepository) UpdateRemoteAPIKeyConfig(ctx context.Context, upstreamID int64, remoteAPIKeyID string, remoteGroupID string, localGroupIDs []int64, schedulingEnabled *bool, apiKeyEncrypted *string) (*service.UpstreamRemoteAPIKey, error) {
 	const q = `
 		UPDATE upstream_remote_api_keys
 		SET remote_group_id = $3,
 		    local_group_ids = $4,
+		    scheduling_enabled = COALESCE($5::boolean, scheduling_enabled),
 		    api_key_encrypted = CASE
-		        WHEN $5::text IS NULL THEN api_key_encrypted
-		        ELSE $5::text
+		        WHEN $6::text IS NULL THEN api_key_encrypted
+		        ELSE $6::text
 		    END,
 		    updated_at = NOW()
 		WHERE upstream_id = $1 AND remote_api_key_id = $2
 		RETURNING id, upstream_id, remote_api_key_id, remote_api_key_name,
 		          api_key_encrypted, masked_key, synced_remote_group_id, remote_group_id,
-		          local_group_ids, status, quota, used_quota, raw_snapshot, last_synced_at, created_at, updated_at
+		          local_group_ids, scheduling_enabled, status, quota, used_quota, raw_snapshot, last_synced_at, created_at, updated_at
 	`
 	key, err := scanRemoteAPIKey(r.db.QueryRowContext(ctx, q,
 		upstreamID,
 		strings.TrimSpace(remoteAPIKeyID),
 		strings.TrimSpace(remoteGroupID),
 		pq.Array(uniquePositiveInt64sRepo(localGroupIDs)),
+		schedulingEnabled,
 		apiKeyEncrypted,
 	))
 	if err != nil {
@@ -517,6 +521,68 @@ func (r *upstreamRepository) ClearRemoteAPIKeyLocalConfig(ctx context.Context, u
 		return service.ErrUpstreamNotFound
 	}
 	return nil
+}
+
+func (r *upstreamRepository) RemoveLocalGroupMappings(ctx context.Context, groupID int64) error {
+	if groupID <= 0 {
+		return nil
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE upstream_remote_api_keys
+		SET local_group_ids = array_remove(local_group_ids, $1::bigint),
+		    updated_at = NOW()
+		WHERE $1::bigint = ANY(local_group_ids)
+	`, groupID); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE upstreams
+		SET metadata =
+			jsonb_set(
+				jsonb_set(
+					COALESCE(metadata, '{}'::jsonb),
+					'{local_group_ids}',
+					COALESCE((
+						SELECT jsonb_agg(value)
+						FROM jsonb_array_elements(
+							CASE
+								WHEN jsonb_typeof(metadata->'local_group_ids') = 'array' THEN metadata->'local_group_ids'
+								ELSE '[]'::jsonb
+							END
+						) AS elem(value)
+						WHERE value <> to_jsonb($1::bigint)
+					), '[]'::jsonb),
+					true
+				),
+				'{local_group_remote_group_ids}',
+				CASE
+					WHEN jsonb_typeof(metadata->'local_group_remote_group_ids') = 'object' THEN metadata->'local_group_remote_group_ids'
+					ELSE '{}'::jsonb
+				END - $1::text,
+				true
+			),
+		    updated_at = NOW()
+		WHERE deleted_at IS NULL
+		  AND (
+		    CASE
+		      WHEN jsonb_typeof(metadata->'local_group_ids') = 'array' THEN metadata->'local_group_ids'
+		      ELSE '[]'::jsonb
+		    END @> jsonb_build_array($1::bigint)
+		    OR CASE
+		      WHEN jsonb_typeof(metadata->'local_group_remote_group_ids') = 'object' THEN metadata->'local_group_remote_group_ids'
+		      ELSE '{}'::jsonb
+		    END ? $1::text
+		  )
+	`, groupID); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (r *upstreamRepository) LatestSyncRun(ctx context.Context, upstreamID int64) (*service.UpstreamSyncRun, error) {
@@ -1221,6 +1287,9 @@ func countSchedulableRemoteAPIKeys(groups []*service.UpstreamRemoteGroup, keys [
 		if key == nil {
 			continue
 		}
+		if key.SchedulingEnabled != nil && !*key.SchedulingEnabled {
+			continue
+		}
 		if !remoteAPIKeyActiveRepo(key.Status) {
 			continue
 		}
@@ -1242,7 +1311,7 @@ func countServableLocalGroups(groups []*service.UpstreamRemoteGroup, keys []*ser
 	groupSet := activeRemoteGroupSet(groups)
 	localGroups := map[int64]struct{}{}
 	for _, key := range keys {
-		if key == nil || !remoteAPIKeyActiveRepo(key.Status) || !groupSet[strings.TrimSpace(key.RemoteGroupID)] {
+		if key == nil || key.SchedulingEnabled != nil && !*key.SchedulingEnabled || !remoteAPIKeyActiveRepo(key.Status) || !groupSet[strings.TrimSpace(key.RemoteGroupID)] {
 			continue
 		}
 		for _, id := range uniquePositiveInt64sRepo(key.LocalGroupIDs) {
@@ -1437,17 +1506,21 @@ func scanRemoteGroup(row scanner) (*service.UpstreamRemoteGroup, error) {
 func scanRemoteAPIKey(row scanner) (*service.UpstreamRemoteAPIKey, error) {
 	k := &service.UpstreamRemoteAPIKey{}
 	var quota, usedQuota sql.NullFloat64
+	var schedulingEnabled sql.NullBool
 	var raw []byte
 	err := row.Scan(
 		&k.ID, &k.UpstreamID, &k.RemoteAPIKeyID, &k.RemoteAPIKeyName,
 		&k.APIKey, &k.MaskedKey, &k.SyncedRemoteGroupID, &k.RemoteGroupID,
-		pq.Array(&k.LocalGroupIDs), &k.Status, &quota, &usedQuota,
+		pq.Array(&k.LocalGroupIDs), &schedulingEnabled, &k.Status, &quota, &usedQuota,
 		&raw, &k.LastSyncedAt, &k.CreatedAt, &k.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
 	}
 	k.APIKeyConfigured = strings.TrimSpace(k.APIKey) != ""
+	if schedulingEnabled.Valid {
+		k.SchedulingEnabled = boolPtrRepo(schedulingEnabled.Bool)
+	}
 	if quota.Valid {
 		v := quota.Float64
 		k.Quota = &v
@@ -1458,6 +1531,29 @@ func scanRemoteAPIKey(row scanner) (*service.UpstreamRemoteAPIKey, error) {
 	}
 	k.RawSnapshot = decodeJSONMap(raw)
 	return k, nil
+}
+
+type keySchedulingEnabledScanner struct {
+	key *service.UpstreamRemoteAPIKey
+}
+
+func (s *keySchedulingEnabledScanner) Scan(value any) error {
+	if s == nil || s.key == nil {
+		return nil
+	}
+	switch v := value.(type) {
+	case bool:
+		s.key.SchedulingEnabled = boolPtrRepo(v)
+	case nil:
+		s.key.SchedulingEnabled = boolPtrRepo(true)
+	default:
+		return fmt.Errorf("scan scheduling_enabled: unsupported type %T", value)
+	}
+	return nil
+}
+
+func boolPtrRepo(v bool) *bool {
+	return &v
 }
 
 func scanSyncRun(row scanner) (*service.UpstreamSyncRun, error) {

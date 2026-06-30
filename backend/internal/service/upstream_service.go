@@ -432,6 +432,16 @@ func (s *UpstreamService) persistAccountBalanceMetadata(ctx context.Context, ups
 	} else {
 		delete(metadata, "account_remaining_quota")
 	}
+	if result.Concurrency != nil {
+		metadata["account_concurrency"] = *result.Concurrency
+	} else {
+		delete(metadata, "account_concurrency")
+	}
+	if result.ConcurrencyUsed != nil {
+		metadata["account_concurrency_used"] = *result.ConcurrencyUsed
+	} else {
+		delete(metadata, "account_concurrency_used")
+	}
 	delete(metadata, "account_balance_currency")
 	if strings.TrimSpace(result.Source) != "" {
 		metadata["account_balance_source"] = strings.TrimSpace(result.Source)
@@ -467,7 +477,7 @@ func (s *UpstreamService) ListRemoteAPIKeys(ctx context.Context, id int64) ([]*U
 	return keys, nil
 }
 
-func (s *UpstreamService) UpdateRemoteAPIKeyConfig(ctx context.Context, id int64, remoteAPIKeyID string, remoteGroupID string, localGroupIDs []int64, apiKey *string) (*UpstreamRemoteAPIKey, error) {
+func (s *UpstreamService) UpdateRemoteAPIKeyConfig(ctx context.Context, id int64, remoteAPIKeyID string, remoteGroupID string, localGroupIDs []int64, schedulingEnabled *bool, apiKey *string) (*UpstreamRemoteAPIKey, error) {
 	if strings.TrimSpace(remoteAPIKeyID) == "" {
 		return nil, ErrUpstreamInvalidInput.WithMetadata(map[string]string{"field": "remote_api_key_id"})
 	}
@@ -506,7 +516,7 @@ func (s *UpstreamService) UpdateRemoteAPIKeyConfig(ctx context.Context, id int64
 			encryptedAPIKey = &encrypted
 		}
 	}
-	key, err := s.repo.UpdateRemoteAPIKeyConfig(ctx, id, remoteAPIKeyID, remoteGroupID, validLocalGroupIDs, encryptedAPIKey)
+	key, err := s.repo.UpdateRemoteAPIKeyConfig(ctx, id, remoteAPIKeyID, remoteGroupID, validLocalGroupIDs, schedulingEnabled, encryptedAPIKey)
 	if err != nil {
 		return nil, err
 	}
@@ -562,7 +572,7 @@ func (s *UpstreamService) RefreshAccountBalance(ctx context.Context, id int64) (
 	if result.CheckedAt.IsZero() {
 		result.CheckedAt = now
 	}
-	result.HasBalance = result.Balance != nil || result.Quota != nil || result.UsedQuota != nil || result.RemainingQuota != nil
+	result.HasBalance = upstreamAccountBalanceResultHasData(result)
 	if strings.TrimSpace(result.Message) == "" {
 		if result.HasBalance {
 			result.Message = "account balance refreshed"
@@ -576,7 +586,18 @@ func (s *UpstreamService) RefreshAccountBalance(ctx context.Context, id int64) (
 	if err := s.persistAccountBalanceMetadata(ctx, upstream, result); err != nil {
 		return nil, err
 	}
+	_ = s.ensureRuntimeAccount(ctx, id)
 	return result, nil
+}
+
+func upstreamAccountBalanceResultHasData(result *UpstreamAccountBalanceResult) bool {
+	return result != nil &&
+		(result.Balance != nil ||
+			result.Quota != nil ||
+			result.UsedQuota != nil ||
+			result.RemainingQuota != nil ||
+			result.Concurrency != nil ||
+			result.ConcurrencyUsed != nil)
 }
 
 func (s *UpstreamService) SchedulePreview(ctx context.Context, req UpstreamScheduleRequest) (*UpstreamScheduleDecision, error) {
@@ -664,7 +685,9 @@ func scheduleAPIKeyCandidates(upstream *Upstream, groups []*UpstreamRemoteGroup,
 			Status:           strings.TrimSpace(key.Status),
 		}
 		reason := ""
-		if !remoteAPIKeyStatusActive(key.Status) {
+		if !upstreamRemoteAPIKeySchedulingEnabled(key) {
+			reason = "api key scheduling disabled"
+		} else if !remoteAPIKeyStatusActive(key.Status) {
 			reason = "api key inactive"
 		} else if strings.TrimSpace(key.APIKey) == "" && !key.APIKeyConfigured {
 			reason = "api key secret missing"

@@ -59,6 +59,7 @@ export interface UpstreamRemoteAPIKey {
   synced_remote_group_id?: string
   remote_group_id: string
   local_group_ids?: number[]
+  scheduling_enabled?: boolean
   status: string
   quota?: number | null
   used_quota?: number | null
@@ -72,6 +73,8 @@ export interface UpstreamAccountBalanceResult {
   quota?: number | null
   used_quota?: number | null
   remaining_quota?: number | null
+  concurrency?: number | null
+  concurrency_used?: number | null
   source?: string
   has_balance: boolean
   message: string
@@ -407,6 +410,7 @@ export interface SchedulePreviewRequest {
 
 export interface UpdateRemoteAPIKeyConfigPayload {
   local_group_ids: number[]
+  scheduling_enabled?: boolean
   api_key?: string
 }
 

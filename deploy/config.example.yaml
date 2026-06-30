@@ -67,6 +67,31 @@ server:
 run_mode: "standard"
 
 # =============================================================================
+# IM / Tailchat SSO Integration
+# IM / Tailchat 单点登录集成
+# =============================================================================
+im:
+  # Enable embedded IM entry and SSO ticket issuing.
+  # 开启内嵌 IM 入口和 SSO 短票据签发。
+  enabled: false
+  # Shared HS256 secret. Must match Tailchat MY_SUB2API_SSO_SHARED_SECRET.
+  # HS256 共享密钥，必须与 Tailchat 的 MY_SUB2API_SSO_SHARED_SECRET 一致。
+  # Use at least 32 bytes.
+  # 至少 32 字节。
+  shared_secret: ""
+  issuer: "my_sub2api"
+  audience: "tailchat"
+  # Short-lived ticket TTL in seconds. Allowed range: 1-300.
+  # 短票据有效期（秒），允许范围：1-300。
+  sso_token_ttl_seconds: 60
+  # Tailchat web URL loaded by the /im iframe.
+  # /im iframe 加载的 Tailchat 前端地址。
+  web_url: "https://im.example.com"
+  # Optional Tailchat API URL passed to the Tailchat web app for two-server deployments.
+  # 可选：传给 Tailchat 前端的 API 地址，用于前后端或两台服务器分离部署。
+  service_url: "https://im.example.com"
+
+# =============================================================================
 # CORS Configuration
 # 跨域资源共享 (CORS) 配置
 # =============================================================================

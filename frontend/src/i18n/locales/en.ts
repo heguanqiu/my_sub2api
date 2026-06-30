@@ -380,6 +380,7 @@ export default {
     plugins: 'Plugin Center',
     apiKeys: 'API Keys',
     playground: 'Playground',
+    im: 'Chat',
     usage: 'Usage',
     redeem: 'Redeem',
     affiliate: 'Affiliate Rebates',
@@ -7154,6 +7155,11 @@ export default {
     notFoundDesc: 'This custom page does not exist or has been removed.',
     notConfiguredTitle: 'Page URL not configured',
     notConfiguredDesc: 'The URL for this custom page has not been properly configured.',
+  },
+
+  // IM Page
+  im: {
+    loadFailed: 'Failed to load chat',
   },
 
   // Playground Page

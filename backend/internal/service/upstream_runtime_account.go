@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"strconv"
@@ -62,7 +63,7 @@ func (s *UpstreamService) syncRuntimeAccount(ctx context.Context, upstream *Upst
 			continue
 		}
 		remoteKey.LocalGroupIDs = uniquePositiveInt64sLocal(remoteKey.LocalGroupIDs)
-		groupIDsByPlatform, err := s.validateRuntimeLocalGroupIDsByPlatform(ctx, remoteKey.LocalGroupIDs)
+		groupIDsByPlatform, err := s.validRuntimeLocalGroupIDsByPlatform(ctx, remoteKey.LocalGroupIDs)
 		if err != nil {
 			return err
 		}
@@ -415,6 +416,7 @@ func upstreamRuntimeExtra(upstream *Upstream, remoteKey *UpstreamRemoteAPIKey, p
 	out["upstream_remote_api_key_name"] = strings.TrimSpace(remoteKey.RemoteAPIKeyName)
 	out["upstream_remote_api_key_masked"] = strings.TrimSpace(remoteKey.MaskedKey)
 	out["upstream_remote_api_key_status"] = strings.TrimSpace(remoteKey.Status)
+	out["upstream_remote_api_key_scheduling_enabled"] = upstreamRemoteAPIKeySchedulingEnabled(remoteKey)
 	out["upstream_synced_remote_group_id"] = strings.TrimSpace(remoteKey.SyncedRemoteGroupID)
 	out["upstream_remote_group_id"] = strings.TrimSpace(remoteKey.RemoteGroupID)
 	out["upstream_local_group_ids"] = int64SliceToAny(remoteKey.LocalGroupIDs)
@@ -517,6 +519,9 @@ func upstreamRemoteAPIKeyRuntimeSchedulable(upstream *Upstream, remoteKey *Upstr
 	if remoteKey == nil {
 		return false
 	}
+	if !upstreamRemoteAPIKeySchedulingEnabled(remoteKey) {
+		return false
+	}
 	if !remoteAPIKeyStatusActive(remoteKey.Status) {
 		return false
 	}
@@ -545,6 +550,9 @@ func upstreamRemoteAPIKeyRuntimeErrorMessage(upstream *Upstream, remoteKey *Upst
 	if remoteKey == nil {
 		return "upstream API key missing"
 	}
+	if !upstreamRemoteAPIKeySchedulingEnabled(remoteKey) {
+		return "upstream API key scheduling disabled"
+	}
 	if !remoteAPIKeyStatusActive(remoteKey.Status) {
 		return "upstream API key inactive"
 	}
@@ -566,9 +574,19 @@ func remoteAPIKeyStatusActive(status string) bool {
 	}
 }
 
+func upstreamRemoteAPIKeySchedulingEnabled(remoteKey *UpstreamRemoteAPIKey) bool {
+	return remoteKey == nil || remoteKey.SchedulingEnabled == nil || *remoteKey.SchedulingEnabled
+}
+
 func upstreamRuntimeConcurrency(upstream *Upstream) int {
 	if upstream == nil {
 		return 1
+	}
+	if n := metadataInt(upstream.Metadata, "account_concurrency"); n > 0 {
+		return n
+	}
+	if n := metadataInt(upstream.Metadata, "account_max_concurrency"); n > 0 {
+		return n
 	}
 	if n := metadataInt(upstream.Metadata, "concurrency"); n > 0 {
 		return n
@@ -698,6 +716,32 @@ func (s *UpstreamService) validateRuntimeLocalGroupIDsByPlatform(ctx context.Con
 		}
 		if group.RequireOAuthOnly {
 			return nil, ErrUpstreamInvalidInput.WithMetadata(map[string]string{"field": "local_group_ids", "reason": "group requires oauth only"})
+		}
+		out[group.Platform] = append(out[group.Platform], id)
+	}
+	return out, nil
+}
+
+func (s *UpstreamService) validRuntimeLocalGroupIDsByPlatform(ctx context.Context, groupIDs []int64) (map[string][]int64, error) {
+	groupIDs = uniquePositiveInt64sLocal(groupIDs)
+	out := map[string][]int64{
+		PlatformOpenAI:    {},
+		PlatformAnthropic: {},
+	}
+	if len(groupIDs) == 0 || s.groupRepo == nil {
+		out[PlatformOpenAI] = groupIDs
+		return out, nil
+	}
+	for _, id := range groupIDs {
+		group, err := s.groupRepo.GetByID(ctx, id)
+		if errors.Is(err, ErrGroupNotFound) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		if !upstreamRuntimeGroupPlatformSupported(group.Platform) || group.RequireOAuthOnly {
+			continue
 		}
 		out[group.Platform] = append(out[group.Platform], id)
 	}

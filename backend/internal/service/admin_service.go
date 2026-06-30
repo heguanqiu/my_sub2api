@@ -2274,6 +2274,11 @@ func (s *adminServiceImpl) DeleteGroup(ctx context.Context, id int64) error {
 	if err != nil {
 		return err
 	}
+	if s.upstreamRepo != nil {
+		if err := s.upstreamRepo.RemoveLocalGroupMappings(ctx, id); err != nil {
+			return err
+		}
+	}
 	// 注意：user_group_rate_multipliers 表通过外键 ON DELETE CASCADE 自动清理
 
 	// 事务成功后，异步失效受影响用户的订阅缓存

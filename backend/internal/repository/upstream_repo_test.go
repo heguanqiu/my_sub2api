@@ -23,8 +23,8 @@ func TestReplaceRemoteResourcesDeletesStaleRemoteAPIKeys(t *testing.T) {
 	expectReplaceRemoteResourcesStart(mock)
 	mock.ExpectQuery("INSERT INTO upstream_remote_api_keys").
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "api_key_encrypted", "synced_remote_group_id", "remote_group_id", "local_group_ids", "created_at", "updated_at",
-		}).AddRow(int64(10), "", "vip", "vip", "{100}", now, now))
+			"id", "api_key_encrypted", "synced_remote_group_id", "remote_group_id", "local_group_ids", "scheduling_enabled", "created_at", "updated_at",
+		}).AddRow(int64(10), "", "vip", "vip", "{100}", true, now, now))
 	mock.ExpectExec(`DELETE FROM upstream_remote_api_keys\s+WHERE upstream_id = \$1\s+AND remote_api_key_id <> ALL\(\$2::text\[\]\)`).
 		WithArgs(int64(42), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(0, 1))

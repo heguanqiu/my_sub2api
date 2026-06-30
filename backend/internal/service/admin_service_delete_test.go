@@ -263,6 +263,17 @@ func (s *deleteGroupAPIKeyRepoStub) ListKeysByGroupID(ctx context.Context, group
 	return s.keys, nil
 }
 
+type deleteGroupUpstreamRepoStub struct {
+	UpstreamRepository
+	groupIDs []int64
+	err      error
+}
+
+func (s *deleteGroupUpstreamRepoStub) RemoveLocalGroupMappings(ctx context.Context, groupID int64) error {
+	s.groupIDs = append(s.groupIDs, groupID)
+	return s.err
+}
+
 type proxyRepoStub struct {
 	deleteErr    error
 	countErr     error
@@ -618,6 +629,20 @@ func TestAdminService_DeleteGroup_InvalidatesAuthCacheForBoundKeys(t *testing.T)
 	require.Equal(t, []int64{5}, repo.deleteCalls)
 	require.Equal(t, []int64{5}, apiKeyRepo.listGroupIDs)
 	require.Equal(t, []string{"k1", "k2"}, invalidator.keys)
+}
+
+func TestAdminService_DeleteGroup_RemovesUpstreamLocalGroupMappings(t *testing.T) {
+	repo := &groupRepoStub{}
+	upstreamRepo := &deleteGroupUpstreamRepoStub{}
+	svc := &adminServiceImpl{
+		groupRepo:    repo,
+		upstreamRepo: upstreamRepo,
+	}
+
+	err := svc.DeleteGroup(context.Background(), 5)
+	require.NoError(t, err)
+	require.Equal(t, []int64{5}, repo.deleteCalls)
+	require.Equal(t, []int64{5}, upstreamRepo.groupIDs)
 }
 
 func TestAdminService_DeleteGroup_NotFound(t *testing.T) {

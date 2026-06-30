@@ -272,8 +272,13 @@
                   </div>
                 </div>
                 <div class="rounded-lg bg-gray-50 px-2 py-2 dark:bg-dark-900">
-                  <div class="text-xs text-gray-500 dark:text-dark-400">{{ tr('admin.upstreams.schedulerCost', '调度成本') }}</div>
-                  <div class="mt-1 font-semibold text-gray-900 dark:text-white">x{{ formatNumber(selectedUpstream.cost_multiplier, 2) }}</div>
+                  <div class="text-xs text-gray-500 dark:text-dark-400">{{ tr('admin.upstreams.accountConcurrency', '上游并发') }}</div>
+                  <div class="mt-1 font-mono text-sm font-semibold text-gray-900 dark:text-white">
+                    {{ formatOptionalNumber(upstreamAccountConcurrency) }}
+                  </div>
+                  <div class="mt-0.5 text-[11px] text-gray-500 dark:text-dark-400">
+                    {{ tr('admin.upstreams.usedConcurrency', '已用') }} {{ formatOptionalNumber(upstreamAccountConcurrencyUsed) }}
+                  </div>
                 </div>
               </div>
               <div class="mt-3 flex flex-wrap gap-2">
@@ -500,6 +505,15 @@
                             autocomplete="new-password"
                             @input="remoteKeyDraft(key.remote_api_key_id).api_key = ($event.target as HTMLInputElement).value"
                           />
+                          <div class="mt-2 inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                            <input
+                              type="checkbox"
+                              class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                              :checked="remoteKeyDraft(key.remote_api_key_id).scheduling_enabled"
+                              @change="remoteKeyDraft(key.remote_api_key_id).scheduling_enabled = ($event.target as HTMLInputElement).checked"
+                            />
+                            <span>{{ tr('admin.upstreams.keySchedulingEnabled', '参与调度') }}</span>
+                          </div>
                         </label>
                         <div class="space-y-2">
                           <span class="input-label">{{ tr('admin.upstreams.mappedLocalGroups', '映射本地分组') }}</span>
@@ -1112,6 +1126,7 @@ type UpstreamForm = {
 type RemoteAPIKeyDraft = {
   api_key: string
   local_group_ids: number[]
+  scheduling_enabled: boolean
 }
 
 const upstreams = ref<Upstream[]>([])
@@ -1342,6 +1357,8 @@ const selectedScheduleKeyLabel = computed(() => {
 
 const upstreamAccountBalance = computed(() => metadataNumber(selectedUpstream.value?.metadata?.account_balance))
 const upstreamAccountUsedQuota = computed(() => metadataNumber(selectedUpstream.value?.metadata?.account_used_quota))
+const upstreamAccountConcurrency = computed(() => metadataNumber(selectedUpstream.value?.metadata?.account_concurrency))
+const upstreamAccountConcurrencyUsed = computed(() => metadataNumber(selectedUpstream.value?.metadata?.account_concurrency_used))
 const upstreamAccountBalanceCheckedAt = computed(() => metadataString(selectedUpstream.value?.metadata?.account_balance_checked_at))
 
 function normalizeRoutingModeValue(value: unknown): UpstreamRoutingMode {
@@ -1824,7 +1841,8 @@ function remoteKeyDraft(remoteAPIKeyID: string): RemoteAPIKeyDraft {
     const key = remoteAPIKeys.value.find((item) => item.remote_api_key_id === id)
     remoteKeyDrafts[id] = {
       api_key: '',
-      local_group_ids: [...(key?.local_group_ids || [])]
+      local_group_ids: [...(key?.local_group_ids || [])],
+      scheduling_enabled: remoteAPIKeySchedulingEnabled(key)
     }
   }
   return remoteKeyDrafts[id]
@@ -1840,7 +1858,8 @@ function syncRemoteKeyDrafts(keys: UpstreamRemoteAPIKey[]) {
   keys.forEach((key) => {
     remoteKeyDrafts[key.remote_api_key_id] = {
       api_key: '',
-      local_group_ids: [...(key.local_group_ids || [])]
+      local_group_ids: [...(key.local_group_ids || [])],
+      scheduling_enabled: remoteAPIKeySchedulingEnabled(key)
     }
   })
 }
@@ -1871,6 +1890,7 @@ async function saveRemoteAPIKeyConfig(key: UpstreamRemoteAPIKey) {
       key.remote_api_key_id,
       {
         local_group_ids: [...draft.local_group_ids],
+        scheduling_enabled: draft.scheduling_enabled,
         api_key: draft.api_key.trim() || undefined
       }
     )
@@ -1880,7 +1900,8 @@ async function saveRemoteAPIKeyConfig(key: UpstreamRemoteAPIKey) {
     }
     remoteKeyDrafts[saved.remote_api_key_id] = {
       api_key: '',
-      local_group_ids: [...(saved.local_group_ids || [])]
+      local_group_ids: [...(saved.local_group_ids || [])],
+      scheduling_enabled: remoteAPIKeySchedulingEnabled(saved)
     }
     appStore.showSuccess(tr('admin.upstreams.keyConfigSaved', 'API key 配置已保存'))
     await refreshEventsAndHealth()
@@ -1924,6 +1945,8 @@ function applyAccountBalanceMetadata(metadata: Record<string, unknown>, result: 
   setOptionalMetadataNumber(metadata, 'account_quota', result.quota)
   setOptionalMetadataNumber(metadata, 'account_used_quota', result.used_quota)
   setOptionalMetadataNumber(metadata, 'account_remaining_quota', result.remaining_quota)
+  setOptionalMetadataNumber(metadata, 'account_concurrency', result.concurrency)
+  setOptionalMetadataNumber(metadata, 'account_concurrency_used', result.concurrency_used)
   delete metadata.account_balance_currency
   if (result.source) {
     metadata.account_balance_source = result.source
@@ -2227,9 +2250,14 @@ function remoteAPIKeyConfigured(key: UpstreamRemoteAPIKey) {
 }
 
 function remoteAPIKeySchedulable(key: UpstreamRemoteAPIKey) {
-  return remoteAPIKeyConfigured(key) &&
+  return remoteAPIKeySchedulingEnabled(key) &&
+    remoteAPIKeyConfigured(key) &&
     remoteAPIKeyStatusActive(key.status) &&
     (key.local_group_ids || []).length > 0
+}
+
+function remoteAPIKeySchedulingEnabled(key?: UpstreamRemoteAPIKey) {
+  return key?.scheduling_enabled !== false
 }
 
 function remoteAPIKeyStatusActive(status?: string) {
@@ -2448,6 +2476,11 @@ function formatNumber(value: unknown, digits = 2) {
 function formatQuotaValue(value?: number | null) {
   if (value == null || !Number.isFinite(Number(value))) return '-'
   return formatNumber(value, 6)
+}
+
+function formatOptionalNumber(value?: number | null) {
+  if (value == null || !Number.isFinite(Number(value))) return '-'
+  return formatNumber(value, 0)
 }
 
 function metadataNumber(value: unknown): number | null {

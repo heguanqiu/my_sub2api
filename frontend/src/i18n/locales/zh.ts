@@ -380,6 +380,7 @@ export default {
     plugins: '插件中心',
     apiKeys: 'API 密钥',
     playground: '演武场',
+    im: '聊天',
     usage: '使用记录',
     redeem: '兑换',
     affiliate: '邀请返利',
@@ -7309,6 +7310,11 @@ export default {
     notFoundDesc: '该自定义页面不存在或已被删除。',
     notConfiguredTitle: '页面链接未配置',
     notConfiguredDesc: '该自定义页面的 URL 未正确配置。',
+  },
+
+  // IM Page
+  im: {
+    loadFailed: '加载聊天失败',
   },
 
   // Playground Page

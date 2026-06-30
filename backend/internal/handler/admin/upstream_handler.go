@@ -97,9 +97,10 @@ type updateRoutingConfigRequest struct {
 }
 
 type updateUpstreamRemoteAPIKeyConfigRequest struct {
-	RemoteGroupID string  `json:"remote_group_id"`
-	LocalGroupIDs []int64 `json:"local_group_ids"`
-	APIKey        *string `json:"api_key"`
+	RemoteGroupID     string  `json:"remote_group_id"`
+	LocalGroupIDs     []int64 `json:"local_group_ids"`
+	SchedulingEnabled *bool   `json:"scheduling_enabled"`
+	APIKey            *string `json:"api_key"`
 }
 
 type applySyncPreviewRequest struct {
@@ -379,7 +380,7 @@ func (h *UpstreamHandler) UpdateAPIKeyConfig(c *gin.Context) {
 		response.ErrorFrom(c, infraerrors.BadRequest("VALIDATION_ERROR", err.Error()))
 		return
 	}
-	key, err := h.upstreamService.UpdateRemoteAPIKeyConfig(c.Request.Context(), id, remoteAPIKeyID, req.RemoteGroupID, req.LocalGroupIDs, req.APIKey)
+	key, err := h.upstreamService.UpdateRemoteAPIKeyConfig(c.Request.Context(), id, remoteAPIKeyID, req.RemoteGroupID, req.LocalGroupIDs, req.SchedulingEnabled, req.APIKey)
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return

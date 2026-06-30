@@ -238,6 +238,17 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/im',
+    name: 'IM',
+    component: () => import('@/views/user/IMView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Chat',
+      titleKey: 'nav.im'
+    }
+  },
+  {
     path: '/usage',
     name: 'Usage',
     component: () => import('@/views/user/UsageView.vue'),

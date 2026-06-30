@@ -226,5 +226,6 @@ func RegisterAuthRoutes(
 		// 撤销所有会话（需要认证）
 		authenticated.POST("/auth/revoke-all-sessions", h.Auth.RevokeAllSessions)
 		authenticated.POST("/auth/oauth/bind-token", h.Auth.PrepareOAuthBindAccessTokenCookie)
+		authenticated.POST("/im/sso-token", h.Auth.IssueIMSSOToken)
 	}
 }

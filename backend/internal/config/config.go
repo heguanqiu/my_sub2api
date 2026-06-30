@@ -94,6 +94,7 @@ type Config struct {
 	Update                  UpdateConfig                  `mapstructure:"update"`
 	Idempotency             IdempotencyConfig             `mapstructure:"idempotency"`
 	Playground              PlaygroundConfig              `mapstructure:"playground"`
+	IM                      IMConfig                      `mapstructure:"im"`
 }
 
 type LogConfig struct {
@@ -179,6 +180,16 @@ type IdempotencyConfig struct {
 type PlaygroundConfig struct {
 	EmbedSecret            string `mapstructure:"embed_secret"`
 	EmbedSessionTTLSeconds int    `mapstructure:"embed_session_ttl_seconds"`
+}
+
+type IMConfig struct {
+	Enabled            bool   `mapstructure:"enabled"`
+	SharedSecret       string `mapstructure:"shared_secret"`
+	Issuer             string `mapstructure:"issuer"`
+	Audience           string `mapstructure:"audience"`
+	SSOTokenTTLSeconds int    `mapstructure:"sso_token_ttl_seconds"`
+	WebURL             string `mapstructure:"web_url"`
+	ServiceURL         string `mapstructure:"service_url"`
 }
 
 type LinuxDoConnectConfig struct {
@@ -1439,6 +1450,20 @@ func load(allowMissingJWTSecret bool) (*Config, error) {
 	if cfg.Playground.EmbedSessionTTLSeconds <= 0 {
 		cfg.Playground.EmbedSessionTTLSeconds = 300
 	}
+	cfg.IM.SharedSecret = strings.TrimSpace(cfg.IM.SharedSecret)
+	cfg.IM.Issuer = strings.TrimSpace(cfg.IM.Issuer)
+	if cfg.IM.Issuer == "" {
+		cfg.IM.Issuer = "my_sub2api"
+	}
+	cfg.IM.Audience = strings.TrimSpace(cfg.IM.Audience)
+	if cfg.IM.Audience == "" {
+		cfg.IM.Audience = "tailchat"
+	}
+	if cfg.IM.SSOTokenTTLSeconds <= 0 {
+		cfg.IM.SSOTokenTTLSeconds = 60
+	}
+	cfg.IM.WebURL = strings.TrimRight(strings.TrimSpace(cfg.IM.WebURL), "/")
+	cfg.IM.ServiceURL = strings.TrimRight(strings.TrimSpace(cfg.IM.ServiceURL), "/")
 	cfg.LinuxDo.ClientID = strings.TrimSpace(cfg.LinuxDo.ClientID)
 	cfg.LinuxDo.ClientSecret = strings.TrimSpace(cfg.LinuxDo.ClientSecret)
 	cfg.LinuxDo.AuthorizeURL = strings.TrimSpace(cfg.LinuxDo.AuthorizeURL)
@@ -1839,6 +1864,15 @@ func setDefaults() {
 	viper.SetDefault("playground.embed_secret", "")
 	viper.SetDefault("playground.embed_session_ttl_seconds", 300)
 
+	// IM/Tailchat SSO integration
+	viper.SetDefault("im.enabled", false)
+	viper.SetDefault("im.shared_secret", "")
+	viper.SetDefault("im.issuer", "my_sub2api")
+	viper.SetDefault("im.audience", "tailchat")
+	viper.SetDefault("im.sso_token_ttl_seconds", 60)
+	viper.SetDefault("im.web_url", "")
+	viper.SetDefault("im.service_url", "")
+
 	// Gateway
 	viper.SetDefault("gateway.response_header_timeout", 600) // 600秒(10分钟)等待上游响应头，LLM高负载时可能排队较久
 	viper.SetDefault("gateway.openai_response_header_timeout", 0)
@@ -2115,6 +2149,36 @@ func (c *Config) Validate() error {
 	}
 	if c.JWT.RefreshWindowMinutes < 0 {
 		return fmt.Errorf("jwt.refresh_window_minutes must be non-negative")
+	}
+	if c.IM.Enabled {
+		if strings.TrimSpace(c.IM.SharedSecret) == "" {
+			return fmt.Errorf("im.shared_secret is required when im.enabled=true")
+		}
+		if len([]byte(strings.TrimSpace(c.IM.SharedSecret))) < 32 {
+			return fmt.Errorf("im.shared_secret must be at least 32 bytes")
+		}
+		if strings.TrimSpace(c.IM.Issuer) == "" {
+			return fmt.Errorf("im.issuer is required when im.enabled=true")
+		}
+		if strings.TrimSpace(c.IM.Audience) == "" {
+			return fmt.Errorf("im.audience is required when im.enabled=true")
+		}
+		if c.IM.SSOTokenTTLSeconds <= 0 || c.IM.SSOTokenTTLSeconds > 300 {
+			return fmt.Errorf("im.sso_token_ttl_seconds must be between 1 and 300")
+		}
+		if strings.TrimSpace(c.IM.WebURL) == "" {
+			return fmt.Errorf("im.web_url is required when im.enabled=true")
+		}
+		if err := ValidateAbsoluteHTTPURL(c.IM.WebURL); err != nil {
+			return fmt.Errorf("im.web_url invalid: %w", err)
+		}
+		warnIfInsecureURL("im.web_url", c.IM.WebURL)
+		if strings.TrimSpace(c.IM.ServiceURL) != "" {
+			if err := ValidateAbsoluteHTTPURL(c.IM.ServiceURL); err != nil {
+				return fmt.Errorf("im.service_url invalid: %w", err)
+			}
+			warnIfInsecureURL("im.service_url", c.IM.ServiceURL)
+		}
 	}
 	if c.Security.CSP.Enabled && strings.TrimSpace(c.Security.CSP.Policy) == "" {
 		return fmt.Errorf("security.csp.policy is required when CSP is enabled")

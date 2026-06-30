@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 	"log"
+	"net/url"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -47,6 +49,9 @@ func SetupRouter(
 			// 获取失败时保留已有缓存，避免 frame-src 被意外清空
 			return
 		}
+		if cfg != nil {
+			origins = appendFrameOrigin(origins, cfg.IM.WebURL)
+		}
 		cachedFrameOrigins.Store(&origins)
 	}
 	refreshFrameOrigins() // 启动时初始化
@@ -85,6 +90,34 @@ func SetupRouter(
 	registerRoutes(r, handlers, jwtAuth, adminAuth, apiKeyAuth, apiKeyService, subscriptionService, opsService, settingService, userAPINoticeService, cfg, redisClient)
 
 	return r
+}
+
+func appendFrameOrigin(origins []string, rawURL string) []string {
+	origin := frameOriginFromURL(rawURL)
+	if origin == "" {
+		return origins
+	}
+	for _, existing := range origins {
+		if existing == origin {
+			return origins
+		}
+	}
+	return append(origins, origin)
+}
+
+func frameOriginFromURL(rawURL string) string {
+	rawURL = strings.TrimSpace(rawURL)
+	if rawURL == "" {
+		return ""
+	}
+	u, err := url.Parse(rawURL)
+	if err != nil || u.Host == "" {
+		return ""
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return ""
+	}
+	return u.Scheme + "://" + u.Host
 }
 
 // registerRoutes 注册所有 HTTP 路由

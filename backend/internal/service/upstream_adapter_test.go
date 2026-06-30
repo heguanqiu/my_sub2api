@@ -2,10 +2,13 @@ package service
 
 import (
 	"context"
+	"encoding/base64"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestParseUpstreamGroupsFromSub2APIPaginatedResponse(t *testing.T) {
@@ -158,6 +161,44 @@ func TestHTTPUpstreamAdminAdapterNewAPILoginFetchesAccessTokenWithSession(t *tes
 	}
 }
 
+func TestHTTPUpstreamAdminAdapterTokenAuthRefreshesAccessToken(t *testing.T) {
+	var sawRefresh bool
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/auth/refresh" {
+			http.NotFound(w, r)
+			return
+		}
+		sawRefresh = true
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"code":0,"message":"success","data":{"access_token":"new-access","refresh_token":"new-refresh","expires_in":3600}}`))
+	}))
+	defer server.Close()
+
+	adapter := NewHTTPUpstreamAdminAdapter()
+	expired := time.Now().Add(-time.Minute).UTC()
+	session, err := adapter.Login(context.Background(), &Upstream{
+		BaseURL: server.URL,
+		AdminAuth: &UpstreamAdminAuth{
+			AuthMode:       UpstreamAdminAuthToken,
+			AccessToken:    "old-access",
+			RefreshToken:   "old-refresh",
+			TokenExpiresAt: &expired,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Login returned error: %v", err)
+	}
+	if !sawRefresh {
+		t.Fatal("expected refresh endpoint to be called")
+	}
+	if session.AccessToken != "new-access" || session.RefreshToken != "new-refresh" {
+		t.Fatalf("session = %#v", session)
+	}
+	if session.TokenExpiresAt == nil || time.Until(*session.TokenExpiresAt) < 50*time.Minute {
+		t.Fatalf("token expires at = %v, want refreshed expiry", session.TokenExpiresAt)
+	}
+}
+
 func TestHTTPUpstreamAdminAdapterListGroupsUsesNewAPIHeaders(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/user/self/groups" {
@@ -247,6 +288,25 @@ func TestHTTPUpstreamAdminAdapterGetAccountBalanceKeepsNewAPIPathFirst(t *testin
 	}
 	if result.UsedQuota == nil || *result.UsedQuota != 10 {
 		t.Fatalf("used quota = %v, want 10", result.UsedQuota)
+	}
+}
+
+func TestParseUpstreamAccountBalanceExtractsConcurrency(t *testing.T) {
+	result := parseUpstreamAccountBalance([]byte(`{"data":{"quota":99,"used_quota":10,"concurrency":8,"current_concurrency":2}}`))
+	if result.Concurrency == nil || *result.Concurrency != 8 {
+		t.Fatalf("concurrency = %v, want 8", result.Concurrency)
+	}
+	if result.ConcurrencyUsed == nil || *result.ConcurrencyUsed != 2 {
+		t.Fatalf("concurrency used = %v, want 2", result.ConcurrencyUsed)
+	}
+}
+
+func TestTokenExpiresAtFromJWT(t *testing.T) {
+	exp := time.Now().Add(time.Hour).Unix()
+	payload := base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf(`{"exp":%d}`, exp)))
+	got := tokenExpiresAtFromJWT("header." + payload + ".sig")
+	if got == nil || got.Unix() != exp {
+		t.Fatalf("expires at = %v, want %d", got, exp)
 	}
 }
 

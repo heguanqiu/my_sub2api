@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -34,11 +35,29 @@ func (a *HTTPUpstreamAdminAdapter) Login(ctx context.Context, upstream *Upstream
 		return &UpstreamAdminSession{}, nil
 	}
 	if token := strings.TrimSpace(auth.AccessToken); token != "" && auth.AuthMode != UpstreamAdminAuthPassword {
-		return &UpstreamAdminSession{
+		session := &UpstreamAdminSession{
 			AccessToken:    token,
 			RefreshToken:   strings.TrimSpace(auth.RefreshToken),
 			TokenExpiresAt: auth.TokenExpiresAt,
 			UserID:         anyToString(auth.Metadata["user_id"]),
+		}
+		if session.TokenExpiresAt == nil {
+			session.TokenExpiresAt = tokenExpiresAtFromJWT(token)
+		}
+		if refreshed, err := a.refreshTokenSession(ctx, upstream, session); err == nil && refreshed != nil {
+			return refreshed, nil
+		} else if tokenSessionExpired(session) {
+			reason := "access token expired"
+			if err != nil {
+				reason = err.Error()
+			}
+			return nil, ErrUpstreamLoginFailed.WithMetadata(map[string]string{"reason": reason})
+		}
+		return &UpstreamAdminSession{
+			AccessToken:    session.AccessToken,
+			RefreshToken:   session.RefreshToken,
+			TokenExpiresAt: session.TokenExpiresAt,
+			UserID:         session.UserID,
 		}, nil
 	}
 	if auth.AuthMode != UpstreamAdminAuthPassword {
@@ -96,9 +115,85 @@ func (a *HTTPUpstreamAdminAdapter) Login(ctx context.Context, upstream *Upstream
 		return nil, ErrUpstreamLoginFailed.WithMetadata(map[string]string{"reason": "token not found in login response"})
 	}
 	return &UpstreamAdminSession{
-		AccessToken:  token,
-		RefreshToken: firstStringInJSON(raw, "refresh_token", "refreshToken"),
-		UserID:       userID,
+		AccessToken:    token,
+		RefreshToken:   firstStringInJSON(raw, "refresh_token", "refreshToken"),
+		TokenExpiresAt: tokenExpiresAtFromResponse(raw),
+		UserID:         userID,
+	}, nil
+}
+
+func (a *HTTPUpstreamAdminAdapter) refreshTokenSession(ctx context.Context, upstream *Upstream, session *UpstreamAdminSession) (*UpstreamAdminSession, error) {
+	if upstream == nil || session == nil {
+		return nil, nil
+	}
+	refreshToken := strings.TrimSpace(session.RefreshToken)
+	if refreshToken == "" || !tokenSessionNeedsRefresh(session) {
+		return nil, nil
+	}
+	paths := []string{
+		"/api/v1/auth/refresh",
+		"/api/auth/refresh",
+		"/auth/refresh",
+		"/api/user/refresh",
+		"/api/v1/user/refresh",
+	}
+	var errs []error
+	for _, p := range paths {
+		next, err := a.refreshTokenAtPath(ctx, upstream, session, p)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		if next != nil && strings.TrimSpace(next.AccessToken) != "" {
+			return next, nil
+		}
+	}
+	return nil, upstreamDiscoveryError("token refresh", errs, nil)
+}
+
+func (a *HTTPUpstreamAdminAdapter) refreshTokenAtPath(ctx context.Context, upstream *Upstream, session *UpstreamAdminSession, relPath string) (*UpstreamAdminSession, error) {
+	body, _ := json.Marshal(map[string]string{"refresh_token": strings.TrimSpace(session.RefreshToken)})
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, joinUpstreamURL(upstream.BaseURL, relPath), bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if token := strings.TrimSpace(session.AccessToken); token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("upstream %s returned HTTP %d", relPath, resp.StatusCode)
+	}
+	token := firstStringInJSON(raw, "access_token", "accessToken", "token", "session_token", "key")
+	if token == "" {
+		return nil, fmt.Errorf("upstream %s did not return an access token", relPath)
+	}
+	refreshToken := firstStringInJSON(raw, "refresh_token", "refreshToken")
+	if strings.TrimSpace(refreshToken) == "" {
+		refreshToken = session.RefreshToken
+	}
+	userID := firstStringInJSON(raw, "user_id", "userId", "uid", "id")
+	if strings.TrimSpace(userID) == "" {
+		userID = session.UserID
+	}
+	expiresAt := tokenExpiresAtFromResponse(raw)
+	if expiresAt == nil {
+		expiresAt = tokenExpiresAtFromJWT(token)
+	}
+	return &UpstreamAdminSession{
+		AccessToken:    token,
+		RefreshToken:   refreshToken,
+		TokenExpiresAt: expiresAt,
+		UserID:         userID,
 	}, nil
 }
 
@@ -213,7 +308,7 @@ func (a *HTTPUpstreamAdminAdapter) GetAccountBalance(ctx context.Context, upstre
 		result.UpstreamID = upstream.ID
 		result.Source = p
 		result.CheckedAt = now
-		result.HasBalance = result.Balance != nil || result.Quota != nil || result.UsedQuota != nil || result.RemainingQuota != nil
+		result.HasBalance = upstreamAccountBalanceResultHasData(result)
 		if result.Message == "" {
 			if result.HasBalance {
 				result.Message = "account balance refreshed"
@@ -443,11 +538,15 @@ func parseUpstreamAccountBalance(raw []byte) *UpstreamAccountBalanceResult {
 	quota := optionalObjectFloat(payload, "quota", "total_quota", "total_granted")
 	usedQuota := optionalObjectFloat(payload, "used_quota", "quota_used", "used_amount", "used", "total_used")
 	remainingQuota := optionalObjectFloat(payload, "remaining_quota", "remain_quota")
+	concurrency := optionalObjectInt(payload, "concurrency", "max_concurrency", "concurrency_limit", "user_concurrency", "account_concurrency")
+	concurrencyUsed := optionalObjectInt(payload, "current_concurrency", "used_concurrency", "concurrency_used")
 	result := &UpstreamAccountBalanceResult{
-		Balance:        balance,
-		Quota:          quota,
-		UsedQuota:      usedQuota,
-		RemainingQuota: remainingQuota,
+		Balance:         balance,
+		Quota:           quota,
+		UsedQuota:       usedQuota,
+		RemainingQuota:  remainingQuota,
+		Concurrency:     concurrency,
+		ConcurrencyUsed: concurrencyUsed,
 	}
 	if result.Balance == nil && quota != nil {
 		// new-api stores current usable account balance in user.quota.
@@ -631,6 +730,18 @@ func optionalObjectFloat(m map[string]any, keys ...string) *float64 {
 	return nil
 }
 
+func optionalObjectInt(m map[string]any, keys ...string) *int {
+	for _, key := range keys {
+		if v := numericAny(m[key]); v != nil {
+			n := int(*v)
+			if n >= 0 && float64(n) == *v {
+				return &n
+			}
+		}
+	}
+	return nil
+}
+
 func numericAny(v any) *float64 {
 	switch x := v.(type) {
 	case float64:
@@ -677,6 +788,128 @@ func anyToString(v any) string {
 	default:
 		return ""
 	}
+}
+
+func tokenSessionNeedsRefresh(session *UpstreamAdminSession) bool {
+	if session == nil || strings.TrimSpace(session.RefreshToken) == "" {
+		return false
+	}
+	if session.TokenExpiresAt == nil {
+		return true
+	}
+	return time.Now().UTC().Add(5 * time.Minute).After(session.TokenExpiresAt.UTC())
+}
+
+func tokenSessionExpired(session *UpstreamAdminSession) bool {
+	if session == nil || session.TokenExpiresAt == nil {
+		return false
+	}
+	return !time.Now().UTC().Before(session.TokenExpiresAt.UTC())
+}
+
+func tokenExpiresAtFromResponse(raw []byte) *time.Time {
+	var decoded any
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	if err := decoder.Decode(&decoded); err != nil {
+		return nil
+	}
+	return tokenExpiresAtFromValue(decoded)
+}
+
+func tokenExpiresAtFromValue(v any) *time.Time {
+	switch x := v.(type) {
+	case map[string]any:
+		for _, key := range []string{"expires_at", "expiresAt", "token_expires_at", "tokenExpiresAt"} {
+			if t := parseAnyTime(x[key]); t != nil {
+				return t
+			}
+		}
+		for _, key := range []string{"expires_in", "expiresIn"} {
+			if seconds := numericAny(x[key]); seconds != nil && *seconds > 0 {
+				t := time.Now().UTC().Add(time.Duration(*seconds) * time.Second)
+				return &t
+			}
+		}
+		for _, val := range x {
+			if t := tokenExpiresAtFromValue(val); t != nil {
+				return t
+			}
+		}
+	case []any:
+		for _, val := range x {
+			if t := tokenExpiresAtFromValue(val); t != nil {
+				return t
+			}
+		}
+	}
+	return nil
+}
+
+func tokenExpiresAtFromJWT(token string) *time.Time {
+	parts := strings.Split(strings.TrimSpace(token), ".")
+	if len(parts) < 2 {
+		return nil
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return nil
+	}
+	var claims map[string]any
+	decoder := json.NewDecoder(bytes.NewReader(payload))
+	decoder.UseNumber()
+	if err := decoder.Decode(&claims); err != nil {
+		return nil
+	}
+	if exp := numericAny(claims["exp"]); exp != nil && *exp > 0 {
+		t := time.Unix(int64(*exp), 0).UTC()
+		return &t
+	}
+	return nil
+}
+
+func parseAnyTime(v any) *time.Time {
+	switch x := v.(type) {
+	case time.Time:
+		t := x.UTC()
+		return &t
+	case string:
+		raw := strings.TrimSpace(x)
+		if raw == "" {
+			return nil
+		}
+		for _, layout := range []string{time.RFC3339Nano, time.RFC3339} {
+			if t, err := time.Parse(layout, raw); err == nil {
+				utc := t.UTC()
+				return &utc
+			}
+		}
+		if parsed, err := strconv.ParseInt(raw, 10, 64); err == nil && parsed > 0 {
+			t := time.Unix(parsed, 0).UTC()
+			return &t
+		}
+	case json.Number:
+		if parsed, err := x.Int64(); err == nil && parsed > 0 {
+			t := time.Unix(parsed, 0).UTC()
+			return &t
+		}
+	case float64:
+		if x > 0 {
+			t := time.Unix(int64(x), 0).UTC()
+			return &t
+		}
+	case int64:
+		if x > 0 {
+			t := time.Unix(x, 0).UTC()
+			return &t
+		}
+	case int:
+		if x > 0 {
+			t := time.Unix(int64(x), 0).UTC()
+			return &t
+		}
+	}
+	return nil
 }
 
 func cloneObjectMap(in map[string]any) map[string]any {
