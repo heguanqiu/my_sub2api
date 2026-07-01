@@ -370,6 +370,42 @@ func (s *ConcurrencyCacheSuite) TestGetAccountsLoadBatch_Empty() {
 	require.Empty(s.T(), loadMap)
 }
 
+// TestGetAccountsLoadBatch_SharedSlotID 验证：上游托管的多个合成账号共用同一个
+// SlotID（-upstreamID）时，负载批量按 SlotID 计数、按各自 ID 返回，共享同一并发占用。
+func (s *ConcurrencyCacheSuite) TestGetAccountsLoadBatch_SharedSlotID() {
+	const sharedSlot = int64(-7) // 模拟 upstreamID=7 的共享池
+	accountA := int64(200)
+	accountB := int64(201)
+
+	// 在共享槽位 key 上占用 2 个槽位。
+	ok, err := s.cache.AcquireAccountSlot(s.ctx, sharedSlot, 5, "reqA")
+	require.NoError(s.T(), err)
+	require.True(s.T(), ok)
+	ok, err = s.cache.AcquireAccountSlot(s.ctx, sharedSlot, 5, "reqB")
+	require.NoError(s.T(), err)
+	require.True(s.T(), ok)
+
+	// 两个不同账号 ID，但共用同一 SlotID。
+	accounts := []service.AccountWithConcurrency{
+		{ID: accountA, SlotID: sharedSlot, MaxConcurrency: 5},
+		{ID: accountB, SlotID: sharedSlot, MaxConcurrency: 5},
+	}
+	loadMap, err := s.cache.GetAccountsLoadBatch(s.ctx, accounts)
+	require.NoError(s.T(), err)
+	require.Len(s.T(), loadMap, 2)
+
+	// 结果按各自账号 ID 返回，但都反映共享池的占用（2）。
+	loadA := loadMap[accountA]
+	require.NotNil(s.T(), loadA)
+	require.Equal(s.T(), accountA, loadA.AccountID)
+	require.Equal(s.T(), 2, loadA.CurrentConcurrency)
+
+	loadB := loadMap[accountB]
+	require.NotNil(s.T(), loadB)
+	require.Equal(s.T(), accountB, loadB.AccountID)
+	require.Equal(s.T(), 2, loadB.CurrentConcurrency)
+}
+
 func (s *ConcurrencyCacheSuite) TestCleanupExpiredAccountSlots() {
 	accountID := int64(200)
 	slotKey := fmt.Sprintf("%s%d", accountSlotKeyPrefix, accountID)

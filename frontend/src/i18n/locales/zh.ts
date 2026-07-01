@@ -1629,6 +1629,8 @@ export default {
       noMappedLocalGroups: '未映射本地分组',
       keyConfigSaved: 'API key 配置已保存',
       keyConfigSaveFailed: '保存 API key 配置失败',
+      deletedGroupsWarning: '{count} 个分组已被删除，保存后将自动清除',
+      deletedGroupId: 'ID: {id}（已删除）',
       availableModels: '可用模型',
       allModels: '全部',
       availableModelsHint: '统一管理这个上游支持的模型；为空表示所有模型都可参与调度。支持 * 通配符。',

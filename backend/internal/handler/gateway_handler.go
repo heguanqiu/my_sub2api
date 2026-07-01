@@ -370,7 +370,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 					return
 				}
 				accountWaitCounted := false
-				canWait, err := h.concurrencyHelper.IncrementAccountWaitCount(c.Request.Context(), account.ID, selection.WaitPlan.MaxWaiting)
+				canWait, err := h.concurrencyHelper.IncrementAccountWaitCount(c.Request.Context(), account.ConcurrencySlotID(), selection.WaitPlan.MaxWaiting)
 				if err != nil {
 					reqLog.Warn("gateway.account_wait_counter_increment_failed", zap.Int64("account_id", account.ID), zap.Error(err))
 				} else if !canWait {
@@ -386,14 +386,14 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 				}
 				releaseWait := func() {
 					if accountWaitCounted {
-						h.concurrencyHelper.DecrementAccountWaitCount(c.Request.Context(), account.ID)
+						h.concurrencyHelper.DecrementAccountWaitCount(c.Request.Context(), account.ConcurrencySlotID())
 						accountWaitCounted = false
 					}
 				}
 
 				accountReleaseFunc, err = h.concurrencyHelper.AcquireAccountSlotWithWaitTimeout(
 					c,
-					account.ID,
+					account.ConcurrencySlotID(),
 					selection.WaitPlan.MaxConcurrency,
 					selection.WaitPlan.Timeout,
 					reqStream,
@@ -666,7 +666,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 					return
 				}
 				accountWaitCounted := false
-				canWait, err := h.concurrencyHelper.IncrementAccountWaitCount(c.Request.Context(), account.ID, selection.WaitPlan.MaxWaiting)
+				canWait, err := h.concurrencyHelper.IncrementAccountWaitCount(c.Request.Context(), account.ConcurrencySlotID(), selection.WaitPlan.MaxWaiting)
 				if err != nil {
 					reqLog.Warn("gateway.account_wait_counter_increment_failed", zap.Int64("account_id", account.ID), zap.Error(err))
 				} else if !canWait {
@@ -682,14 +682,14 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 				}
 				releaseWait := func() {
 					if accountWaitCounted {
-						h.concurrencyHelper.DecrementAccountWaitCount(c.Request.Context(), account.ID)
+						h.concurrencyHelper.DecrementAccountWaitCount(c.Request.Context(), account.ConcurrencySlotID())
 						accountWaitCounted = false
 					}
 				}
 
 				accountReleaseFunc, err = h.concurrencyHelper.AcquireAccountSlotWithWaitTimeout(
 					c,
-					account.ID,
+					account.ConcurrencySlotID(),
 					selection.WaitPlan.MaxConcurrency,
 					selection.WaitPlan.Timeout,
 					reqStream,

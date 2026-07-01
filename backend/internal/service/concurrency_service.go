@@ -136,7 +136,8 @@ type AcquireResult struct {
 }
 
 type AccountWithConcurrency struct {
-	ID             int64
+	ID             int64 // 结果 map 的 key（真实账号 ID）
+	SlotID         int64 // Redis 并发槽位 key 标识；为 0 时回退到 ID
 	MaxConcurrency int
 }
 

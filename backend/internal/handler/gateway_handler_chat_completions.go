@@ -201,7 +201,7 @@ func (h *GatewayHandler) ChatCompletions(c *gin.Context) {
 			}
 			accountReleaseFunc, err = h.concurrencyHelper.AcquireAccountSlotWithWaitTimeout(
 				c,
-				account.ID,
+				account.ConcurrencySlotID(),
 				selection.WaitPlan.MaxConcurrency,
 				selection.WaitPlan.Timeout,
 				reqStream,

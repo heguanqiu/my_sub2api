@@ -580,8 +580,15 @@ func upstreamRemoteAPIKeySchedulingEnabled(remoteKey *UpstreamRemoteAPIKey) bool
 
 func upstreamRuntimeConcurrency(upstream *Upstream) int {
 	if upstream == nil {
-		return 1
+		return 0
 	}
+	// newapi 上游一般没有并发限制：视为无限制（0 → AcquireAccountSlot 短路放行）。
+	if strings.TrimSpace(upstream.Type) == UpstreamTypeNewAPI {
+		return 0
+	}
+	// sub2api 等：account_concurrency 来自 auth/me 的 data.concurrency，
+	// 代表整个上游共享的总并发。取不到时按无限制处理（未刷新前不误限流，
+	// 刷新后自动生效），不再用 weight 编造一个并发上限。
 	if n := metadataInt(upstream.Metadata, "account_concurrency"); n > 0 {
 		return n
 	}
@@ -594,10 +601,7 @@ func upstreamRuntimeConcurrency(upstream *Upstream) int {
 	if n := metadataInt(upstream.Metadata, "max_concurrency"); n > 0 {
 		return n
 	}
-	if upstream.Weight > 0 {
-		return clampInt(int(math.Round(float64(upstream.Weight)/10)), 1, 128)
-	}
-	return 1
+	return 0
 }
 
 func upstreamRuntimeLoadFactor(upstream *Upstream) int {
@@ -696,6 +700,9 @@ func (s *UpstreamService) validateRuntimeLocalGroupIDs(ctx context.Context, grou
 	return out, nil
 }
 
+// validateRuntimeLocalGroupIDsByPlatform 校验本地分组 ID 是否可用于上游运行时映射。
+// 已被删除的分组 ID 会被静默跳过（运行时宽容语义）；
+// 分组存在但平台不符或仅允许 OAuth 的，才返回硬错误。
 func (s *UpstreamService) validateRuntimeLocalGroupIDsByPlatform(ctx context.Context, groupIDs []int64) (map[string][]int64, error) {
 	groupIDs = uniquePositiveInt64sLocal(groupIDs)
 	out := map[string][]int64{
@@ -708,6 +715,10 @@ func (s *UpstreamService) validateRuntimeLocalGroupIDsByPlatform(ctx context.Con
 	}
 	for _, id := range groupIDs {
 		group, err := s.groupRepo.GetByID(ctx, id)
+		if errors.Is(err, ErrGroupNotFound) {
+			// 分组已删除：静默跳过，不阻止保存
+			continue
+		}
 		if err != nil {
 			return nil, err
 		}

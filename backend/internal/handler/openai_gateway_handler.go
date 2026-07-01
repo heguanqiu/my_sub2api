@@ -1103,7 +1103,7 @@ func (h *OpenAIGatewayHandler) acquireResponsesAccountSlot(
 
 	fastReleaseFunc, fastAcquired, err := h.concurrencyHelper.TryAcquireAccountSlot(
 		ctx,
-		account.ID,
+		account.ConcurrencySlotID(),
 		selection.WaitPlan.MaxConcurrency,
 	)
 	if err != nil {
@@ -1118,7 +1118,7 @@ func (h *OpenAIGatewayHandler) acquireResponsesAccountSlot(
 		return wrapReleaseOnDone(ctx, fastReleaseFunc), true
 	}
 
-	canWait, waitErr := h.concurrencyHelper.IncrementAccountWaitCount(ctx, account.ID, selection.WaitPlan.MaxWaiting)
+	canWait, waitErr := h.concurrencyHelper.IncrementAccountWaitCount(ctx, account.ConcurrencySlotID(), selection.WaitPlan.MaxWaiting)
 	if waitErr != nil {
 		reqLog.Warn("openai.account_wait_counter_increment_failed", zap.Int64("account_id", account.ID), zap.Error(waitErr))
 	} else if !canWait {
@@ -1133,7 +1133,7 @@ func (h *OpenAIGatewayHandler) acquireResponsesAccountSlot(
 	accountWaitCounted := waitErr == nil && canWait
 	releaseWait := func() {
 		if accountWaitCounted {
-			h.concurrencyHelper.DecrementAccountWaitCount(ctx, account.ID)
+			h.concurrencyHelper.DecrementAccountWaitCount(ctx, account.ConcurrencySlotID())
 			accountWaitCounted = false
 		}
 	}
@@ -1141,7 +1141,7 @@ func (h *OpenAIGatewayHandler) acquireResponsesAccountSlot(
 
 	accountReleaseFunc, err := h.concurrencyHelper.AcquireAccountSlotWithWaitTimeout(
 		c,
-		account.ID,
+		account.ConcurrencySlotID(),
 		selection.WaitPlan.MaxConcurrency,
 		selection.WaitPlan.Timeout,
 		reqStream,
@@ -1399,7 +1399,7 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 			}
 			fastReleaseFunc, fastAcquired, err := h.concurrencyHelper.TryAcquireAccountSlot(
 				ctx,
-				account.ID,
+				account.ConcurrencySlotID(),
 				selection.WaitPlan.MaxConcurrency,
 			)
 			if err != nil {
@@ -1473,7 +1473,7 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 				if !userAcquired {
 					return service.NewOpenAIWSClientCloseError(coderws.StatusTryAgainLater, "too many concurrent requests, please retry later", nil)
 				}
-				accountReleaseFunc, accountAcquired, err := h.concurrencyHelper.TryAcquireAccountSlot(ctx, account.ID, accountMaxConcurrency)
+				accountReleaseFunc, accountAcquired, err := h.concurrencyHelper.TryAcquireAccountSlot(ctx, account.ConcurrencySlotID(), accountMaxConcurrency)
 				if err != nil {
 					if userReleaseFunc != nil {
 						userReleaseFunc()

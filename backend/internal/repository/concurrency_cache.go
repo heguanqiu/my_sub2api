@@ -399,8 +399,13 @@ func (c *concurrencyCache) GetAccountsLoadBatch(ctx context.Context, accounts []
 	}
 	cmds := make([]accountCmds, 0, len(accounts))
 	for _, acc := range accounts {
-		slotKey := accountSlotKeyPrefix + strconv.FormatInt(acc.ID, 10)
-		waitKey := accountWaitKeyPrefix + strconv.FormatInt(acc.ID, 10)
+		// 并发槽位按 SlotID 计数（上游托管账号共用 -upstreamID 池）；SlotID 为 0 时回退到 ID。
+		slotID := acc.SlotID
+		if slotID == 0 {
+			slotID = acc.ID
+		}
+		slotKey := accountSlotKeyPrefix + strconv.FormatInt(slotID, 10)
+		waitKey := accountWaitKeyPrefix + strconv.FormatInt(slotID, 10)
 		pipe.ZRemRangeByScore(ctx, slotKey, "-inf", strconv.FormatInt(cutoffTime, 10))
 		ac := accountCmds{
 			id:             acc.ID,

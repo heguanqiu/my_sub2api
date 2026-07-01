@@ -132,6 +132,19 @@ func (a *Account) UpstreamRuntimeRemoteAPIKeyID() string {
 	return strings.TrimSpace(anyToString(a.Extra["upstream_remote_api_key_id"]))
 }
 
+// ConcurrencySlotID 返回用于 Redis 并发槽位的 key 标识。
+// 上游托管的合成账号共用 -upstreamID（同一上游的所有 key/platform 合成账号
+// 共享上游总并发池）；其余账号用自身 ID。负数命名空间与正数账号 ID 不冲突。
+func (a *Account) ConcurrencySlotID() int64 {
+	if a == nil {
+		return 0
+	}
+	if id := a.UpstreamRuntimeUpstreamID(); id > 0 {
+		return -id
+	}
+	return a.ID
+}
+
 // BillingRateMultiplier 返回账号计费倍率。
 // - nil 表示未配置/旧缓存缺字段，按 1.0 处理
 // - 允许 0，表示该账号计费为 0

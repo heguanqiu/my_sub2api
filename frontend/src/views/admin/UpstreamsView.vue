@@ -458,86 +458,14 @@
                     {{ tr('admin.upstreams.noAPIKeys', '暂无已同步 API 密钥') }}
                   </div>
                   <div v-else class="space-y-3">
-                    <div
+                    <RemoteKeyConfigItem
                       v-for="key in remoteAPIKeys"
                       :key="key.remote_api_key_id"
-                      class="rounded-lg border border-gray-100 p-3 dark:border-dark-700"
-                    >
-                      <div class="flex flex-wrap items-start justify-between gap-3">
-                        <div class="min-w-0">
-                          <div class="flex flex-wrap items-center gap-2">
-                            <span class="truncate text-sm font-semibold text-gray-900 dark:text-white">
-                              {{ key.remote_api_key_name || key.remote_api_key_id }}
-                            </span>
-                            <span :class="['badge', remoteAPIKeyConfigured(key) ? 'badge-success' : 'badge-warning']">
-                              {{ remoteAPIKeyConfigured(key) ? tr('admin.upstreams.keyConfigured', '已配置') : tr('admin.upstreams.keyNotConfigured', '未配置') }}
-                            </span>
-                            <span :class="['badge', remoteAPIKeySchedulable(key) ? 'badge-success' : 'badge-gray']">
-                              {{ remoteAPIKeySchedulable(key) ? tr('admin.upstreams.keySchedulable', '可调度') : tr('admin.upstreams.keyNotSchedulable', '不可调度') }}
-                            </span>
-                          </div>
-                          <div class="mt-1 flex flex-wrap gap-1 text-[11px] text-gray-500 dark:text-dark-400">
-                            <span class="font-mono">{{ key.remote_api_key_id }}</span>
-                            <span v-if="key.masked_key">· {{ key.masked_key }}</span>
-                          </div>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-2">
-                          <button
-                            type="button"
-                            class="btn btn-primary btn-sm"
-                            :disabled="savingRemoteKeyId === key.remote_api_key_id"
-                            @click="saveRemoteAPIKeyConfig(key)"
-                          >
-                            <Icon name="check" size="sm" />
-                            {{ savingRemoteKeyId === key.remote_api_key_id ? tr('common.saving', '保存中') : tr('common.save', '保存') }}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div class="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,1.2fr)]">
-                        <label class="space-y-1">
-                          <span class="input-label">{{ tr('admin.upstreams.upstreamAPIKeySecret', '上游 API key') }}</span>
-                          <input
-                            :value="remoteKeyDraft(key.remote_api_key_id).api_key"
-                            type="password"
-                            class="input"
-                            :placeholder="key.api_key_configured ? tr('admin.upstreams.keepExistingKey', '留空则保留已配置密钥') : 'sk-...'"
-                            autocomplete="new-password"
-                            @input="remoteKeyDraft(key.remote_api_key_id).api_key = ($event.target as HTMLInputElement).value"
-                          />
-                          <div class="mt-2 inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
-                            <input
-                              type="checkbox"
-                              class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                              :checked="remoteKeyDraft(key.remote_api_key_id).scheduling_enabled"
-                              @change="remoteKeyDraft(key.remote_api_key_id).scheduling_enabled = ($event.target as HTMLInputElement).checked"
-                            />
-                            <span>{{ tr('admin.upstreams.keySchedulingEnabled', '参与调度') }}</span>
-                          </div>
-                        </label>
-                        <div class="space-y-2">
-                          <span class="input-label">{{ tr('admin.upstreams.mappedLocalGroups', '映射本地分组') }}</span>
-                          <div v-if="localGroups.length === 0" class="rounded-lg border border-dashed border-gray-200 px-3 py-2 text-sm text-gray-500 dark:border-dark-700 dark:text-dark-400">
-                            {{ localGroupsLoading ? tr('common.loading', '加载中') : tr('admin.upstreams.noLocalRuntimeGroups', '暂无本地 OpenAI / Anthropic 分组') }}
-                          </div>
-                          <div v-else class="flex max-h-28 flex-wrap gap-2 overflow-y-auto rounded-lg border border-gray-100 p-2 dark:border-dark-700">
-                            <label
-                              v-for="group in localGroups"
-                              :key="group.id"
-                              class="inline-flex items-center gap-2 rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-700 dark:border-dark-600 dark:text-gray-200"
-                            >
-                              <input
-                                type="checkbox"
-                                class="h-3.5 w-3.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                                :checked="remoteKeyDraft(key.remote_api_key_id).local_group_ids.includes(group.id)"
-                                @change="toggleRemoteKeyLocalGroup(key.remote_api_key_id, group.id)"
-                              />
-                              <span>{{ localGroupLabel(group) }}</span>
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                      :upstream-id="selectedUpstream!.id"
+                      :remote-key="key"
+                      :local-groups="localGroups"
+                      @saved="onKeyConfigSaved"
+                    />
                   </div>
                 </section>
 
@@ -1086,6 +1014,7 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import Select from '@/components/common/Select.vue'
 import Icon from '@/components/icons/Icon.vue'
 import ModelWhitelistSelector from '@/components/account/ModelWhitelistSelector.vue'
+import RemoteKeyConfigItem from '@/components/admin/upstreams/RemoteKeyConfigItem.vue'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -1123,12 +1052,6 @@ type UpstreamForm = {
   metadata: Record<string, unknown>
 }
 
-type RemoteAPIKeyDraft = {
-  api_key: string
-  local_group_ids: number[]
-  scheduling_enabled: boolean
-}
-
 const upstreams = ref<Upstream[]>([])
 const loading = ref(false)
 const saving = ref(false)
@@ -1153,7 +1076,6 @@ const syncPreviewLoading = ref(false)
 const applyingPreview = ref(false)
 const policySaving = ref(false)
 const costLoading = ref(false)
-const savingRemoteKeyId = ref<string | null>(null)
 const refreshingBalance = ref(false)
 const resettingCost = ref(false)
 const routingConfigLoading = ref(false)
@@ -1171,7 +1093,6 @@ const deletingUpstream = ref<Upstream | null>(null)
 const searchQuery = ref('')
 const costUpstreamId = ref<number | null>(null)
 const localGroups = ref<AdminGroup[]>([])
-const remoteKeyDrafts = reactive<Record<string, RemoteAPIKeyDraft>>({})
 const supportedModelsText = ref('')
 const upstreamLocalGroupPlatforms: GroupPlatform[] = ['openai', 'anthropic']
 const upstreamModelPlatforms: GroupPlatform[] = ['openai', 'anthropic']
@@ -1406,7 +1327,7 @@ async function saveRoutingConfig(value?: string | number | boolean | null) {
 }
 
 async function loadLocalGroups() {
-  if (localGroups.value.length > 0 || localGroupsLoading.value) return
+  if (localGroupsLoading.value) return   // 防并发，但不缓存结果——每次查看上游都刷新
   localGroupsLoading.value = true
   try {
     const groups = await adminAPI.groups.getAll()
@@ -1513,7 +1434,7 @@ async function loadDetail(id: number) {
     upstreamEvents.value = events
     governancePolicy.value = policy
     upstreamAlerts.value = alerts
-    syncRemoteKeyDrafts(keys)
+    void loadLocalGroups()   // 每次查看上游都刷新本地分组列表
     supportedModelsText.value = parseMetadataStringList(upstream.metadata?.supported_models).join('\n')
     fillPolicyForm(policy)
   } catch (error: any) {
@@ -1541,7 +1462,6 @@ function resetDetailState() {
   governancePolicy.value = null
   syncPreviewResult.value = null
   scheduleDecision.value = null
-  clearRemoteKeyDrafts()
   supportedModelsText.value = ''
 }
 
@@ -1835,81 +1755,12 @@ async function applySyncPreview() {
   }
 }
 
-function remoteKeyDraft(remoteAPIKeyID: string): RemoteAPIKeyDraft {
-  const id = String(remoteAPIKeyID)
-  if (!remoteKeyDrafts[id]) {
-    const key = remoteAPIKeys.value.find((item) => item.remote_api_key_id === id)
-    remoteKeyDrafts[id] = {
-      api_key: '',
-      local_group_ids: [...(key?.local_group_ids || [])],
-      scheduling_enabled: remoteAPIKeySchedulingEnabled(key)
-    }
-  }
-  return remoteKeyDrafts[id]
-}
-
-function syncRemoteKeyDrafts(keys: UpstreamRemoteAPIKey[]) {
-  const keep = new Set(keys.map((item) => item.remote_api_key_id))
-  Object.keys(remoteKeyDrafts).forEach((id) => {
-    if (!keep.has(id)) {
-      delete remoteKeyDrafts[id]
-    }
-  })
-  keys.forEach((key) => {
-    remoteKeyDrafts[key.remote_api_key_id] = {
-      api_key: '',
-      local_group_ids: [...(key.local_group_ids || [])],
-      scheduling_enabled: remoteAPIKeySchedulingEnabled(key)
-    }
-  })
-}
-
-function clearRemoteKeyDrafts() {
-  Object.keys(remoteKeyDrafts).forEach((id) => {
-    delete remoteKeyDrafts[id]
-  })
-}
-
-function toggleRemoteKeyLocalGroup(remoteAPIKeyID: string, groupID: number) {
-  const draft = remoteKeyDraft(remoteAPIKeyID)
-  const index = draft.local_group_ids.indexOf(groupID)
+function onKeyConfigSaved(saved: UpstreamRemoteAPIKey) {
+  const index = remoteAPIKeys.value.findIndex((item) => item.remote_api_key_id === saved.remote_api_key_id)
   if (index >= 0) {
-    draft.local_group_ids.splice(index, 1)
-  } else {
-    draft.local_group_ids.push(groupID)
+    remoteAPIKeys.value[index] = saved
   }
-}
-
-async function saveRemoteAPIKeyConfig(key: UpstreamRemoteAPIKey) {
-  if (!selectedUpstream.value) return
-  const draft = remoteKeyDraft(key.remote_api_key_id)
-  savingRemoteKeyId.value = key.remote_api_key_id
-  try {
-    const saved = await adminAPI.upstreams.updateRemoteAPIKeyConfig(
-      selectedUpstream.value.id,
-      key.remote_api_key_id,
-      {
-        local_group_ids: [...draft.local_group_ids],
-        scheduling_enabled: draft.scheduling_enabled,
-        api_key: draft.api_key.trim() || undefined
-      }
-    )
-    const index = remoteAPIKeys.value.findIndex((item) => item.remote_api_key_id === saved.remote_api_key_id)
-    if (index >= 0) {
-      remoteAPIKeys.value[index] = saved
-    }
-    remoteKeyDrafts[saved.remote_api_key_id] = {
-      api_key: '',
-      local_group_ids: [...(saved.local_group_ids || [])],
-      scheduling_enabled: remoteAPIKeySchedulingEnabled(saved)
-    }
-    appStore.showSuccess(tr('admin.upstreams.keyConfigSaved', 'API key 配置已保存'))
-    await refreshEventsAndHealth()
-  } catch (error: any) {
-    appStore.showError(errorMessage(error, tr('admin.upstreams.keyConfigSaveFailed', '保存 API key 配置失败')))
-  } finally {
-    savingRemoteKeyId.value = null
-  }
+  void refreshEventsAndHealth()
 }
 
 async function refreshUpstreamBalance() {
@@ -2243,26 +2094,6 @@ async function confirmDelete() {
   } catch (error: any) {
     appStore.showError(errorMessage(error, tr('admin.upstreams.deleteFailed', 'Failed to delete upstream')))
   }
-}
-
-function remoteAPIKeyConfigured(key: UpstreamRemoteAPIKey) {
-  return !!key.api_key_configured || !!key.masked_key
-}
-
-function remoteAPIKeySchedulable(key: UpstreamRemoteAPIKey) {
-  return remoteAPIKeySchedulingEnabled(key) &&
-    remoteAPIKeyConfigured(key) &&
-    remoteAPIKeyStatusActive(key.status) &&
-    (key.local_group_ids || []).length > 0
-}
-
-function remoteAPIKeySchedulingEnabled(key?: UpstreamRemoteAPIKey) {
-  return key?.scheduling_enabled !== false
-}
-
-function remoteAPIKeyStatusActive(status?: string) {
-  const normalized = String(status || '').trim().toLowerCase()
-  return ['', 'active', 'enabled', 'enable', '1', 'true'].includes(normalized)
 }
 
 function localGroupLabel(group: AdminGroup) {

@@ -454,3 +454,56 @@ func (r *upstreamRuntimeAccountRepo) BindGroups(_ context.Context, _ int64, grou
 	r.boundGroups = append(r.boundGroups, append([]int64(nil), groupIDs...))
 	return nil
 }
+
+func TestUpstreamRuntimeConcurrencyNewAPIUnlimited(t *testing.T) {
+	// newapi 上游一般无并发限制：即便配了 weight 也应视为无限制（0）。
+	upstream := &Upstream{Type: UpstreamTypeNewAPI, Weight: 100}
+	if got := upstreamRuntimeConcurrency(upstream); got != 0 {
+		t.Fatalf("newapi concurrency = %d, want 0", got)
+	}
+	// newapi 即便 metadata 里有 concurrency 也忽略（newapi 没有该语义）。
+	upstream.Metadata = map[string]any{"account_concurrency": 5}
+	if got := upstreamRuntimeConcurrency(upstream); got != 0 {
+		t.Fatalf("newapi concurrency with metadata = %d, want 0", got)
+	}
+}
+
+func TestUpstreamRuntimeConcurrencySub2APIWithoutMetadataIsUnlimited(t *testing.T) {
+	// sub2api 未刷新到 auth/me 前没有 account_concurrency：按无限制处理，不再用 weight 编造。
+	upstream := &Upstream{Type: UpstreamTypeSub2API, Weight: 100}
+	if got := upstreamRuntimeConcurrency(upstream); got != 0 {
+		t.Fatalf("sub2api concurrency without metadata = %d, want 0", got)
+	}
+}
+
+func TestUpstreamRuntimeConcurrencySub2APIUsesTotal(t *testing.T) {
+	upstream := &Upstream{
+		Type:     UpstreamTypeSub2API,
+		Metadata: map[string]any{"account_concurrency": 10},
+	}
+	if got := upstreamRuntimeConcurrency(upstream); got != 10 {
+		t.Fatalf("sub2api total concurrency = %d, want 10", got)
+	}
+}
+
+func TestConcurrencySlotID(t *testing.T) {
+	// 普通账号：槽位 ID == 账号 ID。
+	plain := &Account{ID: 42}
+	if got := plain.ConcurrencySlotID(); got != 42 {
+		t.Fatalf("plain slot id = %d, want 42", got)
+	}
+	// 上游托管账号：同一上游的所有合成账号共用 -upstreamID。
+	upstreamA := &Account{ID: 100, Extra: map[string]any{"upstream_id": int64(7)}}
+	upstreamB := &Account{ID: 101, Extra: map[string]any{"upstream_id": int64(7)}}
+	if got := upstreamA.ConcurrencySlotID(); got != -7 {
+		t.Fatalf("upstream account A slot id = %d, want -7", got)
+	}
+	if upstreamA.ConcurrencySlotID() != upstreamB.ConcurrencySlotID() {
+		t.Fatalf("accounts of same upstream must share slot id: %d != %d", upstreamA.ConcurrencySlotID(), upstreamB.ConcurrencySlotID())
+	}
+	// nil 账号：返回 0。
+	var nilAccount *Account
+	if got := nilAccount.ConcurrencySlotID(); got != 0 {
+		t.Fatalf("nil account slot id = %d, want 0", got)
+	}
+}

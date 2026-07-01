@@ -410,7 +410,7 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 				return
 			}
 			accountWaitCounted := false
-			canWait, err := geminiConcurrency.IncrementAccountWaitCount(c.Request.Context(), account.ID, selection.WaitPlan.MaxWaiting)
+			canWait, err := geminiConcurrency.IncrementAccountWaitCount(c.Request.Context(), account.ConcurrencySlotID(), selection.WaitPlan.MaxWaiting)
 			if err != nil {
 				reqLog.Warn("gemini.account_wait_counter_increment_failed", zap.Int64("account_id", account.ID), zap.Error(err))
 			} else if !canWait {
@@ -426,13 +426,13 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 			}
 			defer func() {
 				if accountWaitCounted {
-					geminiConcurrency.DecrementAccountWaitCount(c.Request.Context(), account.ID)
+					geminiConcurrency.DecrementAccountWaitCount(c.Request.Context(), account.ConcurrencySlotID())
 				}
 			}()
 
 			accountReleaseFunc, err = geminiConcurrency.AcquireAccountSlotWithWaitTimeout(
 				c,
-				account.ID,
+				account.ConcurrencySlotID(),
 				selection.WaitPlan.MaxConcurrency,
 				selection.WaitPlan.Timeout,
 				stream,
@@ -444,7 +444,7 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 				return
 			}
 			if accountWaitCounted {
-				geminiConcurrency.DecrementAccountWaitCount(c.Request.Context(), account.ID)
+				geminiConcurrency.DecrementAccountWaitCount(c.Request.Context(), account.ConcurrencySlotID())
 				accountWaitCounted = false
 			}
 			if err := h.gatewayService.BindStickySession(c.Request.Context(), apiKey.GroupID, sessionKey, account.ID); err != nil {
